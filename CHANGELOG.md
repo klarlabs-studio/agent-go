@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Implement OpenAI chat completions provider (`contrib/planner-llm/providers`) — replaces stub with real HTTP calls, supports OpenAI, Azure OpenAI, and Ollama (OpenAI-compat mode) via `BaseURL` override
+
 ## [0.5.0] - 2026-01-29
 
 ### Added
