@@ -14,8 +14,15 @@
 package providers
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
 
 	plannerllm "github.com/felixgeelhaar/agent-go/contrib/planner-llm"
 )
@@ -64,10 +71,137 @@ func NewOpenAIProvider(cfg OpenAIConfig) *OpenAIProvider {
 	return &OpenAIProvider{config: cfg}
 }
 
-// Complete sends a completion request to OpenAI.
+// openaiRequest is the request body for the OpenAI chat completions API.
+type openaiRequest struct {
+	Model       string           `json:"model"`
+	Messages    []openaiMessage  `json:"messages"`
+	Temperature *float64         `json:"temperature,omitempty"`
+	MaxTokens   int              `json:"max_tokens,omitempty"`
+}
+
+type openaiMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+// openaiResponse is the response body from the OpenAI chat completions API.
+type openaiResponse struct {
+	ID      string `json:"id"`
+	Model   string `json:"model"`
+	Choices []struct {
+		Message struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		} `json:"message"`
+		FinishReason string `json:"finish_reason"`
+	} `json:"choices"`
+	Usage struct {
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+		TotalTokens      int `json:"total_tokens"`
+	} `json:"usage"`
+	Error *struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+	} `json:"error,omitempty"`
+}
+
+// Complete sends a completion request to OpenAI's chat completions API.
 func (p *OpenAIProvider) Complete(ctx context.Context, req plannerllm.CompletionRequest) (plannerllm.CompletionResponse, error) {
-	// TODO: Implement OpenAI API call
-	return plannerllm.CompletionResponse{}, errors.New("OpenAI provider not yet implemented")
+	if p.config.APIKey == "" {
+		return plannerllm.CompletionResponse{}, ErrMissingAPIKey
+	}
+
+	model := req.Model
+	if model == "" {
+		model = p.config.Model
+	}
+	if model == "" {
+		model = "gpt-4o"
+	}
+
+	msgs := make([]openaiMessage, len(req.Messages))
+	for i, m := range req.Messages {
+		msgs[i] = openaiMessage{Role: m.Role, Content: m.Content}
+	}
+
+	body := openaiRequest{
+		Model:    model,
+		Messages: msgs,
+	}
+	if req.Temperature > 0 {
+		t := req.Temperature
+		body.Temperature = &t
+	}
+	if req.MaxTokens > 0 {
+		body.MaxTokens = req.MaxTokens
+	}
+
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return plannerllm.CompletionResponse{}, fmt.Errorf("marshal request: %w", err)
+	}
+
+	url := strings.TrimRight(p.config.BaseURL, "/") + "/chat/completions"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+	if err != nil {
+		return plannerllm.CompletionResponse{}, fmt.Errorf("create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+p.config.APIKey)
+	if p.config.Organization != "" {
+		httpReq.Header.Set("OpenAI-Organization", p.config.Organization)
+	}
+
+	client := &http.Client{Timeout: time.Duration(p.config.Timeout) * time.Second}
+	httpResp, err := client.Do(httpReq)
+	if err != nil {
+		if ctx.Err() != nil {
+			return plannerllm.CompletionResponse{}, ErrContextCanceled
+		}
+		return plannerllm.CompletionResponse{}, fmt.Errorf("%w: %v", ErrConnectionFailed, err)
+	}
+	defer func() { _ = httpResp.Body.Close() }()
+
+	respBody, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return plannerllm.CompletionResponse{}, fmt.Errorf("read response: %w", err)
+	}
+
+	if httpResp.StatusCode == http.StatusTooManyRequests {
+		return plannerllm.CompletionResponse{}, ErrRateLimited
+	}
+	if httpResp.StatusCode != http.StatusOK {
+		return plannerllm.CompletionResponse{}, fmt.Errorf("API error (status %d): %s", httpResp.StatusCode, string(respBody))
+	}
+
+	var oaiResp openaiResponse
+	if err := json.Unmarshal(respBody, &oaiResp); err != nil {
+		return plannerllm.CompletionResponse{}, fmt.Errorf("unmarshal response: %w", err)
+	}
+
+	if oaiResp.Error != nil {
+		return plannerllm.CompletionResponse{}, fmt.Errorf("API error: %s", oaiResp.Error.Message)
+	}
+
+	var content string
+	if len(oaiResp.Choices) > 0 {
+		content = oaiResp.Choices[0].Message.Content
+	}
+
+	return plannerllm.CompletionResponse{
+		ID:    oaiResp.ID,
+		Model: oaiResp.Model,
+		Message: plannerllm.Message{
+			Role:    "assistant",
+			Content: content,
+		},
+		Usage: plannerllm.Usage{
+			PromptTokens:     oaiResp.Usage.PromptTokens,
+			CompletionTokens: oaiResp.Usage.CompletionTokens,
+			TotalTokens:      oaiResp.Usage.TotalTokens,
+		},
+	}, nil
 }
 
 // Name returns the provider name.
