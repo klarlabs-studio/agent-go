@@ -8,7 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Implement OpenAI chat completions provider (`contrib/planner-llm/providers`) — replaces stub with real HTTP calls, supports OpenAI, Azure OpenAI, and Ollama (OpenAI-compat mode) via `BaseURL` override
+- Implement all LLM provider completions (`contrib/planner-llm/providers`) — replaces stubs with real HTTP calls
+  - **OpenAI**: `/chat/completions` API, supports Azure OpenAI and compatible APIs via `BaseURL`
+  - **Anthropic**: `/v1/messages` API with `x-api-key` auth and system message separation
+  - **Gemini**: Google AI `generateContent` API with API key auth
+  - **Ollama**: Native `/api/chat` endpoint for local models
+  - **Cohere**: v2 Chat API with Bearer auth and content array response
+  - **AWS Bedrock**: Converse API with full SigV4 request signing (no AWS SDK dependency)
+  - **GitHub Copilot**: OpenAI-compatible endpoint at `api.githubcopilot.com`
+
+### Changed
+- Refactor providers into per-file structure with shared `doRequest` helper and `resolveModel` utility
 
 ## [0.5.0] - 2026-01-29
 
