@@ -11,20 +11,23 @@
 //		Model:  "gpt-4",
 //	})
 //
-//	planner := plannerllm.NewPlanner(plannerllm.Config{
+//	llmPlanner := plannerllm.NewPlanner(plannerllm.Config{
 //		Provider:    provider,
 //		Temperature: 0.7,
-//		MaxTokens:   1024,
+//		MaxTokens:   4096,
 //	})
 //
 //	// Use planner with agent engine
-//	engine, err := api.New(api.WithPlanner(planner))
+//	engine, err := api.New(api.WithPlanner(llmPlanner))
 package plannerllm
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"github.com/felixgeelhaar/agent-go/infrastructure/planner"
 )
 
 // Provider defines the interface for LLM providers.
@@ -38,15 +41,6 @@ type Provider interface {
 	Name() string
 }
 
-// StreamingProvider extends Provider with streaming capabilities.
-type StreamingProvider interface {
-	Provider
-
-	// CompleteStream sends a streaming completion request.
-	// The returned channel receives content chunks until completion.
-	CompleteStream(ctx context.Context, req CompletionRequest) (<-chan StreamChunk, error)
-}
-
 // CompletionRequest represents a chat completion request.
 type CompletionRequest struct {
 	Model       string    `json:"model"`
@@ -54,16 +48,15 @@ type CompletionRequest struct {
 	Temperature float64   `json:"temperature,omitempty"`
 	MaxTokens   int       `json:"max_tokens,omitempty"`
 	Tools       []Tool    `json:"tools,omitempty"`
-	Stream      bool      `json:"stream,omitempty"`
 }
 
 // CompletionResponse represents a chat completion response.
 type CompletionResponse struct {
-	ID      string   `json:"id"`
-	Model   string   `json:"model"`
-	Message Message  `json:"message"`
-	Usage   Usage    `json:"usage"`
-	Error   error    `json:"error,omitempty"`
+	ID      string  `json:"id"`
+	Model   string  `json:"model"`
+	Message Message `json:"message"`
+	Usage   Usage   `json:"usage"`
+	Error   error   `json:"error,omitempty"`
 }
 
 // Message represents a chat message.
@@ -103,36 +96,6 @@ type Usage struct {
 	TotalTokens      int `json:"total_tokens"`
 }
 
-// StreamChunk represents a streaming response chunk.
-type StreamChunk struct {
-	Content string `json:"content"`
-	Done    bool   `json:"done"`
-	Error   error  `json:"error,omitempty"`
-}
-
-// Planner is the interface that all planner implementations must satisfy.
-// It matches the core agent runtime's planner contract.
-type Planner interface {
-	// Plan makes a planning decision based on the current state.
-	Plan(ctx context.Context, req PlanRequest) (agent.Decision, error)
-}
-
-// PlanRequest contains all information needed for a planning decision.
-type PlanRequest struct {
-	RunID        string              `json:"run_id"`
-	Goal         string              `json:"goal"`
-	CurrentState agent.State         `json:"current_state"`
-	Evidence     []agent.Evidence    `json:"evidence"`
-	AllowedTools []string            `json:"allowed_tools"`
-	Vars         map[string]any      `json:"vars"`
-	Budgets      BudgetStatus        `json:"budgets"`
-}
-
-// BudgetStatus tracks remaining budget across different dimensions.
-type BudgetStatus struct {
-	Remaining map[string]int `json:"remaining"`
-}
-
 // Config configures the LLM planner.
 type Config struct {
 	// Provider is the LLM provider to use.
@@ -149,9 +112,6 @@ type Config struct {
 
 	// SystemPrompt overrides the default system prompt.
 	SystemPrompt string
-
-	// EnableStreaming enables streaming responses if the provider supports it.
-	EnableStreaming bool
 }
 
 // LLMPlanner uses an LLM provider to make planning decisions.
@@ -161,7 +121,6 @@ type LLMPlanner struct {
 	temperature  float64
 	maxTokens    int
 	systemPrompt string
-	streaming    bool
 }
 
 // NewPlanner creates a new LLM-based planner with the given configuration.
@@ -173,7 +132,7 @@ func NewPlanner(cfg Config) *LLMPlanner {
 
 	maxTokens := cfg.MaxTokens
 	if maxTokens == 0 {
-		maxTokens = 1024
+		maxTokens = 4096
 	}
 
 	systemPrompt := cfg.SystemPrompt
@@ -187,25 +146,46 @@ func NewPlanner(cfg Config) *LLMPlanner {
 		temperature:  temperature,
 		maxTokens:    maxTokens,
 		systemPrompt: systemPrompt,
-		streaming:    cfg.EnableStreaming,
 	}
 }
 
-// Plan implements the Planner interface.
+// Plan implements the planner.Planner interface.
 // It builds a prompt from the plan request, sends it to the LLM provider,
 // and parses the response into a Decision.
-func (p *LLMPlanner) Plan(ctx context.Context, req PlanRequest) (agent.Decision, error) {
-	// TODO: Implement actual planning logic
-	// 1. Build messages from plan request
-	// 2. Send completion request to provider
-	// 3. Parse response into agent.Decision
+func (p *LLMPlanner) Plan(ctx context.Context, req planner.PlanRequest) (agent.Decision, error) {
+	// Build messages from request context
+	messages := BuildMessages(p.systemPrompt, req)
 
-	return agent.Decision{
-		Type: agent.DecisionFail,
-		Fail: &agent.FailDecision{
-			Reason: "LLM planner not yet implemented",
-		},
-	}, nil
+	// Convert tool defs for providers that support native tool calling
+	var tools []Tool
+	for _, td := range req.ToolDefs {
+		tools = append(tools, Tool{
+			Type: "function",
+			Function: ToolFunction{
+				Name:        td.Name,
+				Description: td.Description,
+				Parameters:  json.RawMessage(td.InputSchema),
+			},
+		})
+	}
+
+	// Call provider
+	resp, err := p.provider.Complete(ctx, CompletionRequest{
+		Model:       p.model,
+		Messages:    messages,
+		Temperature: p.temperature,
+		MaxTokens:   p.maxTokens,
+		Tools:       tools,
+	})
+	if err != nil {
+		return agent.Decision{}, fmt.Errorf("LLM completion failed: %w", err)
+	}
+
+	// Parse response — native tool calls take priority over text JSON
+	if len(resp.Message.ToolCalls) > 0 {
+		return ParseToolCalls(resp.Message.ToolCalls)
+	}
+	return ParseDecisionJSON(resp.Message.Content)
 }
 
 // DefaultSystemPrompt is the default system prompt for the agent planner.
@@ -231,6 +211,9 @@ Valid states: intake, explore, decide, act, validate, done, failed
 ### 4. Fail
 {"decision": "fail", "reason": "<why failed>"}
 
+### 5. Ask Human
+{"decision": "ask_human", "question": "<what to ask>", "options": ["opt1", "opt2"]}
+
 ## Guidelines
 
 1. In "explore" state: Gather information using read-only tools
@@ -239,5 +222,5 @@ Valid states: intake, explore, decide, act, validate, done, failed
 4. Always provide a reason for your decisions
 5. Respond ONLY with valid JSON, no additional text`
 
-// Ensure LLMPlanner implements Planner interface.
-var _ Planner = (*LLMPlanner)(nil)
+// Ensure LLMPlanner implements the infrastructure planner.Planner interface.
+var _ planner.Planner = (*LLMPlanner)(nil)

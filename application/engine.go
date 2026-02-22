@@ -362,9 +362,11 @@ func (e *Engine) step(ctx context.Context, interp *statemachine.Interpreter, mac
 	// Request decision from planner
 	req := planner.PlanRequest{
 		RunID:        run.ID,
+		Goal:         run.Goal,
 		CurrentState: run.CurrentState,
 		Evidence:     run.Evidence,
 		AllowedTools: allowedTools,
+		ToolDefs:     e.buildToolDefs(allowedTools),
 		Budgets:      machineCtx.Budget.Snapshot(),
 		Vars:         run.Vars,
 	}
@@ -513,6 +515,21 @@ func generateRunID() string {
 	b := make([]byte, 4)
 	_, _ = rand.Read(b)
 	return fmt.Sprintf("run-%d-%s", time.Now().UnixNano(), hex.EncodeToString(b))
+}
+
+// buildToolDefs converts allowed tool names into ToolDef structs for the planner.
+func (e *Engine) buildToolDefs(allowedTools []string) []planner.ToolDef {
+	defs := make([]planner.ToolDef, 0, len(allowedTools))
+	for _, name := range allowedTools {
+		if t, ok := e.registry.Get(name); ok {
+			defs = append(defs, planner.ToolDef{
+				Name:        t.Name(),
+				Description: t.Description(),
+				InputSchema: t.InputSchema().Raw(),
+			})
+		}
+	}
+	return defs
 }
 
 // Knowledge returns the knowledge store, if configured.

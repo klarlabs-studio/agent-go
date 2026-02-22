@@ -38,15 +38,34 @@ func NewOllamaProvider(cfg OllamaConfig) *OllamaProvider {
 }
 
 type ollamaRequest struct {
-	Model    string           `json:"model"`
-	Messages []ollamaMessage  `json:"messages"`
-	Stream   bool             `json:"stream"`
-	Options  *ollamaOptions   `json:"options,omitempty"`
+	Model    string          `json:"model"`
+	Messages []ollamaMessage `json:"messages"`
+	Stream   bool            `json:"stream"`
+	Options  *ollamaOptions  `json:"options,omitempty"`
+	Tools    []ollamaTool    `json:"tools,omitempty"`
 }
 
 type ollamaMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+}
+
+type ollamaTool struct {
+	Type     string             `json:"type"`
+	Function ollamaToolFunction `json:"function"`
+}
+
+type ollamaToolFunction struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Parameters  json.RawMessage `json:"parameters,omitempty"`
+}
+
+type ollamaToolCall struct {
+	Function struct {
+		Name      string          `json:"name"`
+		Arguments json.RawMessage `json:"arguments"`
+	} `json:"function"`
 }
 
 type ollamaOptions struct {
@@ -57,12 +76,13 @@ type ollamaOptions struct {
 type ollamaResponse struct {
 	Model   string `json:"model"`
 	Message struct {
-		Role    string `json:"role"`
-		Content string `json:"content"`
+		Role      string           `json:"role"`
+		Content   string           `json:"content"`
+		ToolCalls []ollamaToolCall `json:"tool_calls,omitempty"`
 	} `json:"message"`
-	Done            bool `json:"done"`
-	PromptEvalCount int  `json:"prompt_eval_count"`
-	EvalCount       int  `json:"eval_count"`
+	Done            bool   `json:"done"`
+	PromptEvalCount int    `json:"prompt_eval_count"`
+	EvalCount       int    `json:"eval_count"`
 	Error           string `json:"error,omitempty"`
 }
 
@@ -92,6 +112,37 @@ func (p *OllamaProvider) Complete(ctx context.Context, req plannerllm.Completion
 		body.Options = opts
 	}
 
+	// Convert tool definitions
+	if len(req.Tools) > 0 {
+		tools := make([]ollamaTool, len(req.Tools))
+		for i, t := range req.Tools {
+			var params json.RawMessage
+			if t.Function.Parameters != nil {
+				switch v := t.Function.Parameters.(type) {
+				case json.RawMessage:
+					params = v
+				case []byte:
+					params = json.RawMessage(v)
+				default:
+					b, err := json.Marshal(v)
+					if err != nil {
+						return plannerllm.CompletionResponse{}, fmt.Errorf("marshal tool parameters: %w", err)
+					}
+					params = b
+				}
+			}
+			tools[i] = ollamaTool{
+				Type: "function",
+				Function: ollamaToolFunction{
+					Name:        t.Function.Name,
+					Description: t.Function.Description,
+					Parameters:  params,
+				},
+			}
+		}
+		body.Tools = tools
+	}
+
 	url := strings.TrimRight(p.config.BaseURL, "/") + "/api/chat"
 	respBody, err := doRequest(ctx, "POST", url, nil, body, p.config.Timeout)
 	if err != nil {
@@ -106,11 +157,28 @@ func (p *OllamaProvider) Complete(ctx context.Context, req plannerllm.Completion
 		return plannerllm.CompletionResponse{}, fmt.Errorf("Ollama error: %s", oResp.Error)
 	}
 
+	var toolCalls []plannerllm.ToolCall
+	for i, tc := range oResp.Message.ToolCalls {
+		args := string(tc.Function.Arguments)
+		toolCalls = append(toolCalls, plannerllm.ToolCall{
+			ID:   fmt.Sprintf("call_%d", i),
+			Type: "function",
+			Function: struct {
+				Name      string `json:"name"`
+				Arguments string `json:"arguments"`
+			}{
+				Name:      tc.Function.Name,
+				Arguments: args,
+			},
+		})
+	}
+
 	return plannerllm.CompletionResponse{
 		Model: oResp.Model,
 		Message: plannerllm.Message{
-			Role:    oResp.Message.Role,
-			Content: oResp.Message.Content,
+			Role:      oResp.Message.Role,
+			Content:   oResp.Message.Content,
+			ToolCalls: toolCalls,
 		},
 		Usage: plannerllm.Usage{
 			PromptTokens:     oResp.PromptEvalCount,

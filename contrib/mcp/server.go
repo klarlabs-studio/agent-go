@@ -32,6 +32,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -303,7 +304,8 @@ func (s *Server) handleGetPrompt(w http.ResponseWriter, _ *http.Request) {
 func (s *Server) writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(v); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		// Headers already written; http.Error would cause a double-write.
+		log.Printf("mcp: failed to encode JSON response: %v", err)
 	}
 }
 

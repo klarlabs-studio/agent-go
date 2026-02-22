@@ -41,15 +41,36 @@ func NewCohereProvider(cfg CohereConfig) *CohereProvider {
 }
 
 type cohereRequest struct {
-	Model       string           `json:"model"`
-	Messages    []cohereMessage  `json:"messages"`
-	Temperature *float64         `json:"temperature,omitempty"`
-	MaxTokens   int              `json:"max_tokens,omitempty"`
+	Model       string          `json:"model"`
+	Messages    []cohereMessage `json:"messages"`
+	Temperature *float64        `json:"temperature,omitempty"`
+	MaxTokens   int             `json:"max_tokens,omitempty"`
+	Tools       []cohereTool    `json:"tools,omitempty"`
 }
 
 type cohereMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+}
+
+type cohereTool struct {
+	Type     string             `json:"type"`
+	Function cohereToolFunction `json:"function"`
+}
+
+type cohereToolFunction struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Parameters  json.RawMessage `json:"parameters,omitempty"`
+}
+
+type cohereToolCall struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Function struct {
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"function"`
 }
 
 type cohereResponse struct {
@@ -60,6 +81,7 @@ type cohereResponse struct {
 			Type string `json:"type"`
 			Text string `json:"text"`
 		} `json:"content"`
+		ToolCalls []cohereToolCall `json:"tool_calls,omitempty"`
 	} `json:"message"`
 	Usage struct {
 		Tokens struct {
@@ -92,6 +114,37 @@ func (p *CohereProvider) Complete(ctx context.Context, req plannerllm.Completion
 		body.MaxTokens = req.MaxTokens
 	}
 
+	// Convert tool definitions
+	if len(req.Tools) > 0 {
+		tools := make([]cohereTool, len(req.Tools))
+		for i, t := range req.Tools {
+			var params json.RawMessage
+			if t.Function.Parameters != nil {
+				switch v := t.Function.Parameters.(type) {
+				case json.RawMessage:
+					params = v
+				case []byte:
+					params = json.RawMessage(v)
+				default:
+					b, err := json.Marshal(v)
+					if err != nil {
+						return plannerllm.CompletionResponse{}, fmt.Errorf("marshal tool parameters: %w", err)
+					}
+					params = b
+				}
+			}
+			tools[i] = cohereTool{
+				Type: "function",
+				Function: cohereToolFunction{
+					Name:        t.Function.Name,
+					Description: t.Function.Description,
+					Parameters:  params,
+				},
+			}
+		}
+		body.Tools = tools
+	}
+
 	headers := map[string]string{
 		"Authorization": "Bearer " + p.config.APIKey,
 	}
@@ -117,6 +170,21 @@ func (p *CohereProvider) Complete(ctx context.Context, req plannerllm.Completion
 		}
 	}
 
+	var toolCalls []plannerllm.ToolCall
+	for _, tc := range cResp.Message.ToolCalls {
+		toolCalls = append(toolCalls, plannerllm.ToolCall{
+			ID:   tc.ID,
+			Type: tc.Type,
+			Function: struct {
+				Name      string `json:"name"`
+				Arguments string `json:"arguments"`
+			}{
+				Name:      tc.Function.Name,
+				Arguments: tc.Function.Arguments,
+			},
+		})
+	}
+
 	inputTokens := cResp.Usage.Tokens.InputTokens
 	outputTokens := cResp.Usage.Tokens.OutputTokens
 
@@ -124,8 +192,9 @@ func (p *CohereProvider) Complete(ctx context.Context, req plannerllm.Completion
 		ID:    cResp.ID,
 		Model: model,
 		Message: plannerllm.Message{
-			Role:    "assistant",
-			Content: content,
+			Role:      "assistant",
+			Content:   content,
+			ToolCalls: toolCalls,
 		},
 		Usage: plannerllm.Usage{
 			PromptTokens:     inputTokens,

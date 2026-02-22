@@ -54,9 +54,10 @@ func NewBedrockProvider(cfg BedrockConfig) *BedrockProvider {
 }
 
 type bedrockRequest struct {
-	Messages        []bedrockMessage `json:"messages"`
-	System          []bedrockBlock   `json:"system,omitempty"`
-	InferenceConfig *bedrockInfCfg   `json:"inferenceConfig,omitempty"`
+	Messages        []bedrockMessage  `json:"messages"`
+	System          []bedrockBlock    `json:"system,omitempty"`
+	InferenceConfig *bedrockInfCfg    `json:"inferenceConfig,omitempty"`
+	ToolConfig      *bedrockToolCfg   `json:"toolConfig,omitempty"`
 }
 
 type bedrockMessage struct {
@@ -65,7 +66,32 @@ type bedrockMessage struct {
 }
 
 type bedrockBlock struct {
-	Text string `json:"text"`
+	Text    string          `json:"text,omitempty"`
+	ToolUse *bedrockToolUse `json:"toolUse,omitempty"`
+}
+
+type bedrockToolUse struct {
+	ToolUseID string          `json:"toolUseId"`
+	Name      string          `json:"name"`
+	Input     json.RawMessage `json:"input"`
+}
+
+type bedrockToolCfg struct {
+	Tools []bedrockToolSpec `json:"tools"`
+}
+
+type bedrockToolSpec struct {
+	ToolSpec bedrockToolSpecDef `json:"toolSpec"`
+}
+
+type bedrockToolSpecDef struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	InputSchema bedrockSchema   `json:"inputSchema"`
+}
+
+type bedrockSchema struct {
+	JSON json.RawMessage `json:"json"`
 }
 
 type bedrockInfCfg struct {
@@ -73,13 +99,16 @@ type bedrockInfCfg struct {
 	MaxTokens   int      `json:"maxTokens,omitempty"`
 }
 
+type bedrockResponseBlock struct {
+	Text    string          `json:"text,omitempty"`
+	ToolUse *bedrockToolUse `json:"toolUse,omitempty"`
+}
+
 type bedrockResponse struct {
 	Output struct {
 		Message struct {
-			Role    string `json:"role"`
-			Content []struct {
-				Text string `json:"text"`
-			} `json:"content"`
+			Role    string                `json:"role"`
+			Content []bedrockResponseBlock `json:"content"`
 		} `json:"message"`
 	} `json:"output"`
 	Usage struct {
@@ -124,6 +153,39 @@ func (p *BedrockProvider) Complete(ctx context.Context, req plannerllm.Completio
 			cfg.MaxTokens = req.MaxTokens
 		}
 		body.InferenceConfig = cfg
+	}
+
+	// Convert tool definitions
+	if len(req.Tools) > 0 {
+		specs := make([]bedrockToolSpec, len(req.Tools))
+		for i, t := range req.Tools {
+			var schema json.RawMessage
+			if t.Function.Parameters != nil {
+				switch v := t.Function.Parameters.(type) {
+				case json.RawMessage:
+					schema = v
+				case []byte:
+					schema = json.RawMessage(v)
+				default:
+					b, err := json.Marshal(v)
+					if err != nil {
+						return plannerllm.CompletionResponse{}, fmt.Errorf("marshal tool schema: %w", err)
+					}
+					schema = b
+				}
+			}
+			if schema == nil {
+				schema = json.RawMessage(`{"type":"object"}`)
+			}
+			specs[i] = bedrockToolSpec{
+				ToolSpec: bedrockToolSpecDef{
+					Name:        t.Function.Name,
+					Description: t.Function.Description,
+					InputSchema: bedrockSchema{JSON: schema},
+				},
+			}
+		}
+		body.ToolConfig = &bedrockToolCfg{Tools: specs}
 	}
 
 	payload, err := json.Marshal(body)
@@ -178,15 +240,33 @@ func (p *BedrockProvider) Complete(ctx context.Context, req plannerllm.Completio
 	}
 
 	var content string
+	var toolCalls []plannerllm.ToolCall
 	for _, c := range bResp.Output.Message.Content {
-		content += c.Text
+		if c.Text != "" {
+			content += c.Text
+		}
+		if c.ToolUse != nil {
+			args := string(c.ToolUse.Input)
+			toolCalls = append(toolCalls, plannerllm.ToolCall{
+				ID:   c.ToolUse.ToolUseID,
+				Type: "function",
+				Function: struct {
+					Name      string `json:"name"`
+					Arguments string `json:"arguments"`
+				}{
+					Name:      c.ToolUse.Name,
+					Arguments: args,
+				},
+			})
+		}
 	}
 
 	return plannerllm.CompletionResponse{
 		Model: model,
 		Message: plannerllm.Message{
-			Role:    "assistant",
-			Content: content,
+			Role:      "assistant",
+			Content:   content,
+			ToolCalls: toolCalls,
 		},
 		Usage: plannerllm.Usage{
 			PromptTokens:     bResp.Usage.InputTokens,

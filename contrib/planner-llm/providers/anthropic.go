@@ -52,6 +52,7 @@ type anthropicRequest struct {
 	System      string             `json:"system,omitempty"`
 	MaxTokens   int                `json:"max_tokens"`
 	Temperature *float64           `json:"temperature,omitempty"`
+	Tools       []anthropicTool    `json:"tools,omitempty"`
 }
 
 type anthropicMessage struct {
@@ -59,15 +60,26 @@ type anthropicMessage struct {
 	Content string `json:"content"`
 }
 
+type anthropicTool struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	InputSchema json.RawMessage `json:"input_schema"`
+}
+
+type anthropicContentBlock struct {
+	Type  string          `json:"type"`
+	Text  string          `json:"text,omitempty"`
+	ID    string          `json:"id,omitempty"`
+	Name  string          `json:"name,omitempty"`
+	Input json.RawMessage `json:"input,omitempty"`
+}
+
 type anthropicResponse struct {
-	ID      string `json:"id"`
-	Type    string `json:"type"`
-	Model   string `json:"model"`
-	Content []struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
-	} `json:"content"`
-	Usage struct {
+	ID      string                  `json:"id"`
+	Type    string                  `json:"type"`
+	Model   string                  `json:"model"`
+	Content []anthropicContentBlock `json:"content"`
+	Usage   struct {
 		InputTokens  int `json:"input_tokens"`
 		OutputTokens int `json:"output_tokens"`
 	} `json:"usage"`
@@ -112,6 +124,37 @@ func (p *AnthropicProvider) Complete(ctx context.Context, req plannerllm.Complet
 		body.Temperature = &t
 	}
 
+	// Convert tool definitions
+	if len(req.Tools) > 0 {
+		tools := make([]anthropicTool, len(req.Tools))
+		for i, t := range req.Tools {
+			var schema json.RawMessage
+			if t.Function.Parameters != nil {
+				switch v := t.Function.Parameters.(type) {
+				case json.RawMessage:
+					schema = v
+				case []byte:
+					schema = json.RawMessage(v)
+				default:
+					b, err := json.Marshal(v)
+					if err != nil {
+						return plannerllm.CompletionResponse{}, fmt.Errorf("marshal tool schema: %w", err)
+					}
+					schema = b
+				}
+			}
+			if schema == nil {
+				schema = json.RawMessage(`{"type":"object"}`)
+			}
+			tools[i] = anthropicTool{
+				Name:        t.Function.Name,
+				Description: t.Function.Description,
+				InputSchema: schema,
+			}
+		}
+		body.Tools = tools
+	}
+
 	headers := map[string]string{
 		"x-api-key":         p.config.APIKey,
 		"anthropic-version": p.config.AnthropicVersion,
@@ -132,9 +175,25 @@ func (p *AnthropicProvider) Complete(ctx context.Context, req plannerllm.Complet
 	}
 
 	var content string
+	var toolCalls []plannerllm.ToolCall
 	for _, c := range aResp.Content {
-		if c.Type == "text" {
+		switch c.Type {
+		case "text":
 			content += c.Text
+		case "tool_use":
+			// Anthropic returns input as parsed JSON object; marshal to string for uniform ToolCall format
+			args := string(c.Input)
+			toolCalls = append(toolCalls, plannerllm.ToolCall{
+				ID:   c.ID,
+				Type: "function",
+				Function: struct {
+					Name      string `json:"name"`
+					Arguments string `json:"arguments"`
+				}{
+					Name:      c.Name,
+					Arguments: args,
+				},
+			})
 		}
 	}
 
@@ -142,8 +201,9 @@ func (p *AnthropicProvider) Complete(ctx context.Context, req plannerllm.Complet
 		ID:    aResp.ID,
 		Model: aResp.Model,
 		Message: plannerllm.Message{
-			Role:    "assistant",
-			Content: content,
+			Role:      "assistant",
+			Content:   content,
+			ToolCalls: toolCalls,
 		},
 		Usage: plannerllm.Usage{
 			PromptTokens:     aResp.Usage.InputTokens,

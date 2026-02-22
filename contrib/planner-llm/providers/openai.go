@@ -49,6 +49,7 @@ type openaiRequest struct {
 	Messages    []openaiMessage `json:"messages"`
 	Temperature *float64        `json:"temperature,omitempty"`
 	MaxTokens   int             `json:"max_tokens,omitempty"`
+	Tools       []openaiTool    `json:"tools,omitempty"`
 }
 
 type openaiMessage struct {
@@ -56,13 +57,34 @@ type openaiMessage struct {
 	Content string `json:"content"`
 }
 
+type openaiTool struct {
+	Type     string             `json:"type"`
+	Function openaiToolFunction `json:"function"`
+}
+
+type openaiToolFunction struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Parameters  json.RawMessage `json:"parameters,omitempty"`
+}
+
+type openaiToolCall struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Function struct {
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"function"`
+}
+
 type openaiResponse struct {
 	ID      string `json:"id"`
 	Model   string `json:"model"`
 	Choices []struct {
 		Message struct {
-			Role    string `json:"role"`
-			Content string `json:"content"`
+			Role      string           `json:"role"`
+			Content   string           `json:"content"`
+			ToolCalls []openaiToolCall `json:"tool_calls,omitempty"`
 		} `json:"message"`
 	} `json:"choices"`
 	Usage struct {
@@ -97,6 +119,37 @@ func (p *OpenAIProvider) Complete(ctx context.Context, req plannerllm.Completion
 		body.MaxTokens = req.MaxTokens
 	}
 
+	// Convert tool definitions
+	if len(req.Tools) > 0 {
+		tools := make([]openaiTool, len(req.Tools))
+		for i, t := range req.Tools {
+			var params json.RawMessage
+			if t.Function.Parameters != nil {
+				switch v := t.Function.Parameters.(type) {
+				case json.RawMessage:
+					params = v
+				case []byte:
+					params = json.RawMessage(v)
+				default:
+					b, err := json.Marshal(v)
+					if err != nil {
+						return plannerllm.CompletionResponse{}, fmt.Errorf("marshal tool parameters: %w", err)
+					}
+					params = b
+				}
+			}
+			tools[i] = openaiTool{
+				Type: "function",
+				Function: openaiToolFunction{
+					Name:        t.Function.Name,
+					Description: t.Function.Description,
+					Parameters:  params,
+				},
+			}
+		}
+		body.Tools = tools
+	}
+
 	headers := map[string]string{
 		"Authorization": "Bearer " + p.config.APIKey,
 	}
@@ -119,16 +172,32 @@ func (p *OpenAIProvider) Complete(ctx context.Context, req plannerllm.Completion
 	}
 
 	var content string
+	var toolCalls []plannerllm.ToolCall
 	if len(oaiResp.Choices) > 0 {
-		content = oaiResp.Choices[0].Message.Content
+		choice := oaiResp.Choices[0].Message
+		content = choice.Content
+		for _, tc := range choice.ToolCalls {
+			toolCalls = append(toolCalls, plannerllm.ToolCall{
+				ID:   tc.ID,
+				Type: tc.Type,
+				Function: struct {
+					Name      string `json:"name"`
+					Arguments string `json:"arguments"`
+				}{
+					Name:      tc.Function.Name,
+					Arguments: tc.Function.Arguments,
+				},
+			})
+		}
 	}
 
 	return plannerllm.CompletionResponse{
 		ID:    oaiResp.ID,
 		Model: oaiResp.Model,
 		Message: plannerllm.Message{
-			Role:    "assistant",
-			Content: content,
+			Role:      "assistant",
+			Content:   content,
+			ToolCalls: toolCalls,
 		},
 		Usage: plannerllm.Usage{
 			PromptTokens:     oaiResp.Usage.PromptTokens,

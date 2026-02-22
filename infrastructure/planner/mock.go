@@ -3,18 +3,28 @@ package planner
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 
 	"github.com/felixgeelhaar/agent-go/domain/agent"
 	"github.com/felixgeelhaar/agent-go/domain/policy"
 )
 
+// ToolDef describes a tool available for planning decisions.
+type ToolDef struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	InputSchema json.RawMessage `json:"input_schema,omitempty"`
+}
+
 // PlanRequest contains all information needed for planning.
 type PlanRequest struct {
 	RunID        string
+	Goal         string
 	CurrentState agent.State
 	Evidence     []agent.Evidence
 	AllowedTools []string
+	ToolDefs     []ToolDef
 	Budgets      policy.BudgetSnapshot
 	Vars         map[string]any
 }

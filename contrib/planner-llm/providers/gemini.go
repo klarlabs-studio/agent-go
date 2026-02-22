@@ -43,6 +43,7 @@ type geminiRequest struct {
 	Contents         []geminiContent  `json:"contents"`
 	SystemInstruct   *geminiContent   `json:"systemInstruction,omitempty"`
 	GenerationConfig *geminiGenConfig `json:"generationConfig,omitempty"`
+	Tools            []geminiToolDef  `json:"tools,omitempty"`
 }
 
 type geminiContent struct {
@@ -51,7 +52,23 @@ type geminiContent struct {
 }
 
 type geminiPart struct {
-	Text string `json:"text"`
+	Text         string              `json:"text,omitempty"`
+	FunctionCall *geminiFunctionCall `json:"functionCall,omitempty"`
+}
+
+type geminiFunctionCall struct {
+	Name string          `json:"name"`
+	Args json.RawMessage `json:"args,omitempty"`
+}
+
+type geminiToolDef struct {
+	FunctionDeclarations []geminiFuncDecl `json:"functionDeclarations"`
+}
+
+type geminiFuncDecl struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Parameters  json.RawMessage `json:"parameters,omitempty"`
 }
 
 type geminiGenConfig struct {
@@ -59,13 +76,16 @@ type geminiGenConfig struct {
 	MaxOutputTokens int      `json:"maxOutputTokens,omitempty"`
 }
 
+type geminiResponsePart struct {
+	Text         string              `json:"text,omitempty"`
+	FunctionCall *geminiFunctionCall `json:"functionCall,omitempty"`
+}
+
 type geminiResponse struct {
 	Candidates []struct {
 		Content struct {
-			Parts []struct {
-				Text string `json:"text"`
-			} `json:"parts"`
-			Role string `json:"role"`
+			Parts []geminiResponsePart `json:"parts"`
+			Role  string               `json:"role"`
 		} `json:"content"`
 	} `json:"candidates"`
 	UsageMetadata struct {
@@ -121,6 +141,34 @@ func (p *GeminiProvider) Complete(ctx context.Context, req plannerllm.Completion
 		body.GenerationConfig = gc
 	}
 
+	// Convert tool definitions
+	if len(req.Tools) > 0 {
+		decls := make([]geminiFuncDecl, len(req.Tools))
+		for i, t := range req.Tools {
+			var params json.RawMessage
+			if t.Function.Parameters != nil {
+				switch v := t.Function.Parameters.(type) {
+				case json.RawMessage:
+					params = v
+				case []byte:
+					params = json.RawMessage(v)
+				default:
+					b, err := json.Marshal(v)
+					if err != nil {
+						return plannerllm.CompletionResponse{}, fmt.Errorf("marshal tool parameters: %w", err)
+					}
+					params = b
+				}
+			}
+			decls[i] = geminiFuncDecl{
+				Name:        t.Function.Name,
+				Description: t.Function.Description,
+				Parameters:  params,
+			}
+		}
+		body.Tools = []geminiToolDef{{FunctionDeclarations: decls}}
+	}
+
 	url := fmt.Sprintf("%s/models/%s:generateContent?key=%s", p.config.BaseURL, model, p.config.APIKey)
 	respBody, err := doRequest(ctx, "POST", url, nil, body, p.config.Timeout)
 	if err != nil {
@@ -136,17 +184,35 @@ func (p *GeminiProvider) Complete(ctx context.Context, req plannerllm.Completion
 	}
 
 	var content string
+	var toolCalls []plannerllm.ToolCall
 	if len(gResp.Candidates) > 0 {
-		for _, part := range gResp.Candidates[0].Content.Parts {
-			content += part.Text
+		for i, part := range gResp.Candidates[0].Content.Parts {
+			if part.Text != "" {
+				content += part.Text
+			}
+			if part.FunctionCall != nil {
+				args := string(part.FunctionCall.Args)
+				toolCalls = append(toolCalls, plannerllm.ToolCall{
+					ID:   fmt.Sprintf("call_%d", i),
+					Type: "function",
+					Function: struct {
+						Name      string `json:"name"`
+						Arguments string `json:"arguments"`
+					}{
+						Name:      part.FunctionCall.Name,
+						Arguments: args,
+					},
+				})
+			}
 		}
 	}
 
 	return plannerllm.CompletionResponse{
 		Model: model,
 		Message: plannerllm.Message{
-			Role:    "assistant",
-			Content: content,
+			Role:      "assistant",
+			Content:   content,
+			ToolCalls: toolCalls,
 		},
 		Usage: plannerllm.Usage{
 			PromptTokens:     gResp.UsageMetadata.PromptTokenCount,

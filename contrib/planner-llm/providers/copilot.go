@@ -63,6 +63,37 @@ func (p *CopilotProvider) Complete(ctx context.Context, req plannerllm.Completio
 		body.MaxTokens = req.MaxTokens
 	}
 
+	// Convert tool definitions (Copilot uses OpenAI-compatible format)
+	if len(req.Tools) > 0 {
+		tools := make([]openaiTool, len(req.Tools))
+		for i, t := range req.Tools {
+			var params json.RawMessage
+			if t.Function.Parameters != nil {
+				switch v := t.Function.Parameters.(type) {
+				case json.RawMessage:
+					params = v
+				case []byte:
+					params = json.RawMessage(v)
+				default:
+					b, err := json.Marshal(v)
+					if err != nil {
+						return plannerllm.CompletionResponse{}, fmt.Errorf("marshal tool parameters: %w", err)
+					}
+					params = b
+				}
+			}
+			tools[i] = openaiTool{
+				Type: "function",
+				Function: openaiToolFunction{
+					Name:        t.Function.Name,
+					Description: t.Function.Description,
+					Parameters:  params,
+				},
+			}
+		}
+		body.Tools = tools
+	}
+
 	headers := map[string]string{
 		"Authorization":          "Bearer " + p.config.Token,
 		"Copilot-Integration-Id": "agent-go",
@@ -84,16 +115,32 @@ func (p *CopilotProvider) Complete(ctx context.Context, req plannerllm.Completio
 	}
 
 	var content string
+	var toolCalls []plannerllm.ToolCall
 	if len(oaiResp.Choices) > 0 {
-		content = oaiResp.Choices[0].Message.Content
+		choice := oaiResp.Choices[0].Message
+		content = choice.Content
+		for _, tc := range choice.ToolCalls {
+			toolCalls = append(toolCalls, plannerllm.ToolCall{
+				ID:   tc.ID,
+				Type: tc.Type,
+				Function: struct {
+					Name      string `json:"name"`
+					Arguments string `json:"arguments"`
+				}{
+					Name:      tc.Function.Name,
+					Arguments: tc.Function.Arguments,
+				},
+			})
+		}
 	}
 
 	return plannerllm.CompletionResponse{
 		ID:    oaiResp.ID,
 		Model: oaiResp.Model,
 		Message: plannerllm.Message{
-			Role:    "assistant",
-			Content: content,
+			Role:      "assistant",
+			Content:   content,
+			ToolCalls: toolCalls,
 		},
 		Usage: plannerllm.Usage{
 			PromptTokens:     oaiResp.Usage.PromptTokens,

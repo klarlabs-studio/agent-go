@@ -198,7 +198,10 @@ func (a *Approver) sendApprovalMessage(ctx context.Context, req policy.ApprovalR
 
 // buildMessageBlocks creates Slack block kit blocks for the approval message.
 func (a *Approver) buildMessageBlocks(req policy.ApprovalRequest) []slackBlock {
-	inputJSON, _ := json.MarshalIndent(json.RawMessage(req.Input), "", "  ")
+	inputJSON, err := json.MarshalIndent(json.RawMessage(req.Input), "", "  ")
+	if err != nil {
+		inputJSON = []byte(req.Input)
+	}
 
 	return []slackBlock{
 		{

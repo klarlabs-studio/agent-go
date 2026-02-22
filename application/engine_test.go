@@ -882,6 +882,125 @@ func TestRun_EvidenceCollection(t *testing.T) {
 	}
 }
 
+// PlanRequest Population Tests
+
+func TestRun_PlanRequest_GoalPopulated(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	registry := newTestRegistry(readTool)
+
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+
+	var capturedReq planner.PlanRequest
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+			Condition: func(req planner.PlanRequest) bool {
+				capturedReq = req
+				return true
+			},
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateDecide, "decide"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateDecide,
+			Decision:    agent.NewFinishDecision("done", json.RawMessage(`{}`)),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	ctx := context.Background()
+	_, err = engine.Run(ctx, "find security vulnerabilities")
+	if err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+
+	if capturedReq.Goal != "find security vulnerabilities" {
+		t.Errorf("expected goal 'find security vulnerabilities', got %q", capturedReq.Goal)
+	}
+}
+
+func TestRun_PlanRequest_ToolDefsPopulated(t *testing.T) {
+	readTool, err := tool.NewBuilder("read_file").
+		WithDescription("Read a file from disk").
+		WithInputSchema(tool.NewSchema(json.RawMessage(`{"type":"object","properties":{"path":{"type":"string"}}}`))).
+		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
+			return tool.Result{Output: json.RawMessage(`{"content":"hello"}`)}, nil
+		}).
+		Build()
+	if err != nil {
+		t.Fatalf("failed to build tool: %v", err)
+	}
+
+	registry := newTestRegistry(readTool)
+
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+
+	var capturedReq planner.PlanRequest
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateDecide, "decide"),
+			Condition: func(req planner.PlanRequest) bool {
+				capturedReq = req
+				return true
+			},
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateDecide,
+			Decision:    agent.NewFinishDecision("done", json.RawMessage(`{}`)),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	ctx := context.Background()
+	_, err = engine.Run(ctx, "test tool defs")
+	if err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+
+	// In explore state, read_file should be allowed and have ToolDefs populated
+	if len(capturedReq.ToolDefs) != 1 {
+		t.Fatalf("expected 1 tool def, got %d", len(capturedReq.ToolDefs))
+	}
+	td := capturedReq.ToolDefs[0]
+	if td.Name != "read_file" {
+		t.Errorf("expected tool def name 'read_file', got %q", td.Name)
+	}
+	if td.Description != "Read a file from disk" {
+		t.Errorf("expected description 'Read a file from disk', got %q", td.Description)
+	}
+	if len(td.InputSchema) == 0 {
+		t.Error("expected non-empty input schema")
+	}
+}
+
 // Run ID Generation Tests
 
 func TestGenerateRunID_Format(t *testing.T) {
