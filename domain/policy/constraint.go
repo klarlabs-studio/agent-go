@@ -71,15 +71,21 @@ func (e *ToolEligibility) AllowMultiple(state agent.State, toolNames ...string) 
 }
 
 // IsAllowed checks if a tool is allowed in the given state.
+// A wildcard entry "*" in a state's allowed tools permits all tools in that state.
 func (e *ToolEligibility) IsAllowed(state agent.State, toolName string) bool {
 	stateTools, exists := e.allowed[state]
 	if !exists {
 		return false
 	}
+	if stateTools["*"] {
+		return true
+	}
 	return stateTools[toolName]
 }
 
 // AllowedTools returns all tools allowed in the given state.
+// If a wildcard "*" entry exists, it is included in the returned list.
+// Callers should check for "*" to determine if all tools are permitted.
 func (e *ToolEligibility) AllowedTools(state agent.State) []string {
 	stateTools, exists := e.allowed[state]
 	if !exists {
@@ -91,6 +97,31 @@ func (e *ToolEligibility) AllowedTools(state agent.State) []string {
 		tools = append(tools, name)
 	}
 	return tools
+}
+
+// HasWildcard returns true if the given state allows all tools via the "*" wildcard.
+func (e *ToolEligibility) HasWildcard(state agent.State) bool {
+	stateTools, exists := e.allowed[state]
+	if !exists {
+		return false
+	}
+	return stateTools["*"]
+}
+
+// NewDefaultToolEligibility creates a tool eligibility configuration with sensible defaults.
+// All registered tools are allowed (via wildcard "*") in explore, decide, act, and validate states.
+// The intake state has no tools allowed (it normalizes the goal without tool use).
+// Terminal states (done, failed) have no tools allowed.
+//
+// This is a convenient starting point for most agents. For fine-grained control,
+// use NewToolEligibility() or NewToolEligibilityWith() instead.
+func NewDefaultToolEligibility() *ToolEligibility {
+	return NewToolEligibilityWith(EligibilityRules{
+		agent.StateExplore:  {"*"},
+		agent.StateDecide:   {"*"},
+		agent.StateAct:      {"*"},
+		agent.StateValidate: {"*"},
+	})
 }
 
 // StateTransitions defines allowed state transitions.

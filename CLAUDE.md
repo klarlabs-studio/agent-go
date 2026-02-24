@@ -207,7 +207,7 @@ Configured via `resilience.Executor`:
 
 These must hold in all code paths and tests:
 
-1. **Tool eligibility** - Tools only run in explicitly allowed states
+1. **Tool eligibility** - Tools only run in explicitly allowed states (wildcard `"*"` counts as explicit)
 2. **Transition validity** - State changes follow the defined graph
 3. **Approval enforcement** - Destructive actions require approval
 4. **Budget enforcement** - Limits are never exceeded
@@ -260,9 +260,25 @@ tool := api.NewToolBuilder("read_file").
 registry := api.NewToolRegistry()
 registry.Register(tool)
 
-// Configure eligibility
-eligibility := api.NewToolEligibility()
-eligibility.Allow(api.StateExplore, "read_file")
+// Configure eligibility — three patterns available:
+
+// Pattern 1: Default (wildcard) — all tools in explore, decide, act, validate
+eligibility := api.NewDefaultToolEligibility()
+
+// Pattern 2: Explicit per-state — most restrictive, production recommended
+eligibility = api.NewToolEligibilityWith(api.EligibilityRules{
+    api.StateExplore:  {"read_file", "list_dir"},
+    api.StateAct:      {"write_file", "delete_file"},
+    api.StateValidate: {"read_file"},
+})
+
+// Pattern 3: Hybrid — wildcard for some states, explicit for others
+eligibility = api.NewToolEligibilityWith(api.EligibilityRules{
+    api.StateExplore:  {"*"},           // all tools for exploration
+    api.StateDecide:   {"*"},           // all tools for decision making
+    api.StateAct:      {"write_file"},  // only specific tools for side effects
+    api.StateValidate: {"read_file"},   // only read tools for validation
+})
 
 // Create engine
 engine, err := api.New(

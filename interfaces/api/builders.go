@@ -98,6 +98,16 @@ func NewToolEligibilityWith(rules EligibilityRules) *policy.ToolEligibility {
 	return policy.NewToolEligibilityWith(rules)
 }
 
+// NewDefaultToolEligibility creates a tool eligibility with sensible defaults.
+// All registered tools are allowed (via wildcard "*") in explore, decide, act, and validate states.
+// The intake state has no tools allowed. Terminal states (done, failed) have no tools allowed.
+//
+// This is the easiest way to get started. For fine-grained per-state control,
+// use NewToolEligibility() or NewToolEligibilityWith() instead.
+func NewDefaultToolEligibility() *policy.ToolEligibility {
+	return policy.NewDefaultToolEligibility()
+}
+
 // NewStateTransitions creates a new empty state transitions configuration.
 // Use the Allow method to add rules incrementally.
 //

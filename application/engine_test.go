@@ -1001,6 +1001,143 @@ func TestRun_PlanRequest_ToolDefsPopulated(t *testing.T) {
 	}
 }
 
+// Wildcard Eligibility + Approval Integration Tests
+
+func TestRun_WildcardEligibility_DestructiveToolRequiresApproval(t *testing.T) {
+	// Destructive tool that would normally need approval
+	destructiveTool, err := tool.NewBuilder("delete_file").
+		WithDescription("Delete a file from disk").
+		WithAnnotations(tool.DestructiveAnnotations()).
+		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
+			return tool.Result{Output: json.RawMessage(`{"deleted":true}`)}, nil
+		}).
+		Build()
+	if err != nil {
+		t.Fatalf("failed to build tool: %v", err)
+	}
+
+	registry := newTestRegistry(destructiveTool)
+
+	// Wildcard eligibility allows all tools in act state
+	eligibility := policy.NewDefaultToolEligibility()
+
+	// DenyApprover blocks destructive actions
+	approver := policy.NewDenyApprover("not authorized")
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateDecide, "decide"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateDecide,
+			Decision:    agent.NewTransitionDecision(agent.StateAct, "act"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateAct,
+			Decision:    agent.NewCallToolDecision("delete_file", json.RawMessage(`{"path":"/tmp/test"}`), "delete it"),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+		Approver:    approver,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	ctx := context.Background()
+	run, runErr := engine.Run(ctx, "test wildcard + destructive + approval")
+
+	// Should fail because approval was denied — wildcard eligibility does NOT bypass approval
+	if runErr == nil {
+		t.Fatal("expected error when approval is denied for destructive tool")
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Errorf("expected run to fail, got status %s", run.Status)
+	}
+	if !errors.Is(runErr, tool.ErrApprovalDenied) {
+		t.Errorf("expected ErrApprovalDenied, got %v", runErr)
+	}
+}
+
+func TestRun_WildcardEligibility_DestructiveToolApproved(t *testing.T) {
+	// Destructive tool with auto-approval
+	destructiveTool, err := tool.NewBuilder("delete_file").
+		WithDescription("Delete a file from disk").
+		WithAnnotations(tool.DestructiveAnnotations()).
+		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
+			return tool.Result{Output: json.RawMessage(`{"deleted":true}`)}, nil
+		}).
+		Build()
+	if err != nil {
+		t.Fatalf("failed to build tool: %v", err)
+	}
+
+	registry := newTestRegistry(destructiveTool)
+
+	// Wildcard eligibility + auto approver — tool should execute
+	eligibility := policy.NewDefaultToolEligibility()
+	approver := policy.NewAutoApprover("test")
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateDecide, "decide"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateDecide,
+			Decision:    agent.NewTransitionDecision(agent.StateAct, "act"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateAct,
+			Decision:    agent.NewCallToolDecision("delete_file", json.RawMessage(`{"path":"/tmp/test"}`), "delete it"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateAct,
+			Decision:    agent.NewTransitionDecision(agent.StateValidate, "validate"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateValidate,
+			Decision:    agent.NewFinishDecision("deleted file", json.RawMessage(`{"deleted":true}`)),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+		Approver:    approver,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	ctx := context.Background()
+	run, err := engine.Run(ctx, "test wildcard + destructive + approved")
+	if err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+
+	if run.Status != agent.RunStatusCompleted {
+		t.Errorf("expected completed, got %s", run.Status)
+	}
+	if len(run.Evidence) != 1 {
+		t.Errorf("expected 1 evidence entry from tool call, got %d", len(run.Evidence))
+	}
+}
+
 // Run ID Generation Tests
 
 func TestGenerateRunID_Format(t *testing.T) {

@@ -148,6 +148,96 @@ func TestToolEligibility_AllowedTools(t *testing.T) {
 }
 
 
+func TestToolEligibility_Wildcard(t *testing.T) {
+	t.Parallel()
+
+	eligibility := NewToolEligibility()
+	eligibility.Allow(agent.StateExplore, "*")
+
+	// Any tool should be allowed via wildcard
+	if !eligibility.IsAllowed(agent.StateExplore, "read_file") {
+		t.Error("wildcard should allow read_file in explore")
+	}
+	if !eligibility.IsAllowed(agent.StateExplore, "any_random_tool") {
+		t.Error("wildcard should allow any tool in explore")
+	}
+
+	// Other states without wildcard should still deny
+	if eligibility.IsAllowed(agent.StateAct, "read_file") {
+		t.Error("act state has no wildcard, should deny")
+	}
+}
+
+func TestToolEligibility_HasWildcard(t *testing.T) {
+	t.Parallel()
+
+	eligibility := NewToolEligibility()
+	eligibility.Allow(agent.StateExplore, "*")
+	eligibility.Allow(agent.StateAct, "write_file")
+
+	if !eligibility.HasWildcard(agent.StateExplore) {
+		t.Error("explore should have wildcard")
+	}
+	if eligibility.HasWildcard(agent.StateAct) {
+		t.Error("act should not have wildcard")
+	}
+	if eligibility.HasWildcard(agent.StateIntake) {
+		t.Error("intake (unconfigured) should not have wildcard")
+	}
+}
+
+func TestNewDefaultToolEligibility(t *testing.T) {
+	t.Parallel()
+
+	eligibility := NewDefaultToolEligibility()
+	if eligibility == nil {
+		t.Fatal("NewDefaultToolEligibility() returned nil")
+	}
+
+	// Explore, decide, act, validate should allow any tool
+	wildcardStates := []agent.State{
+		agent.StateExplore, agent.StateDecide,
+		agent.StateAct, agent.StateValidate,
+	}
+	for _, state := range wildcardStates {
+		if !eligibility.IsAllowed(state, "any_tool") {
+			t.Errorf("state %s should allow any tool via wildcard", state)
+		}
+		if !eligibility.HasWildcard(state) {
+			t.Errorf("state %s should have wildcard", state)
+		}
+	}
+
+	// Intake should NOT allow tools
+	if eligibility.IsAllowed(agent.StateIntake, "any_tool") {
+		t.Error("intake should not allow tools")
+	}
+
+	// Terminal states should NOT allow tools
+	if eligibility.IsAllowed(agent.StateDone, "any_tool") {
+		t.Error("done should not allow tools")
+	}
+	if eligibility.IsAllowed(agent.StateFailed, "any_tool") {
+		t.Error("failed should not allow tools")
+	}
+}
+
+func TestToolEligibility_WildcardWithExplicitTools(t *testing.T) {
+	t.Parallel()
+
+	// Wildcard and explicit tools can coexist
+	eligibility := NewToolEligibility()
+	eligibility.Allow(agent.StateExplore, "*")
+	eligibility.Allow(agent.StateExplore, "read_file")
+
+	if !eligibility.IsAllowed(agent.StateExplore, "read_file") {
+		t.Error("explicit tool should still be allowed")
+	}
+	if !eligibility.IsAllowed(agent.StateExplore, "other_tool") {
+		t.Error("wildcard should allow non-explicit tools too")
+	}
+}
+
 func TestNewStateTransitions(t *testing.T) {
 	t.Parallel()
 
