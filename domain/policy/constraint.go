@@ -29,9 +29,25 @@ type EligibilityRules map[agent.State][]string
 
 // NewToolEligibility creates a new empty tool eligibility configuration.
 // Use the Allow or AllowMultiple methods to add rules.
+// For convenient defaults, use NewDefaultToolEligibility() instead.
 func NewToolEligibility() *ToolEligibility {
 	return &ToolEligibility{
 		allowed: make(map[agent.State]map[string]bool),
+	}
+}
+
+// NewDefaultToolEligibility creates a tool eligibility configuration with sensible defaults.
+// By default, tools are allowed in explore, decide, and act states which are the
+// most common states for tool usage. This is the recommended constructor for
+// most use cases.
+func NewDefaultToolEligibility() *ToolEligibility {
+	return &ToolEligibility{
+		allowed: map[agent.State]map[string]bool{
+			agent.StateExplore:  {"*": true},
+			agent.StateDecide:   {"*": true},
+			agent.StateAct:      {"*": true},
+			agent.StateValidate: {"*": true},
+		},
 	}
 }
 
@@ -71,18 +87,29 @@ func (e *ToolEligibility) AllowMultiple(state agent.State, toolNames ...string) 
 }
 
 // IsAllowed checks if a tool is allowed in the given state.
+// Supports wildcard "*" which allows all tools in that state.
 func (e *ToolEligibility) IsAllowed(state agent.State, toolName string) bool {
 	stateTools, exists := e.allowed[state]
 	if !exists {
 		return false
 	}
+	// Check for wildcard first
+	if stateTools["*"] {
+		return true
+	}
 	return stateTools[toolName]
 }
 
 // AllowedTools returns all tools allowed in the given state.
+// If "*" wildcard is configured, returns nil (meaning all tools are allowed).
 func (e *ToolEligibility) AllowedTools(state agent.State) []string {
 	stateTools, exists := e.allowed[state]
 	if !exists {
+		return nil
+	}
+
+	// If wildcard is set, all tools are allowed
+	if stateTools["*"] {
 		return nil
 	}
 
