@@ -38,8 +38,21 @@ package otel
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/felixgeelhaar/agent-go/domain/telemetry"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	otelmetric "go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 // Common errors for OpenTelemetry operations.
@@ -85,6 +98,7 @@ type TracerConfig struct {
 // TracerProvider wraps the OpenTelemetry tracer provider.
 type TracerProvider struct {
 	config   TracerConfig
+	provider *sdktrace.TracerProvider
 	shutdown bool
 }
 
@@ -100,14 +114,73 @@ func NewTracerProvider(cfg TracerConfig) (*TracerProvider, error) {
 		cfg.SampleRate = 1.0 // Sample all traces by default
 	}
 
-	// TODO: Initialize actual OpenTelemetry tracer provider
+	ctx := context.Background()
+
 	// 1. Create resource with service name and version
-	// 2. Create exporter based on ExporterType
-	// 3. Create span processor (batch or simple)
+	attrs := []attribute.KeyValue{
+		semconv.ServiceName(cfg.ServiceName),
+	}
+	if cfg.ServiceVersion != "" {
+		attrs = append(attrs, semconv.ServiceVersion(cfg.ServiceVersion))
+	}
+	// Add additional resource attributes
+	for k, v := range cfg.ResourceAttributes {
+		attrs = append(attrs, attribute.String(k, v))
+	}
+	res := resource.NewWithAttributes(semconv.SchemaURL, attrs...)
+
+	// 2. Create sampler
+	sampler := sdktrace.TraceIDRatioBased(cfg.SampleRate)
+
+	// 3. Create exporter based on ExporterType
+	var spanProcessor sdktrace.SpanProcessor
+	switch cfg.ExporterType {
+	case "otlp":
+		if cfg.Endpoint == "" {
+			return nil, fmt.Errorf("%w: endpoint required for OTLP exporter", ErrInvalidEndpoint)
+		}
+		var exporterOpts []otlptracehttp.Option
+		exporterOpts = append(exporterOpts, otlptracehttp.WithEndpoint(cfg.Endpoint))
+		if cfg.Insecure {
+			exporterOpts = append(exporterOpts, otlptracehttp.WithInsecure())
+		}
+		if len(cfg.Headers) > 0 {
+			exporterOpts = append(exporterOpts, otlptracehttp.WithHeaders(cfg.Headers))
+		}
+		exporter, err := otlptracehttp.New(ctx, exporterOpts...)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrExporterFailed, err)
+		}
+		spanProcessor = sdktrace.NewBatchSpanProcessor(exporter)
+
+	case "stdout":
+		exporter, err := stdouttrace.New()
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrExporterFailed, err)
+		}
+		spanProcessor = sdktrace.NewBatchSpanProcessor(exporter)
+
+	case "none":
+		// No exporter, no processor - just the provider with resource and sampler
+		spanProcessor = nil
+
+	default:
+		return nil, fmt.Errorf("unsupported exporter type: %s", cfg.ExporterType)
+	}
+
 	// 4. Create and register tracer provider
+	opts := []sdktrace.TracerProviderOption{
+		sdktrace.WithResource(res),
+		sdktrace.WithSampler(sampler),
+	}
+	if spanProcessor != nil {
+		opts = append(opts, sdktrace.WithSpanProcessor(spanProcessor))
+	}
+	provider := sdktrace.NewTracerProvider(opts...)
 
 	return &TracerProvider{
-		config: cfg,
+		config:   cfg,
+		provider: provider,
 	}, nil
 }
 
@@ -118,16 +191,22 @@ func (tp *TracerProvider) Shutdown(ctx context.Context) error {
 	}
 	tp.shutdown = true
 
-	// TODO: Implement actual shutdown
-	_ = ctx
+	if tp.provider != nil {
+		return tp.provider.Shutdown(ctx)
+	}
 	return nil
 }
 
 // Tracer returns a new tracer from this provider.
 func (tp *TracerProvider) Tracer(name string) *Tracer {
+	var tracer oteltrace.Tracer
+	if tp.provider != nil {
+		tracer = tp.provider.Tracer(name)
+	}
 	return &Tracer{
 		provider: tp,
 		name:     name,
+		tracer:   tracer,
 	}
 }
 
@@ -135,6 +214,7 @@ func (tp *TracerProvider) Tracer(name string) *Tracer {
 type Tracer struct {
 	provider *TracerProvider
 	name     string
+	tracer   oteltrace.Tracer
 }
 
 // NewTracer creates a tracer from the global provider.
@@ -153,14 +233,45 @@ func (t *Tracer) StartSpan(ctx context.Context, name string, opts ...telemetry.S
 		opt.ApplySpan(cfg)
 	}
 
-	// TODO: Create actual OpenTelemetry span
-	// 1. Get tracer from provider
-	// 2. Start span with options
-	// 3. Set initial attributes
+	// If no tracer is available, return no-op span
+	if t.tracer == nil {
+		span := &Span{
+			name:   name,
+			tracer: t,
+		}
+		return ctx, span
+	}
+
+	// Build OpenTelemetry span options
+	otelOpts := []oteltrace.SpanStartOption{}
+
+	// Convert span kind
+	switch cfg.Kind {
+	case telemetry.SpanKindInternal:
+		otelOpts = append(otelOpts, oteltrace.WithSpanKind(oteltrace.SpanKindInternal))
+	case telemetry.SpanKindServer:
+		otelOpts = append(otelOpts, oteltrace.WithSpanKind(oteltrace.SpanKindServer))
+	case telemetry.SpanKindClient:
+		otelOpts = append(otelOpts, oteltrace.WithSpanKind(oteltrace.SpanKindClient))
+	case telemetry.SpanKindProducer:
+		otelOpts = append(otelOpts, oteltrace.WithSpanKind(oteltrace.SpanKindProducer))
+	case telemetry.SpanKindConsumer:
+		otelOpts = append(otelOpts, oteltrace.WithSpanKind(oteltrace.SpanKindConsumer))
+	}
+
+	// Convert initial attributes
+	if len(cfg.Attributes) > 0 {
+		otelAttrs := convertAttributes(cfg.Attributes)
+		otelOpts = append(otelOpts, oteltrace.WithAttributes(otelAttrs...))
+	}
+
+	// Start the span
+	ctx, otelSpan := t.tracer.Start(ctx, name, otelOpts...)
 
 	span := &Span{
 		name:   name,
 		tracer: t,
+		span:   otelSpan,
 	}
 
 	return ctx, span
@@ -170,37 +281,91 @@ func (t *Tracer) StartSpan(ctx context.Context, name string, opts ...telemetry.S
 type Span struct {
 	name   string
 	tracer *Tracer
+	span   oteltrace.Span
 }
 
 // End completes the span.
 func (s *Span) End() {
-	// TODO: End the actual OpenTelemetry span
+	if s.span != nil {
+		s.span.End()
+	}
 }
 
 // SetAttributes sets attributes on the span.
 func (s *Span) SetAttributes(attrs ...telemetry.Attribute) {
-	// TODO: Convert and set attributes on the OpenTelemetry span
-	_ = attrs
+	if s.span != nil && len(attrs) > 0 {
+		otelAttrs := convertAttributes(attrs)
+		s.span.SetAttributes(otelAttrs...)
+	}
 }
 
 // RecordError records an error on the span.
 func (s *Span) RecordError(err error) {
-	// TODO: Record error on the OpenTelemetry span
-	_ = err
+	if s.span != nil && err != nil {
+		s.span.RecordError(err)
+	}
 }
 
 // SetStatus sets the span status.
 func (s *Span) SetStatus(code telemetry.StatusCode, description string) {
-	// TODO: Set status on the OpenTelemetry span
-	_ = code
-	_ = description
+	if s.span == nil {
+		return
+	}
+
+	var otelCode codes.Code
+	switch code {
+	case telemetry.StatusCodeOK:
+		otelCode = codes.Ok
+	case telemetry.StatusCodeError:
+		otelCode = codes.Error
+	default:
+		otelCode = codes.Unset
+	}
+
+	s.span.SetStatus(otelCode, description)
 }
 
 // AddEvent adds an event to the span.
 func (s *Span) AddEvent(name string, attrs ...telemetry.Attribute) {
-	// TODO: Add event to the OpenTelemetry span
-	_ = name
-	_ = attrs
+	if s.span == nil {
+		return
+	}
+
+	if len(attrs) > 0 {
+		otelAttrs := convertAttributes(attrs)
+		s.span.AddEvent(name, oteltrace.WithAttributes(otelAttrs...))
+	} else {
+		s.span.AddEvent(name)
+	}
+}
+
+// convertAttributes converts telemetry attributes to OpenTelemetry attributes.
+func convertAttributes(attrs []telemetry.Attribute) []attribute.KeyValue {
+	if len(attrs) == 0 {
+		return nil
+	}
+
+	otelAttrs := make([]attribute.KeyValue, 0, len(attrs))
+	for _, attr := range attrs {
+		var kv attribute.KeyValue
+		switch v := attr.Value.(type) {
+		case string:
+			kv = attribute.String(attr.Key, v)
+		case int:
+			kv = attribute.Int(attr.Key, v)
+		case int64:
+			kv = attribute.Int64(attr.Key, v)
+		case float64:
+			kv = attribute.Float64(attr.Key, v)
+		case bool:
+			kv = attribute.Bool(attr.Key, v)
+		default:
+			// For unsupported types, convert to string
+			kv = attribute.String(attr.Key, fmt.Sprintf("%v", v))
+		}
+		otelAttrs = append(otelAttrs, kv)
+	}
+	return otelAttrs
 }
 
 // MeterConfig configures the OpenTelemetry meter provider.
@@ -223,7 +388,8 @@ type MeterConfig struct {
 
 // MeterProvider wraps the OpenTelemetry meter provider.
 type MeterProvider struct {
-	config MeterConfig
+	config   MeterConfig
+	provider *metric.MeterProvider
 }
 
 // NewMeterProvider creates a new OpenTelemetry meter provider.
@@ -238,25 +404,74 @@ func NewMeterProvider(cfg MeterConfig) (*MeterProvider, error) {
 		cfg.ExportInterval = 60
 	}
 
-	// TODO: Initialize actual OpenTelemetry meter provider
+	ctx := context.Background()
+
+	// 1. Create resource with service name
+	res := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceName(cfg.ServiceName),
+	)
+
+	// 2. Create exporter based on ExporterType
+	var reader metric.Reader
+	switch cfg.ExporterType {
+	case "otlp":
+		// Note: OTLP metric exporter would require otlpmetrichttp package
+		// For now, fall back to stdout for OTLP until we add that dependency
+		fallthrough
+	case "stdout":
+		exporter, err := stdoutmetric.New()
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrExporterFailed, err)
+		}
+		reader = metric.NewPeriodicReader(
+			exporter,
+			metric.WithInterval(time.Duration(cfg.ExportInterval)*time.Second),
+		)
+
+	case "none":
+		// No exporter, no reader - metrics recorded but not exported
+		reader = nil
+
+	default:
+		return nil, fmt.Errorf("unsupported exporter type: %s", cfg.ExporterType)
+	}
+
+	// 3. Build meter provider
+	opts := []metric.Option{
+		metric.WithResource(res),
+	}
+	if reader != nil {
+		opts = append(opts, metric.WithReader(reader))
+	}
+	provider := metric.NewMeterProvider(opts...)
+
+	_ = ctx // used for potential future exporter initialization
 
 	return &MeterProvider{
-		config: cfg,
+		config:   cfg,
+		provider: provider,
 	}, nil
 }
 
 // Shutdown gracefully shuts down the meter provider.
 func (mp *MeterProvider) Shutdown(ctx context.Context) error {
-	// TODO: Implement actual shutdown
-	_ = ctx
+	if mp.provider != nil {
+		return mp.provider.Shutdown(ctx)
+	}
 	return nil
 }
 
 // Meter returns a new meter from this provider.
 func (mp *MeterProvider) Meter(name string) *Meter {
+	var meter otelmetric.Meter
+	if mp.provider != nil {
+		meter = mp.provider.Meter(name)
+	}
 	return &Meter{
 		provider: mp,
 		name:     name,
+		meter:    meter,
 	}
 }
 
@@ -264,6 +479,7 @@ func (mp *MeterProvider) Meter(name string) *Meter {
 type Meter struct {
 	provider *MeterProvider
 	name     string
+	meter    otelmetric.Meter
 }
 
 // NewMeter creates a meter from the global provider.
@@ -280,8 +496,20 @@ func (m *Meter) Counter(name string, opts ...telemetry.MetricOption) telemetry.C
 		opt.ApplyMetric(cfg)
 	}
 
-	// TODO: Create actual OpenTelemetry counter
-	return &Counter{name: name, meter: m}
+	c := &Counter{name: name, meter: m}
+
+	if m.meter != nil {
+		counter, err := m.meter.Int64Counter(
+			name,
+			otelmetric.WithDescription(cfg.Description),
+			otelmetric.WithUnit(cfg.Unit),
+		)
+		if err == nil {
+			c.counter = counter
+		}
+	}
+
+	return c
 }
 
 // Histogram creates a new histogram metric.
@@ -291,8 +519,20 @@ func (m *Meter) Histogram(name string, opts ...telemetry.MetricOption) telemetry
 		opt.ApplyMetric(cfg)
 	}
 
-	// TODO: Create actual OpenTelemetry histogram
-	return &Histogram{name: name, meter: m}
+	h := &Histogram{name: name, meter: m}
+
+	if m.meter != nil {
+		histogram, err := m.meter.Float64Histogram(
+			name,
+			otelmetric.WithDescription(cfg.Description),
+			otelmetric.WithUnit(cfg.Unit),
+		)
+		if err == nil {
+			h.histogram = histogram
+		}
+	}
+
+	return h
 }
 
 // Gauge creates a new gauge metric.
@@ -302,50 +542,83 @@ func (m *Meter) Gauge(name string, opts ...telemetry.MetricOption) telemetry.Gau
 		opt.ApplyMetric(cfg)
 	}
 
-	// TODO: Create actual OpenTelemetry gauge
-	return &Gauge{name: name, meter: m}
+	g := &Gauge{name: name, meter: m}
+
+	if m.meter != nil {
+		gauge, err := m.meter.Float64Gauge(
+			name,
+			otelmetric.WithDescription(cfg.Description),
+			otelmetric.WithUnit(cfg.Unit),
+		)
+		if err == nil {
+			g.gauge = gauge
+		}
+	}
+
+	return g
 }
 
 // Counter implements telemetry.Counter using OpenTelemetry.
 type Counter struct {
-	name  string
-	meter *Meter
+	name    string
+	meter   *Meter
+	counter otelmetric.Int64Counter
 }
 
 // Add adds a value to the counter.
 func (c *Counter) Add(ctx context.Context, value int64, attrs ...telemetry.Attribute) {
-	// TODO: Record value to OpenTelemetry counter
-	_ = ctx
-	_ = value
-	_ = attrs
+	if c.counter == nil {
+		return
+	}
+
+	if len(attrs) > 0 {
+		otelAttrs := convertAttributes(attrs)
+		c.counter.Add(ctx, value, otelmetric.WithAttributes(otelAttrs...))
+	} else {
+		c.counter.Add(ctx, value)
+	}
 }
 
 // Histogram implements telemetry.Histogram using OpenTelemetry.
 type Histogram struct {
-	name  string
-	meter *Meter
+	name      string
+	meter     *Meter
+	histogram otelmetric.Float64Histogram
 }
 
 // Record records a value to the histogram.
 func (h *Histogram) Record(ctx context.Context, value float64, attrs ...telemetry.Attribute) {
-	// TODO: Record value to OpenTelemetry histogram
-	_ = ctx
-	_ = value
-	_ = attrs
+	if h.histogram == nil {
+		return
+	}
+
+	if len(attrs) > 0 {
+		otelAttrs := convertAttributes(attrs)
+		h.histogram.Record(ctx, value, otelmetric.WithAttributes(otelAttrs...))
+	} else {
+		h.histogram.Record(ctx, value)
+	}
 }
 
 // Gauge implements telemetry.Gauge using OpenTelemetry.
 type Gauge struct {
 	name  string
 	meter *Meter
+	gauge otelmetric.Float64Gauge
 }
 
 // Record records the current value.
 func (g *Gauge) Record(ctx context.Context, value float64, attrs ...telemetry.Attribute) {
-	// TODO: Record value to OpenTelemetry gauge
-	_ = ctx
-	_ = value
-	_ = attrs
+	if g.gauge == nil {
+		return
+	}
+
+	if len(attrs) > 0 {
+		otelAttrs := convertAttributes(attrs)
+		g.gauge.Record(ctx, value, otelmetric.WithAttributes(otelAttrs...))
+	} else {
+		g.gauge.Record(ctx, value)
+	}
 }
 
 // Predefined span and metric names for agent operations.

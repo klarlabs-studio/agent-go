@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	copilotSDK "github.com/github/copilot-sdk/go"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
 )
@@ -150,8 +149,7 @@ func TestConvertTool_Handler(t *testing.T) {
 
 	copilotTool := ConvertTool(agentTool)
 
-	// Test the handler
-	invocation := copilotSDK.ToolInvocation{
+	invocation := ToolInvocation{
 		ToolCallID: "test-123",
 		ToolName:   "echo",
 		Arguments:  map[string]string{"message": "hello"},
@@ -326,24 +324,23 @@ func TestSessionHandler_GetMetrics(t *testing.T) {
 		executions: make(map[string]*Execution),
 	}
 
-	// Add some executions
 	handler.RecordExecution(&Execution{
 		ToolCallID: "1",
 		ToolName:   "tool1",
 		Completed:  true,
-		Result:     &copilotSDK.ToolResult{ResultType: "success"},
+		Result:     &ToolResult{ResultType: "success"},
 	})
 	handler.RecordExecution(&Execution{
 		ToolCallID: "2",
 		ToolName:   "tool1",
 		Completed:  true,
-		Result:     &copilotSDK.ToolResult{ResultType: "error"},
+		Result:     &ToolResult{ResultType: "error"},
 	})
 	handler.RecordExecution(&Execution{
 		ToolCallID: "3",
 		ToolName:   "tool2",
 		Completed:  true,
-		Result:     &copilotSDK.ToolResult{ResultType: "success"},
+		Result:     &ToolResult{ResultType: "success"},
 	})
 
 	metrics := handler.GetMetrics()

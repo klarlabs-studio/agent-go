@@ -3,15 +3,13 @@ package copilot
 import (
 	"encoding/json"
 	"sync"
-
-	copilot "github.com/github/copilot-sdk/go"
 )
 
 // SessionHandler manages tool execution for a Copilot session.
 // It provides logging, metrics, and execution control.
 type SessionHandler struct {
 	adapter     *Adapter
-	session     *copilot.Session
+	session     *Session
 	executions  map[string]*Execution
 	mu          sync.RWMutex
 	onExecution ExecutionCallback
@@ -22,7 +20,7 @@ type Execution struct {
 	ToolCallID string
 	ToolName   string
 	Arguments  interface{}
-	Result     *copilot.ToolResult
+	Result     *ToolResult
 	Error      error
 	Completed  bool
 }
@@ -41,7 +39,7 @@ func WithExecutionCallback(cb ExecutionCallback) SessionHandlerOption {
 }
 
 // NewSessionHandler creates a new session handler.
-func NewSessionHandler(adapter *Adapter, session *copilot.Session, opts ...SessionHandlerOption) *SessionHandler {
+func NewSessionHandler(adapter *Adapter, session *Session, opts ...SessionHandlerOption) *SessionHandler {
 	h := &SessionHandler{
 		adapter:    adapter,
 		session:    session,
@@ -101,30 +99,26 @@ func marshalArguments(args interface{}) (json.RawMessage, error) {
 		return json.RawMessage("{}"), nil
 	}
 
-	// If already a raw message, return as-is
 	if raw, ok := args.(json.RawMessage); ok {
 		return raw, nil
 	}
 
-	// If a string, try to parse as JSON first
 	if s, ok := args.(string); ok {
 		if json.Valid([]byte(s)) {
 			return json.RawMessage(s), nil
 		}
-		// Not valid JSON, marshal the string
 		return json.Marshal(s)
 	}
 
-	// Marshal the arguments
 	return json.Marshal(args)
 }
 
 // ToolMetrics provides metrics about tool usage.
 type ToolMetrics struct {
-	TotalExecutions     int
+	TotalExecutions      int
 	SuccessfulExecutions int
 	FailedExecutions     int
-	ToolCounts          map[string]int
+	ToolCounts           map[string]int
 }
 
 // GetMetrics calculates metrics from recorded executions.

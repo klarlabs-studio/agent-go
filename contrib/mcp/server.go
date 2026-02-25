@@ -28,12 +28,14 @@
 package mcp
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -47,6 +49,9 @@ var (
 	ErrResourceNotFound = errors.New("resource not found")
 	ErrNotImplemented   = errors.New("not implemented")
 )
+
+// ResourceHandler reads the content for a resource.
+type ResourceHandler func(ctx context.Context, uri string) (ResourceContent, error)
 
 // Config configures the MCP server.
 type Config struct {
@@ -67,12 +72,19 @@ type Config struct {
 
 	// Resources is a list of static resources to expose.
 	Resources []Resource
+
+	// Prompts is a list of prompt templates to expose.
+	Prompts []Prompt
+
+	// ResourceHandlers maps resource URIs to handler functions.
+	ResourceHandlers map[string]ResourceHandler
 }
 
 // Server implements the MCP server.
 type Server struct {
 	config    Config
 	resources map[string]Resource
+	prompts   map[string]Prompt
 	mu        sync.RWMutex
 }
 
@@ -91,11 +103,17 @@ func NewServer(cfg Config) *Server {
 	s := &Server{
 		config:    cfg,
 		resources: make(map[string]Resource),
+		prompts:   make(map[string]Prompt),
 	}
 
 	// Index resources
 	for _, r := range cfg.Resources {
 		s.resources[r.URI] = r
+	}
+
+	// Index prompts
+	for _, p := range cfg.Prompts {
+		s.prompts[p.Name] = p
 	}
 
 	return s
@@ -115,10 +133,7 @@ func (s *Server) Start() error {
 
 // serveStdio handles MCP over stdin/stdout.
 func (s *Server) serveStdio() error {
-	// TODO: Implement stdio transport
-	// Read JSON-RPC messages from stdin
-	// Write responses to stdout
-	return ErrNotImplemented
+	return s.ServeStdio(context.Background(), os.Stdin, os.Stdout)
 }
 
 // serveHTTP handles MCP over HTTP.
@@ -275,29 +290,68 @@ func (s *Server) handleReadResource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Implement resource reading based on type
+	// Check if we have a handler for this resource
+	if s.config.ResourceHandlers != nil {
+		if handler, ok := s.config.ResourceHandlers[req.URI]; ok {
+			content, err := handler(r.Context(), req.URI)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			resp := ReadResourceResponse{Contents: []ResourceContent{content}}
+			s.writeJSON(w, resp)
+			return
+		}
+	}
+
+	// Fall back to static resource content
 	resp := ReadResourceResponse{
-		Contents: []ResourceContent{
-			{
-				URI:      resource.URI,
-				MimeType: resource.MimeType,
-				Text:     "Resource content placeholder",
-			},
-		},
+		Contents: []ResourceContent{{
+			URI:      resource.URI,
+			MimeType: resource.MimeType,
+			Text:     "",
+		}},
 	}
 	s.writeJSON(w, resp)
 }
 
 // handleListPrompts handles the prompts/list request.
 func (s *Server) handleListPrompts(w http.ResponseWriter, _ *http.Request) {
-	// TODO: Implement prompt listing
-	s.writeJSON(w, ListPromptsResponse{Prompts: []Prompt{}})
+	s.mu.RLock()
+	prompts := make([]Prompt, 0, len(s.prompts))
+	for _, p := range s.prompts {
+		prompts = append(prompts, p)
+	}
+	s.mu.RUnlock()
+
+	s.writeJSON(w, ListPromptsResponse{Prompts: prompts})
 }
 
 // handleGetPrompt handles the prompts/get request.
-func (s *Server) handleGetPrompt(w http.ResponseWriter, _ *http.Request) {
-	// TODO: Implement prompt retrieval
-	http.Error(w, "Not implemented", http.StatusNotImplemented)
+func (s *Server) handleGetPrompt(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	s.mu.RLock()
+	prompt, ok := s.prompts[req.Name]
+	s.mu.RUnlock()
+
+	if !ok {
+		http.Error(w, "Prompt not found", http.StatusNotFound)
+		return
+	}
+
+	s.writeJSON(w, prompt)
 }
 
 // writeJSON writes a JSON response.
@@ -326,11 +380,246 @@ func (s *Server) RemoveResource(uri string) {
 // ServeStdio runs the MCP server over stdin/stdout.
 // This is typically used when the server is launched as a subprocess.
 func (s *Server) ServeStdio(ctx context.Context, stdin io.Reader, stdout io.Writer) error {
-	// TODO: Implement JSON-RPC over stdio
-	return ErrNotImplemented
+	scanner := bufio.NewScanner(stdin)
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024) // 1MB buffer
+	enc := json.NewEncoder(stdout)
+
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+
+		var req jsonRPCRequest
+		if err := json.Unmarshal(line, &req); err != nil {
+			resp := jsonRPCResponse{
+				JSONRPC: "2.0",
+				ID:      req.ID,
+				Error:   &jsonRPCError{Code: -32700, Message: "Parse error"},
+			}
+			if err := enc.Encode(resp); err != nil {
+				return err
+			}
+			continue
+		}
+
+		result, rpcErr := s.handleMethod(ctx, req.Method, req.Params)
+
+		resp := jsonRPCResponse{
+			JSONRPC: "2.0",
+			ID:      req.ID,
+		}
+		if rpcErr != nil {
+			resp.Error = rpcErr
+		} else {
+			raw, _ := json.Marshal(result)
+			resp.Result = raw
+		}
+
+		if err := enc.Encode(resp); err != nil {
+			return err
+		}
+	}
+
+	return scanner.Err()
+}
+
+// handleMethod dispatches JSON-RPC method calls.
+func (s *Server) handleMethod(ctx context.Context, method string, params json.RawMessage) (any, *jsonRPCError) {
+	switch method {
+	case "initialize":
+		return s.rpcInitialize()
+	case "tools/list":
+		return s.rpcListTools()
+	case "tools/call":
+		return s.rpcCallTool(ctx, params)
+	case "resources/list":
+		return s.rpcListResources()
+	case "resources/read":
+		return s.rpcReadResource(ctx, params)
+	case "prompts/list":
+		return s.rpcListPrompts()
+	case "prompts/get":
+		return s.rpcGetPrompt(params)
+	default:
+		return nil, &jsonRPCError{Code: -32601, Message: "Method not found"}
+	}
+}
+
+// rpcInitialize handles the initialize RPC method.
+func (s *Server) rpcInitialize() (any, *jsonRPCError) {
+	return InitializeResponse{
+		ProtocolVersion: "2024-11-05",
+		Capabilities: ServerCapabilities{
+			Tools:     &ToolsCapability{ListChanged: true},
+			Resources: &ResourcesCapability{Subscribe: false, ListChanged: false},
+			Prompts:   &PromptsCapability{ListChanged: false},
+		},
+		ServerInfo: ServerInfo{
+			Name:    s.config.ServerName,
+			Version: s.config.ServerVersion,
+		},
+	}, nil
+}
+
+// rpcListTools handles the tools/list RPC method.
+func (s *Server) rpcListTools() (any, *jsonRPCError) {
+	if s.config.Registry == nil {
+		return ListToolsResponse{Tools: []ToolDefinition{}}, nil
+	}
+
+	tools := s.config.Registry.List()
+	definitions := make([]ToolDefinition, 0, len(tools))
+
+	for _, t := range tools {
+		definitions = append(definitions, ToolDefinition{
+			Name:        t.Name(),
+			Description: t.Description(),
+			InputSchema: t.InputSchema().Raw,
+		})
+	}
+
+	return ListToolsResponse{Tools: definitions}, nil
+}
+
+// rpcCallTool handles the tools/call RPC method.
+func (s *Server) rpcCallTool(ctx context.Context, params json.RawMessage) (any, *jsonRPCError) {
+	var req CallToolRequest
+	if err := json.Unmarshal(params, &req); err != nil {
+		return nil, &jsonRPCError{Code: -32602, Message: "Invalid params"}
+	}
+
+	if s.config.Registry == nil {
+		return nil, &jsonRPCError{Code: -32603, Message: "No tool registry configured"}
+	}
+
+	t, ok := s.config.Registry.Get(req.Name)
+	if !ok {
+		return nil, &jsonRPCError{Code: -32602, Message: "Tool not found"}
+	}
+
+	result, err := t.Execute(ctx, req.Arguments)
+	if err != nil {
+		return CallToolResponse{
+			IsError: true,
+			Content: []ContentBlock{{Type: "text", Text: err.Error()}},
+		}, nil
+	}
+
+	return CallToolResponse{
+		Content: []ContentBlock{{Type: "text", Text: string(result.Output)}},
+	}, nil
+}
+
+// rpcListResources handles the resources/list RPC method.
+func (s *Server) rpcListResources() (any, *jsonRPCError) {
+	s.mu.RLock()
+	resources := make([]Resource, 0, len(s.resources))
+	for _, r := range s.resources {
+		resources = append(resources, r)
+	}
+	s.mu.RUnlock()
+
+	return ListResourcesResponse{Resources: resources}, nil
+}
+
+// rpcReadResource handles the resources/read RPC method.
+func (s *Server) rpcReadResource(ctx context.Context, params json.RawMessage) (any, *jsonRPCError) {
+	var req ReadResourceRequest
+	if err := json.Unmarshal(params, &req); err != nil {
+		return nil, &jsonRPCError{Code: -32602, Message: "Invalid params"}
+	}
+
+	s.mu.RLock()
+	resource, ok := s.resources[req.URI]
+	s.mu.RUnlock()
+
+	if !ok {
+		return nil, &jsonRPCError{Code: -32602, Message: "Resource not found"}
+	}
+
+	// Check if we have a handler for this resource
+	if s.config.ResourceHandlers != nil {
+		if handler, ok := s.config.ResourceHandlers[req.URI]; ok {
+			content, err := handler(ctx, req.URI)
+			if err != nil {
+				return nil, &jsonRPCError{Code: -32603, Message: err.Error()}
+			}
+			return ReadResourceResponse{Contents: []ResourceContent{content}}, nil
+		}
+	}
+
+	// Fall back to static resource content
+	return ReadResourceResponse{
+		Contents: []ResourceContent{{
+			URI:      resource.URI,
+			MimeType: resource.MimeType,
+			Text:     "",
+		}},
+	}, nil
+}
+
+// rpcListPrompts handles the prompts/list RPC method.
+func (s *Server) rpcListPrompts() (any, *jsonRPCError) {
+	s.mu.RLock()
+	prompts := make([]Prompt, 0, len(s.prompts))
+	for _, p := range s.prompts {
+		prompts = append(prompts, p)
+	}
+	s.mu.RUnlock()
+
+	return ListPromptsResponse{Prompts: prompts}, nil
+}
+
+// rpcGetPrompt handles the prompts/get RPC method.
+func (s *Server) rpcGetPrompt(params json.RawMessage) (any, *jsonRPCError) {
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(params, &req); err != nil {
+		return nil, &jsonRPCError{Code: -32602, Message: "Invalid params"}
+	}
+
+	s.mu.RLock()
+	prompt, ok := s.prompts[req.Name]
+	s.mu.RUnlock()
+
+	if !ok {
+		return nil, &jsonRPCError{Code: -32602, Message: "Prompt not found"}
+	}
+
+	return prompt, nil
 }
 
 // MCP Protocol Types
+
+// jsonRPCRequest represents a JSON-RPC 2.0 request.
+type jsonRPCRequest struct {
+	JSONRPC string          `json:"jsonrpc"`
+	ID      json.RawMessage `json:"id"`
+	Method  string          `json:"method"`
+	Params  json.RawMessage `json:"params,omitempty"`
+}
+
+// jsonRPCResponse represents a JSON-RPC 2.0 response.
+type jsonRPCResponse struct {
+	JSONRPC string          `json:"jsonrpc"`
+	ID      json.RawMessage `json:"id"`
+	Result  json.RawMessage `json:"result,omitempty"`
+	Error   *jsonRPCError   `json:"error,omitempty"`
+}
+
+// jsonRPCError represents a JSON-RPC 2.0 error.
+type jsonRPCError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
 
 // InitializeResponse is the response to an initialize request.
 type InitializeResponse struct {

@@ -1,18 +1,16 @@
-// Package copilot provides an adapter for exposing agent-go tools to GitHub Copilot SDK sessions.
 package copilot
 
 import (
 	"context"
 	"encoding/json"
 
-	copilot "github.com/github/copilot-sdk/go"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 )
 
 // ConvertTool converts an agent-go Tool to a Copilot SDK Tool.
 // This enables agent-go tools to be used in Copilot sessions.
-func ConvertTool(agentTool tool.Tool) copilot.Tool {
-	return copilot.Tool{
+func ConvertTool(agentTool tool.Tool) Tool {
+	return Tool{
 		Name:        agentTool.Name(),
 		Description: agentTool.Description(),
 		Parameters:  schemaToParameters(agentTool.InputSchema()),
@@ -21,8 +19,8 @@ func ConvertTool(agentTool tool.Tool) copilot.Tool {
 }
 
 // ConvertTools converts multiple agent-go Tools to Copilot SDK Tools.
-func ConvertTools(agentTools []tool.Tool) []copilot.Tool {
-	result := make([]copilot.Tool, len(agentTools))
+func ConvertTools(agentTools []tool.Tool) []Tool {
+	result := make([]Tool, len(agentTools))
 	for i, t := range agentTools {
 		result[i] = ConvertTool(t)
 	}
@@ -30,7 +28,7 @@ func ConvertTools(agentTools []tool.Tool) []copilot.Tool {
 }
 
 // ConvertFromRegistry converts all tools from a registry to Copilot SDK Tools.
-func ConvertFromRegistry(registry tool.Registry) []copilot.Tool {
+func ConvertFromRegistry(registry tool.Registry) []Tool {
 	return ConvertTools(registry.List())
 }
 
@@ -45,7 +43,6 @@ func schemaToParameters(schema tool.Schema) map[string]interface{} {
 
 	var params map[string]interface{}
 	if err := json.Unmarshal(schema.Raw(), &params); err != nil {
-		// If parsing fails, return a permissive schema
 		return map[string]interface{}{
 			"type": "object",
 		}
@@ -55,30 +52,26 @@ func schemaToParameters(schema tool.Schema) map[string]interface{} {
 }
 
 // createHandler creates a Copilot ToolHandler from an agent-go Tool.
-func createHandler(agentTool tool.Tool) copilot.ToolHandler {
-	return func(invocation copilot.ToolInvocation) (copilot.ToolResult, error) {
-		// Convert arguments to JSON
+func createHandler(agentTool tool.Tool) ToolHandler {
+	return func(invocation ToolInvocation) (ToolResult, error) {
 		input, err := json.Marshal(invocation.Arguments)
 		if err != nil {
-			return copilot.ToolResult{
+			return ToolResult{
 				ResultType: "error",
 				Error:      "failed to marshal arguments: " + err.Error(),
 			}, nil
 		}
 
-		// Execute the agent-go tool
-		// Note: We create a background context since ToolHandler doesn't provide one
 		ctx := context.Background()
 		result, err := agentTool.Execute(ctx, input)
 		if err != nil {
-			return copilot.ToolResult{
+			return ToolResult{
 				ResultType: "error",
 				Error:      err.Error(),
 			}, nil
 		}
 
-		// Convert result to Copilot format
-		return copilot.ToolResult{
+		return ToolResult{
 			TextResultForLLM: string(result.Output),
 			ResultType:       "success",
 		}, nil
@@ -91,7 +84,6 @@ func ResultToText(result tool.Result) string {
 		return ""
 	}
 
-	// Try to format as pretty JSON if it's valid JSON
 	var v interface{}
 	if err := json.Unmarshal(result.Output, &v); err == nil {
 		pretty, err := json.MarshalIndent(v, "", "  ")

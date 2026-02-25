@@ -37,10 +37,12 @@ package distributed
 import (
 	"context"
 	"errors"
+	"log"
 	"sync"
 	"time"
 
 	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"github.com/google/uuid"
 )
 
 // Common errors for distributed operations.
@@ -291,6 +293,10 @@ func WithMetadata(key string, value any) TaskOption {
 	}
 }
 
+// RunFunc is a function that executes an agent run.
+// It takes a context and goal, returns an error.
+type RunFunc func(ctx context.Context, goal string) error
+
 // WorkerConfig configures a worker.
 type WorkerConfig struct {
 	// ID uniquely identifies this worker.
@@ -307,6 +313,9 @@ type WorkerConfig struct {
 
 	// HeartbeatInterval is how often to send heartbeats.
 	HeartbeatInterval time.Duration
+
+	// RunFunc executes an agent run. If not set, tasks are acknowledged without execution.
+	RunFunc RunFunc
 }
 
 // Worker processes tasks from the queue.
@@ -386,6 +395,9 @@ func (w *Worker) Stop() error {
 
 // processLoop continuously processes tasks.
 func (w *Worker) processLoop(ctx context.Context) {
+	backoff := time.Second
+	const maxBackoff = 30 * time.Second
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -398,10 +410,23 @@ func (w *Worker) processLoop(ctx context.Context) {
 			if errors.Is(err, context.Canceled) {
 				return
 			}
-			// TODO: Log error and backoff
-			time.Sleep(time.Second)
+			// Log error and apply exponential backoff
+			log.Printf("distributed: dequeue error: %v, backing off %v", err, backoff)
+			select {
+			case <-time.After(backoff):
+			case <-ctx.Done():
+				return
+			}
+			// Exponential backoff with cap
+			backoff = backoff * 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
 			continue
 		}
+
+		// Reset backoff on successful dequeue
+		backoff = time.Second
 
 		w.processTask(ctx, task)
 	}
@@ -409,15 +434,49 @@ func (w *Worker) processLoop(ctx context.Context) {
 
 // processTask handles a single task.
 func (w *Worker) processTask(ctx context.Context, task Task) {
-	// TODO: Implement task execution using the agent engine
-	// 1. Create run context with timeout
-	// 2. Execute agent run
-	// 3. Report result
-	// 4. Acknowledge or nack based on outcome
+	// Apply task timeout
+	taskCtx := ctx
+	if task.Timeout > 0 {
+		var cancel context.CancelFunc
+		taskCtx, cancel = context.WithTimeout(ctx, task.Timeout)
+		defer cancel()
+	}
 
-	if err := w.config.Queue.Acknowledge(ctx, task.ID); err != nil {
-		// TODO: Log error
-		_ = err
+	// Update coordinator status
+	if w.config.Coordinator != nil {
+		_ = w.config.Coordinator.Heartbeat(ctx, w.config.ID, "busy", task.ID)
+	}
+
+	// Execute the task
+	var taskErr error
+	if w.config.RunFunc != nil {
+		taskErr = w.config.RunFunc(taskCtx, task.Goal)
+	}
+
+	if taskErr != nil {
+		// Task failed
+		log.Printf("distributed: task %s failed: %v", task.ID, taskErr)
+		if task.Attempts < task.MaxRetry {
+			if err := w.config.Queue.Nack(ctx, task.ID, taskErr.Error()); err != nil {
+				log.Printf("distributed: failed to nack task %s: %v", task.ID, err)
+			}
+		} else {
+			// Max retries exceeded, acknowledge to remove from queue
+			log.Printf("distributed: task %s exceeded max retries (%d), dropping", task.ID, task.MaxRetry)
+			if err := w.config.Queue.Acknowledge(ctx, task.ID); err != nil {
+				log.Printf("distributed: failed to ack failed task %s: %v", task.ID, err)
+			}
+		}
+	} else {
+		// Task succeeded
+		if err := w.config.Queue.Acknowledge(ctx, task.ID); err != nil {
+			log.Printf("distributed: failed to ack task %s: %v", task.ID, err)
+		}
+	}
+
+	// Update coordinator status back to idle
+	if w.config.Coordinator != nil {
+		_ = w.config.Coordinator.Heartbeat(ctx, w.config.ID, "idle", "")
 	}
 }
 
@@ -440,6 +499,5 @@ func (w *Worker) heartbeatLoop(ctx context.Context) {
 
 // generateTaskID creates a unique task ID.
 func generateTaskID() string {
-	// TODO: Use proper UUID generation
-	return "task-" + time.Now().Format("20060102150405.000000000")
+	return "task-" + uuid.New().String()
 }

@@ -28,10 +28,18 @@
 package approvalslack
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"sync"
 	"time"
 
@@ -189,11 +197,38 @@ func (a *Approver) sendApprovalMessage(ctx context.Context, req policy.ApprovalR
 		Blocks:  blocks,
 	}
 
-	// TODO: Implement actual Slack API call
-	_ = ctx
-	_ = msg
+	body, err := json.Marshal(msg)
+	if err != nil {
+		return "", fmt.Errorf("marshal message: %w", err)
+	}
 
-	return "placeholder-timestamp", nil
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, a.config.BaseURL+"/chat.postMessage", bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json; charset=utf-8")
+	httpReq.Header.Set("Authorization", "Bearer "+a.config.Token)
+
+	resp, err := a.client.Do(httpReq)
+	if err != nil {
+		return "", errors.Join(ErrSlackAPIError, err)
+	}
+	defer resp.Body.Close()
+
+	var slackResp struct {
+		OK    bool   `json:"ok"`
+		Error string `json:"error,omitempty"`
+		TS    string `json:"ts"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&slackResp); err != nil {
+		return "", fmt.Errorf("decode response: %w", err)
+	}
+
+	if !slackResp.OK {
+		return "", fmt.Errorf("%w: %s", ErrSlackAPIError, slackResp.Error)
+	}
+
+	return slackResp.TS, nil
 }
 
 // buildMessageBlocks creates Slack block kit blocks for the approval message.
@@ -264,8 +299,52 @@ func (a *Approver) buildMessageBlocks(req policy.ApprovalRequest) []slackBlock {
 }
 
 // updateMessageExpired updates the message to show it expired.
-func (a *Approver) updateMessageExpired(_ context.Context, _ string) error {
-	// TODO: Implement message update
+func (a *Approver) updateMessageExpired(ctx context.Context, ts string) error {
+	msg := slackMessage{
+		Channel: a.config.ChannelID,
+		TS:      ts,
+		Text:    "Approval Request Expired",
+		Blocks: []slackBlock{
+			{
+				Type: "section",
+				Text: &slackText{
+					Type: "mrkdwn",
+					Text: ":hourglass: *Approval Request Expired*\nThis request was not responded to in time.",
+				},
+			},
+		},
+	}
+
+	body, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("marshal message: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, a.config.BaseURL+"/chat.update", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json; charset=utf-8")
+	httpReq.Header.Set("Authorization", "Bearer "+a.config.Token)
+
+	resp, err := a.client.Do(httpReq)
+	if err != nil {
+		return errors.Join(ErrSlackAPIError, err)
+	}
+	defer resp.Body.Close()
+
+	var slackResp struct {
+		OK    bool   `json:"ok"`
+		Error string `json:"error,omitempty"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&slackResp); err != nil {
+		return fmt.Errorf("decode response: %w", err)
+	}
+
+	if !slackResp.OK {
+		return fmt.Errorf("%w: %s", ErrSlackAPIError, slackResp.Error)
+	}
+
 	return nil
 }
 
@@ -277,10 +356,32 @@ func (a *Approver) HandleInteraction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Verify request signature using signing secret
+	// Read body for signature verification
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read body", http.StatusBadRequest)
+		return
+	}
 
-	// Parse the payload
-	payload := r.FormValue("payload")
+	// Verify signature if signing secret is configured
+	if a.config.SigningSecret != "" {
+		timestamp := r.Header.Get("X-Slack-Request-Timestamp")
+		signature := r.Header.Get("X-Slack-Signature")
+
+		if err := a.verifySignature(timestamp, string(body), signature); err != nil {
+			http.Error(w, "Invalid signature", http.StatusUnauthorized)
+			return
+		}
+	}
+
+	// Parse the payload from form data
+	// The body is form-encoded: payload=...
+	values, err := url.ParseQuery(string(body))
+	if err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+	payload := values.Get("payload")
 	if payload == "" {
 		http.Error(w, "Missing payload", http.StatusBadRequest)
 		return
@@ -298,6 +399,39 @@ func (a *Approver) HandleInteraction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// verifySignature verifies the Slack request signature.
+func (a *Approver) verifySignature(timestamp, body, expectedSig string) error {
+	// Check timestamp freshness (5 min window)
+	ts, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid timestamp: %w", err)
+	}
+
+	if abs(time.Now().Unix()-ts) > 300 {
+		return fmt.Errorf("request too old")
+	}
+
+	// Compute HMAC-SHA256
+	sigBaseString := "v0:" + timestamp + ":" + body
+	mac := hmac.New(sha256.New, []byte(a.config.SigningSecret))
+	mac.Write([]byte(sigBaseString))
+	computed := "v0=" + hex.EncodeToString(mac.Sum(nil))
+
+	if !hmac.Equal([]byte(computed), []byte(expectedSig)) {
+		return fmt.Errorf("signature mismatch")
+	}
+
+	return nil
+}
+
+// abs returns the absolute value of n.
+func abs(n int64) int64 {
+	if n < 0 {
+		return -n
+	}
+	return n
 }
 
 // processAction handles an approval or denial action.

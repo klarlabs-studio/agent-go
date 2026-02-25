@@ -4,11 +4,10 @@ import (
 	"context"
 	"sync"
 
-	copilot "github.com/github/copilot-sdk/go"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 )
 
-// Adapter bridges agent-go tools with GitHub Copilot SDK sessions.
+// Adapter bridges agent-go tools with Copilot SDK sessions.
 // It enables bidirectional tool sharing between the two systems.
 type Adapter struct {
 	registry    tool.Registry
@@ -22,7 +21,7 @@ type ToolFilter func(tool.Tool) bool
 
 // ContextFunc provides context for tool executions.
 // This allows customizing the context passed to tools.
-type ContextFunc func(invocation copilot.ToolInvocation) context.Context
+type ContextFunc func(invocation ToolInvocation) context.Context
 
 // Option configures the Adapter.
 type Option func(*Adapter)
@@ -86,7 +85,7 @@ func NewAdapter(registry tool.Registry, opts ...Option) *Adapter {
 
 // GetCopilotTools returns Copilot SDK tools for all registered agent-go tools.
 // Use this when creating a Copilot session.
-func (a *Adapter) GetCopilotTools() []copilot.Tool {
+func (a *Adapter) GetCopilotTools() []Tool {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -101,7 +100,7 @@ func (a *Adapter) GetCopilotTools() []copilot.Tool {
 		agentTools = filtered
 	}
 
-	result := make([]copilot.Tool, len(agentTools))
+	result := make([]Tool, len(agentTools))
 	for i, t := range agentTools {
 		result[i] = a.convertToolWithContext(t)
 	}
@@ -110,11 +109,11 @@ func (a *Adapter) GetCopilotTools() []copilot.Tool {
 }
 
 // convertToolWithContext converts a tool and wraps the handler with context.
-func (a *Adapter) convertToolWithContext(agentTool tool.Tool) copilot.Tool {
+func (a *Adapter) convertToolWithContext(agentTool tool.Tool) Tool {
 	baseHandler := createHandler(agentTool)
 
 	if a.contextFunc == nil {
-		return copilot.Tool{
+		return Tool{
 			Name:        agentTool.Name(),
 			Description: agentTool.Description(),
 			Parameters:  schemaToParameters(agentTool.InputSchema()),
@@ -123,15 +122,12 @@ func (a *Adapter) convertToolWithContext(agentTool tool.Tool) copilot.Tool {
 	}
 
 	// Wrap handler with custom context
-	wrappedHandler := func(invocation copilot.ToolInvocation) (copilot.ToolResult, error) {
-		// Use custom context function
+	wrappedHandler := func(invocation ToolInvocation) (ToolResult, error) {
 		ctx := a.contextFunc(invocation)
-
-		// Execute with custom context
 		return a.executeWithContext(ctx, agentTool, invocation)
 	}
 
-	return copilot.Tool{
+	return Tool{
 		Name:        agentTool.Name(),
 		Description: agentTool.Description(),
 		Parameters:  schemaToParameters(agentTool.InputSchema()),
@@ -140,10 +136,10 @@ func (a *Adapter) convertToolWithContext(agentTool tool.Tool) copilot.Tool {
 }
 
 // executeWithContext executes a tool with a specific context.
-func (a *Adapter) executeWithContext(ctx context.Context, agentTool tool.Tool, invocation copilot.ToolInvocation) (copilot.ToolResult, error) {
+func (a *Adapter) executeWithContext(ctx context.Context, agentTool tool.Tool, invocation ToolInvocation) (ToolResult, error) {
 	input, err := marshalArguments(invocation.Arguments)
 	if err != nil {
-		return copilot.ToolResult{
+		return ToolResult{
 			ResultType: "error",
 			Error:      "failed to marshal arguments: " + err.Error(),
 		}, nil
@@ -151,13 +147,13 @@ func (a *Adapter) executeWithContext(ctx context.Context, agentTool tool.Tool, i
 
 	result, err := agentTool.Execute(ctx, input)
 	if err != nil {
-		return copilot.ToolResult{
+		return ToolResult{
 			ResultType: "error",
 			Error:      err.Error(),
 		}, nil
 	}
 
-	return copilot.ToolResult{
+	return ToolResult{
 		TextResultForLLM: string(result.Output),
 		ResultType:       "success",
 	}, nil
@@ -165,8 +161,8 @@ func (a *Adapter) executeWithContext(ctx context.Context, agentTool tool.Tool, i
 
 // CreateSessionConfig creates a SessionConfig with the adapter's tools.
 // This is a convenience method for setting up Copilot sessions.
-func (a *Adapter) CreateSessionConfig(model string, streaming bool) *copilot.SessionConfig {
-	return &copilot.SessionConfig{
+func (a *Adapter) CreateSessionConfig(model string, streaming bool) *SessionConfig {
+	return &SessionConfig{
 		Model:     model,
 		Streaming: streaming,
 		Tools:     a.GetCopilotTools(),
