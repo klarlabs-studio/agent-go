@@ -133,6 +133,7 @@ jobs:
           - pack-ascii
           - pack-base64
           - pack-case
+          - pack-code
           - pack-diff
           - pack-hash
           - pack-markdown
@@ -150,11 +151,13 @@ jobs:
           # Code & AST
           - pack-ast
           - pack-changelog
+          - pack-docs
           - pack-license
           - pack-openapi
           - pack-semver
           # Utilities
           - pack-cache
+          - pack-calendar
           - pack-chunker
           - pack-collection
           - pack-color
@@ -170,23 +173,29 @@ jobs:
           - pack-retry
           - pack-scheduler
           - pack-stats
+          - pack-testing
           - pack-time
           - pack-uuid
           - pack-validate
           # Web & Network
+          - pack-api
           - pack-browser
           - pack-dns
           - pack-graphql
           - pack-grpc
           - pack-http
           - pack-ip
+          - pack-network
+          - pack-scrape
           - pack-sse
           - pack-url
           - pack-useragent
           - pack-websocket
           # Infrastructure
+          - pack-ci
           - pack-cloud
           - pack-database
+          - pack-docker
           - pack-filesystem
           - pack-fileops
           - pack-git
@@ -195,41 +204,59 @@ jobs:
           - pack-shell
           - pack-sql
           - pack-ssh
+          - pack-terraform
           # Messaging & Notifications
           - pack-email
           - pack-messaging
+          - pack-mqtt
           - pack-notification
           - pack-slack
           # AI & ML
+          - pack-embeddings
           - pack-llm
+          - pack-model
+          - pack-rag
           - pack-vectordb
           - pack-tokenizer
           # Media & Documents
+          - pack-audio
           - pack-chart
           - pack-image
+          - pack-ocr
           - pack-pdf
           - pack-qrcode
           - pack-spreadsheet
+          - pack-video
+          - pack-visualization
           # Integrations
           - pack-copilot
           - pack-github
           - pack-jira
+          - pack-linear
           # Security & Crypto
           - pack-crypto
           - pack-jwt
           - pack-password
           - pack-secrets
           # Data & Analytics
+          - pack-analytics
           - pack-dataframe
+          - pack-etl
           - pack-finance
           - pack-metrics
           - pack-monitoring
+          - pack-payments
           - pack-search
           # Geo & Localization
           - pack-country
           - pack-geo
           - pack-phone
           - pack-emoji
+          # Hardware & IoT
+          - pack-gpio
+          - pack-serial
+          # Business & CRM
+          - pack-crm
           # Validation & Parsing
           - pack-creditcard
           - pack-fuzzy

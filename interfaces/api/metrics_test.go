@@ -6,24 +6,10 @@ import (
 	api "github.com/felixgeelhaar/agent-go/interfaces/api"
 )
 
-func TestDefaultMetricsConfig(t *testing.T) {
-	t.Parallel()
-	cfg := api.DefaultMetricsConfig()
-	_ = cfg
-}
-
-func TestNewMetricsProvider(t *testing.T) {
-	t.Parallel()
-	provider := api.NewMetricsProvider(api.DefaultMetricsConfig())
-	if provider == nil {
-		t.Fatal("NewMetricsProvider() returned nil")
-	}
-}
-
 func TestWithMetrics(t *testing.T) {
 	t.Parallel()
 
-	provider := api.NewMetricsProvider(api.DefaultMetricsConfig())
+	provider := &api.NoopMetricsProvider{}
 	mockPlanner := api.NewMockPlanner(
 		api.NewFinishDecision("done", nil),
 	)
@@ -42,21 +28,21 @@ func TestWithMetrics(t *testing.T) {
 
 func TestNewCacheMetricsRecorder(t *testing.T) {
 	t.Parallel()
-	provider := api.NewMetricsProvider(api.DefaultMetricsConfig())
+	provider := &api.NoopMetricsProvider{}
 	recorder := api.NewCacheMetricsRecorder(provider)
 	_ = recorder
 }
 
 func TestNewRateLimitMetricsRecorder(t *testing.T) {
 	t.Parallel()
-	provider := api.NewMetricsProvider(api.DefaultMetricsConfig())
+	provider := &api.NoopMetricsProvider{}
 	recorder := api.NewRateLimitMetricsRecorder(provider)
 	_ = recorder
 }
 
 func TestNewCircuitBreakerMetricsRecorder(t *testing.T) {
 	t.Parallel()
-	provider := api.NewMetricsProvider(api.DefaultMetricsConfig())
+	provider := &api.NoopMetricsProvider{}
 	recorder := api.NewCircuitBreakerMetricsRecorder(provider)
 	_ = recorder
 }

@@ -7,16 +7,22 @@ use (
 	./contrib/distributed
 	./contrib/mcp
 	./contrib/otel
+	./contrib/pack-analytics
+	./contrib/pack-api
 	./contrib/pack-archive
 	./contrib/pack-ascii
 	./contrib/pack-ast
+	./contrib/pack-audio
 	./contrib/pack-base64
 	./contrib/pack-browser
+	./contrib/pack-calendar
 	./contrib/pack-cache
 	./contrib/pack-case
 	./contrib/pack-changelog
 	./contrib/pack-chart
 	./contrib/pack-chunker
+	./contrib/pack-ci
+	./contrib/pack-code
 	./contrib/pack-cloud
 	./contrib/pack-collection
 	./contrib/pack-color
@@ -26,15 +32,20 @@ use (
 	./contrib/pack-copilot
 	./contrib/pack-country
 	./contrib/pack-creditcard
+	./contrib/pack-crm
 	./contrib/pack-cron
 	./contrib/pack-crypto
 	./contrib/pack-database
 	./contrib/pack-dataframe
 	./contrib/pack-diff
+	./contrib/pack-docs
 	./contrib/pack-dns
+	./contrib/pack-docker
 	./contrib/pack-email
+	./contrib/pack-embeddings
 	./contrib/pack-emoji
 	./contrib/pack-env
+	./contrib/pack-etl
 	./contrib/pack-fileops
 	./contrib/pack-filesystem
 	./contrib/pack-finance
@@ -42,6 +53,7 @@ use (
 	./contrib/pack-geo
 	./contrib/pack-git
 	./contrib/pack-github
+	./contrib/pack-gpio
 	./contrib/pack-graphql
 	./contrib/pack-grpc
 	./contrib/pack-hash
@@ -54,31 +66,40 @@ use (
 	./contrib/pack-jwt
 	./contrib/pack-kubernetes
 	./contrib/pack-license
+	./contrib/pack-linear
 	./contrib/pack-llm
 	./contrib/pack-markdown
 	./contrib/pack-math
 	./contrib/pack-messaging
 	./contrib/pack-metrics
 	./contrib/pack-mime
+	./contrib/pack-model
+	./contrib/pack-mqtt
 	./contrib/pack-monitoring
+	./contrib/pack-network
 	./contrib/pack-notification
+	./contrib/pack-ocr
 	./contrib/pack-openapi
 	./contrib/pack-password
+	./contrib/pack-payments
 	./contrib/pack-path
 	./contrib/pack-pdf
 	./contrib/pack-phone
 	./contrib/pack-pluralize
 	./contrib/pack-process
 	./contrib/pack-prompt
+	./contrib/pack-rag
 	./contrib/pack-qrcode
 	./contrib/pack-random
 	./contrib/pack-rate
 	./contrib/pack-regex
 	./contrib/pack-retry
 	./contrib/pack-scheduler
+	./contrib/pack-scrape
 	./contrib/pack-search
 	./contrib/pack-secrets
 	./contrib/pack-semver
+	./contrib/pack-serial
 	./contrib/pack-shell
 	./contrib/pack-similarity
 	./contrib/pack-slack
@@ -91,6 +112,8 @@ use (
 	./contrib/pack-string
 	./contrib/pack-sysinfo
 	./contrib/pack-template
+	./contrib/pack-terraform
+	./contrib/pack-testing
 	./contrib/pack-time
 	./contrib/pack-tokenizer
 	./contrib/pack-url
@@ -98,6 +121,8 @@ use (
 	./contrib/pack-uuid
 	./contrib/pack-validate
 	./contrib/pack-vectordb
+	./contrib/pack-video
+	./contrib/pack-visualization
 	./contrib/pack-websocket
 	./contrib/pack-xml
 	./contrib/pack-yaml

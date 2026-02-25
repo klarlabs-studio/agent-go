@@ -4,15 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/middleware"
+	"github.com/felixgeelhaar/agent-go/domain/metrics"
+	mw "github.com/felixgeelhaar/agent-go/domain/middleware"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
-	"github.com/felixgeelhaar/agent-go/infrastructure/telemetry"
 )
 
 // MetricsConfig configures the metrics middleware.
 type MetricsConfig struct {
 	// Provider is the metrics provider to use.
-	Provider telemetry.Metrics
+	Provider metrics.Metrics
 }
 
 // Metrics creates a middleware that records metrics for tool executions.
@@ -24,7 +24,6 @@ type MetricsConfig struct {
 //
 // Example:
 //
-//	provider := telemetry.NewMetricsProvider(telemetry.DefaultMetricsConfig())
 //	mw := middleware.Metrics(middleware.MetricsConfig{
 //	    Provider: provider,
 //	})
@@ -33,13 +32,13 @@ type MetricsConfig struct {
 //	    api.WithPlanner(planner),
 //	    api.WithMiddleware(mw),
 //	)
-func Metrics(config MetricsConfig) middleware.Middleware {
+func Metrics(config MetricsConfig) mw.Middleware {
 	if config.Provider == nil {
-		config.Provider = &telemetry.NoopMetricsProvider{}
+		config.Provider = &metrics.NoopProvider{}
 	}
 
-	return func(next middleware.Handler) middleware.Handler {
-		return func(ctx context.Context, execCtx *middleware.ExecutionContext) (tool.Result, error) {
+	return func(next mw.Handler) mw.Handler {
+		return func(ctx context.Context, execCtx *mw.ExecutionContext) (tool.Result, error) {
 			start := time.Now()
 
 			// Execute the tool
@@ -62,7 +61,7 @@ func Metrics(config MetricsConfig) middleware.Middleware {
 // This should be used in conjunction with a caching middleware.
 func MetricsWithCaching(config MetricsConfig) CacheMetricsRecorder {
 	if config.Provider == nil {
-		config.Provider = &telemetry.NoopMetricsProvider{}
+		config.Provider = &metrics.NoopProvider{}
 	}
 
 	return &cacheMetricsRecorder{
@@ -77,7 +76,7 @@ type CacheMetricsRecorder interface {
 }
 
 type cacheMetricsRecorder struct {
-	provider telemetry.Metrics
+	provider metrics.Metrics
 }
 
 func (r *cacheMetricsRecorder) RecordHit(ctx context.Context, toolName string) {
@@ -96,7 +95,7 @@ type RateLimitMetricsRecorder interface {
 // MetricsRateLimitRecorder returns a rate limit metrics recorder.
 func MetricsRateLimitRecorder(config MetricsConfig) RateLimitMetricsRecorder {
 	if config.Provider == nil {
-		config.Provider = &telemetry.NoopMetricsProvider{}
+		config.Provider = &metrics.NoopProvider{}
 	}
 
 	return &rateLimitMetricsRecorder{
@@ -105,7 +104,7 @@ func MetricsRateLimitRecorder(config MetricsConfig) RateLimitMetricsRecorder {
 }
 
 type rateLimitMetricsRecorder struct {
-	provider telemetry.Metrics
+	provider metrics.Metrics
 }
 
 func (r *rateLimitMetricsRecorder) RecordLimitHit(ctx context.Context, toolName string) {
@@ -120,7 +119,7 @@ type CircuitBreakerMetricsRecorder interface {
 // MetricsCircuitBreakerRecorder returns a circuit breaker metrics recorder.
 func MetricsCircuitBreakerRecorder(config MetricsConfig) CircuitBreakerMetricsRecorder {
 	if config.Provider == nil {
-		config.Provider = &telemetry.NoopMetricsProvider{}
+		config.Provider = &metrics.NoopProvider{}
 	}
 
 	return &circuitBreakerMetricsRecorder{
@@ -129,7 +128,7 @@ func MetricsCircuitBreakerRecorder(config MetricsConfig) CircuitBreakerMetricsRe
 }
 
 type circuitBreakerMetricsRecorder struct {
-	provider telemetry.Metrics
+	provider metrics.Metrics
 }
 
 func (r *circuitBreakerMetricsRecorder) RecordStateChange(ctx context.Context, toolName string, isOpen bool) {

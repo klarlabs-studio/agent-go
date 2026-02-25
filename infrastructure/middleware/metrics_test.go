@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"github.com/felixgeelhaar/agent-go/domain/metrics"
 	"github.com/felixgeelhaar/agent-go/domain/middleware"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
-	"github.com/felixgeelhaar/agent-go/infrastructure/telemetry"
 )
 
 // mockMetricsProvider is a mock implementation of telemetry.Metrics for testing.
@@ -144,8 +144,8 @@ func (m *mockMetricsProvider) RecordCircuitBreakerStateChange(ctx context.Contex
 	m.circuitBreakerStates = append(m.circuitBreakerStates, circuitBreakerRecord{toolName, isOpen})
 }
 
-// Ensure mockMetricsProvider implements telemetry.Metrics
-var _ telemetry.Metrics = (*mockMetricsProvider)(nil)
+// Ensure mockMetricsProvider implements metrics.Metrics
+var _ metrics.Metrics = (*mockMetricsProvider)(nil)
 
 // createMockToolForMetrics creates a simple mock tool for metrics testing.
 func createMockToolForMetrics(name string) tool.Tool {
