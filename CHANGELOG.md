@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-02-26
+
+### Added
+
+#### New Contrib Packs (25 modules)
+- **AI/ML**: embeddings, model, rag
+- **Business**: analytics, crm, payments
+- **Data Processing**: etl
+- **DevOps**: ci, docker, terraform, testing
+- **Documentation**: docs, code
+- **Hardware/IoT**: gpio, serial
+- **Integrations**: linear
+- **Media**: audio, ocr, video, visualization
+- **Messaging**: mqtt
+- **Networking**: api, network, scrape
+- **Scheduling**: calendar
+
+#### Stub Handler Implementations
+- Implement all stub handlers across 16 contrib modules (approval-slack, dashboard, distributed, mcp, otel, storage-badger, storage-dynamodb, storage-etcd, storage-gcs, storage-nats, storage-sqlite, and 5 pack modules)
+
+### Changed
+
+#### Core Module Cleanup
+- Remove heavy dependencies from core `go.mod`: wazero, cobra, mcp-go, otel (direct), grpc
+- Extract `Metrics` interface to `domain/metrics/` — zero external dependencies in domain layer
+- Delete `infrastructure/telemetry/`, `infrastructure/mcp/`, `infrastructure/observability/`, `interfaces/cli/`, `infrastructure/security/sandbox/wasm.go`
+- Core now has only 4 direct dependencies: statekit, fortify, bolt, google/uuid (+yaml.v3)
+
+#### CI/CD
+- Add all 26 missing contrib packs to GitHub Actions CI test matrix
+- All 113 contrib modules now covered in CI
+
+### Fixed
+- Bump mcp-go dependency to v1.7.0
+- Align planner-llm dependency to v0.6.0
+
+## [0.6.0] - 2026-02-24
+
 ### Added
 - Implement all LLM provider completions (`contrib/planner-llm/providers`) — replaces stubs with real HTTP calls
   - **OpenAI**: `/chat/completions` API, supports Azure OpenAI and compatible APIs via `BaseURL`
@@ -16,9 +54,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Cohere**: v2 Chat API with Bearer auth and content array response
   - **AWS Bedrock**: Converse API with full SigV4 request signing (no AWS SDK dependency)
   - **GitHub Copilot**: OpenAI-compatible endpoint at `api.githubcopilot.com`
+- Wildcard tool eligibility (`"*"`) and default configuration for policy system
 
 ### Changed
 - Refactor providers into per-file structure with shared `doRequest` helper and `resolveModel` utility
+
+### Fixed
+- Patch 3 low-severity Dependabot alerts
 
 ## [0.5.0] - 2026-01-29
 
@@ -124,6 +166,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - go.opentelemetry.io/otel v1.39.0
 - And various cloud SDKs (AWS, GCP, Azure)
 
-[unreleased]: https://github.com/felixgeelhaar/agent-go/compare/v0.5.0...HEAD
+[unreleased]: https://github.com/felixgeelhaar/agent-go/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/felixgeelhaar/agent-go/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/felixgeelhaar/agent-go/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/felixgeelhaar/agent-go/compare/v0.1.0...v0.5.0
 [0.1.0]: https://github.com/felixgeelhaar/agent-go/releases/tag/v0.1.0
