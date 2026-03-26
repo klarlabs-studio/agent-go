@@ -4,6 +4,10 @@ package resilience
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/felixgeelhaar/fortify/bulkhead"
@@ -13,12 +17,48 @@ import (
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 )
 
-// Executor provides resilient tool execution with circuit breaker, retry, and bulkhead patterns.
+// ErrRateLimited is returned when a tool execution is rejected by the rate
+// limiter.
+var ErrRateLimited = errors.New("rate limited")
+
+// BulkheadMetrics provides saturation metrics for a bulkhead.
+type BulkheadMetrics struct {
+	// Active is the number of currently executing operations.
+	Active int64
+	// Rejected is the cumulative count of rejected operations.
+	Rejected int64
+}
+
+// Executor provides resilient tool execution with circuit breaker, retry,
+// bulkhead, and rate limiter patterns.
 type Executor struct {
+	// Shared (default) bulkhead used when per-tool isolation is not configured.
 	bulkhead bulkhead.Bulkhead[tool.Result]
-	breaker  circuitbreaker.CircuitBreaker[tool.Result]
-	retry    retry.Retry[tool.Result]
-	timeout  time.Duration
+
+	// Per-tool bulkheads. When non-nil, tools with a matching entry use an
+	// isolated bulkhead instead of the shared one.
+	perToolBulkheads map[string]bulkhead.Bulkhead[tool.Result]
+
+	breaker circuitbreaker.CircuitBreaker[tool.Result]
+	retry   retry.Retry[tool.Result]
+	timeout time.Duration
+
+	// hooks for circuit breaker lifecycle events.
+	cbHooks  *CircuitBreakerHooks
+	lastCBState atomic.Value // stores circuitbreaker.State
+
+	// rate limiter set (nil when rate limiting is disabled).
+	rateLimiters *rateLimiterSet
+
+	// saturation metrics per bulkhead key ("" = shared).
+	bulkheadMetrics   map[string]*bulkheadMetricsEntry
+	bulkheadMetricsMu sync.RWMutex
+}
+
+// bulkheadMetricsEntry tracks saturation counters for a single bulkhead.
+type bulkheadMetricsEntry struct {
+	active   atomic.Int64
+	rejected atomic.Int64
 }
 
 // ExecutorConfig configures the resilient executor.
@@ -43,6 +83,17 @@ type ExecutorConfig struct {
 
 	// DefaultTimeout is the default execution timeout.
 	DefaultTimeout time.Duration
+
+	// CBHooks contains optional circuit breaker lifecycle callbacks.
+	CBHooks *CircuitBreakerHooks
+
+	// PerToolBulkheads maps tool names to their dedicated bulkhead
+	// concurrency limits.  Tools not listed here use the shared bulkhead.
+	PerToolBulkheads map[string]int
+
+	// RateLimiter optionally configures rate limiting in the executor
+	// pipeline.
+	RateLimiter *RateLimiterConfig
 }
 
 // DefaultExecutorConfig returns a configuration with sensible defaults.
@@ -70,7 +121,7 @@ func NewExecutor(config ExecutorConfig) *Executor {
 		threshold = 5 // default
 	}
 
-	return &Executor{
+	e := &Executor{
 		bulkhead: bulkhead.New[tool.Result](bulkhead.Config{
 			MaxConcurrent: maxConcurrent,
 		}),
@@ -88,8 +139,35 @@ func NewExecutor(config ExecutorConfig) *Executor {
 			BackoffPolicy: retry.BackoffExponential,
 			Multiplier:    config.RetryBackoffMultiplier,
 		}),
-		timeout: config.DefaultTimeout,
+		timeout:         config.DefaultTimeout,
+		cbHooks:         config.CBHooks,
+		bulkheadMetrics: make(map[string]*bulkheadMetricsEntry),
 	}
+
+	// Store the initial circuit breaker state for change detection.
+	e.lastCBState.Store(e.breaker.State())
+
+	// Build per-tool bulkheads when configured.
+	if len(config.PerToolBulkheads) > 0 {
+		e.perToolBulkheads = make(map[string]bulkhead.Bulkhead[tool.Result], len(config.PerToolBulkheads))
+		for name, limit := range config.PerToolBulkheads {
+			if limit <= 0 {
+				limit = maxConcurrent
+			}
+			e.perToolBulkheads[name] = bulkhead.New[tool.Result](bulkhead.Config{
+				MaxConcurrent: limit,
+			})
+			e.bulkheadMetrics[name] = &bulkheadMetricsEntry{}
+		}
+	}
+
+	// Initialise shared bulkhead metrics entry.
+	e.bulkheadMetrics[""] = &bulkheadMetricsEntry{}
+
+	// Build rate limiter set.
+	e.rateLimiters = newRateLimiterSet(config.RateLimiter)
+
+	return e
 }
 
 // NewDefaultExecutor creates an executor with default configuration.
@@ -98,19 +176,42 @@ func NewDefaultExecutor() *Executor {
 }
 
 // Execute runs a tool with resilience patterns applied.
-// Composition order: Bulkhead → Timeout → Circuit Breaker → Retry (for idempotent)
+// Composition order: RateLimit → Bulkhead → Timeout → CircuitBreaker → Retry (for idempotent)
 func (e *Executor) Execute(ctx context.Context, t tool.Tool, input json.RawMessage) (tool.Result, error) {
+	toolName := t.Name()
+
+	// --- Rate limiter ---
+	if !e.rateLimiters.allow(ctx, toolName) {
+		return tool.Result{}, fmt.Errorf("%w: tool %s", ErrRateLimited, toolName)
+	}
+
 	start := time.Now()
 
-	// Apply bulkhead for concurrency control
-	result, err := e.bulkhead.Execute(ctx, func(ctx context.Context) (tool.Result, error) {
-		// Apply timeout
+	// Select bulkhead (per-tool or shared).
+	bh := e.bulkhead
+	metricsKey := ""
+	if e.perToolBulkheads != nil {
+		if ptb, ok := e.perToolBulkheads[toolName]; ok {
+			bh = ptb
+			metricsKey = toolName
+		}
+	}
+
+	// Track saturation.
+	metrics := e.getBulkheadMetrics(metricsKey)
+
+	// Apply bulkhead for concurrency control.
+	result, err := bh.Execute(ctx, func(ctx context.Context) (tool.Result, error) {
+		metrics.active.Add(1)
+		defer metrics.active.Add(-1)
+
+		// Apply timeout.
 		ctx, cancel := context.WithTimeout(ctx, e.timeout)
 		defer cancel()
 
-		// Apply circuit breaker
-		return e.breaker.Execute(ctx, func(ctx context.Context) (tool.Result, error) {
-			// Apply retry only for idempotent tools
+		// Apply circuit breaker.
+		cbResult, cbErr := e.breaker.Execute(ctx, func(ctx context.Context) (tool.Result, error) {
+			// Apply retry only for idempotent tools.
 			if t.Annotations().CanRetry() {
 				return e.retry.Do(ctx, func(ctx context.Context) (tool.Result, error) {
 					return t.Execute(ctx, input)
@@ -118,9 +219,22 @@ func (e *Executor) Execute(ctx context.Context, t tool.Tool, input json.RawMessa
 			}
 			return t.Execute(ctx, input)
 		})
+
+		// Detect circuit breaker state changes and fire hooks.
+		e.detectCBStateChange(toolName)
+
+		return cbResult, cbErr
 	})
 
-	// Add timing information
+	if err != nil {
+		// Track bulkhead rejections (heuristic: bulkhead errors are not
+		// context-caused when the parent context is still alive).
+		if ctx.Err() == nil {
+			metrics.rejected.Add(1)
+		}
+	}
+
+	// Add timing information.
 	if err == nil {
 		result.Duration = time.Since(start)
 	}
@@ -153,5 +267,51 @@ func (e *Executor) CircuitBreakerState() circuitbreaker.State {
 
 // Reset resets the circuit breaker to closed state.
 func (e *Executor) Reset() {
-	// Circuit breaker will automatically reset after timeout
+	// Circuit breaker will automatically reset after timeout.
+}
+
+// BulkheadMetricsFor returns saturation metrics for the named tool's bulkhead.
+// Pass an empty string to get the shared bulkhead metrics.
+func (e *Executor) BulkheadMetricsFor(toolName string) BulkheadMetrics {
+	m := e.getBulkheadMetrics(toolName)
+	return BulkheadMetrics{
+		Active:   m.active.Load(),
+		Rejected: m.rejected.Load(),
+	}
+}
+
+// getBulkheadMetrics returns or lazily creates the metrics entry for the given
+// key.
+func (e *Executor) getBulkheadMetrics(key string) *bulkheadMetricsEntry {
+	e.bulkheadMetricsMu.RLock()
+	m, ok := e.bulkheadMetrics[key]
+	e.bulkheadMetricsMu.RUnlock()
+	if ok {
+		return m
+	}
+
+	e.bulkheadMetricsMu.Lock()
+	defer e.bulkheadMetricsMu.Unlock()
+	// Double-check after acquiring write lock.
+	if m, ok = e.bulkheadMetrics[key]; ok {
+		return m
+	}
+	m = &bulkheadMetricsEntry{}
+	e.bulkheadMetrics[key] = m
+	return m
+}
+
+// detectCBStateChange compares the current circuit breaker state against the
+// last observed state and fires hooks when a transition occurred.
+func (e *Executor) detectCBStateChange(toolName string) {
+	if e.cbHooks == nil {
+		return
+	}
+
+	current := e.breaker.State()
+	prev, _ := e.lastCBState.Load().(circuitbreaker.State)
+	if current != prev {
+		e.lastCBState.Store(current)
+		e.cbHooks.fireStateChange(prev, current, toolName)
+	}
 }

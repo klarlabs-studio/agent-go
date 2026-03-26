@@ -47,6 +47,30 @@ func WithTimeout(d time.Duration) Option {
 	}
 }
 
+// WithPerToolBulkhead adds a dedicated bulkhead for the named tool with the
+// given concurrency limit.  Tools without a dedicated bulkhead share the
+// default one configured via WithMaxConcurrent.
+func WithPerToolBulkhead(toolName string, maxConcurrent int) Option {
+	return func(c *ExecutorConfig) {
+		if c.PerToolBulkheads == nil {
+			c.PerToolBulkheads = make(map[string]int)
+		}
+		c.PerToolBulkheads[toolName] = maxConcurrent
+	}
+}
+
+// WithPerToolBulkheads sets dedicated bulkheads for multiple tools at once.
+func WithPerToolBulkheads(bulkheads map[string]int) Option {
+	return func(c *ExecutorConfig) {
+		if c.PerToolBulkheads == nil {
+			c.PerToolBulkheads = make(map[string]int, len(bulkheads))
+		}
+		for name, limit := range bulkheads {
+			c.PerToolBulkheads[name] = limit
+		}
+	}
+}
+
 // NewExecutorWithOptions creates an executor with the given options.
 func NewExecutorWithOptions(opts ...Option) *Executor {
 	config := DefaultExecutorConfig()
