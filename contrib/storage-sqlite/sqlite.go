@@ -11,9 +11,18 @@
 //		return err
 //	}
 //
+//	// Option 1: Open with default config (recommended)
+//	db, err := sqlite.Open(sqlite.DefaultConfig("agent.db"))
+//
+//	// Option 2: Auto-migrate all tables
+//	migrator := sqlite.NewMigrator(db)
+//	migrator.AutoMigrate(ctx)
+//
+//	// Option 3: Create stores individually
 //	cache := sqlite.NewCache(db)
 //	eventStore := sqlite.NewEventStore(db)
 //	runStore := sqlite.NewRunStore(db)
+//	knowledgeStore := sqlite.NewKnowledgeStore(db)
 package sqlite
 
 import (
