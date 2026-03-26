@@ -87,7 +87,7 @@ jobs:
       - name: Test ${{ matrix.module }}
         run: |
           cd contrib/${{ matrix.module }}
-          go test -race ./...
+          go test -race -short -timeout=5m ./...
 
   test-contrib-enhancements:
     name: Test Enhancement Modules

@@ -274,6 +274,13 @@ func TestCache_Integration(t *testing.T) {
 	}
 	defer client.Close()
 
+	// Verify etcd is actually reachable (New() connects lazily)
+	probeCtx, probeCancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer probeCancel()
+	if _, err := client.Status(probeCtx, "localhost:2379"); err != nil {
+		t.Skipf("etcd not reachable: %v", err)
+	}
+
 	// Create cache
 	c := NewCache(client)
 	ctx := context.Background()
