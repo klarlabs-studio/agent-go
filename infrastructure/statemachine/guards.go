@@ -1,6 +1,8 @@
 package statemachine
 
 import (
+	"strings"
+
 	"github.com/felixgeelhaar/statekit"
 
 	"github.com/felixgeelhaar/agent-go/domain/agent"
@@ -54,6 +56,9 @@ func GuardToolAllowedFunc(toolName string) statekit.Guard[*Context] {
 }
 
 // stateFromEventType derives the target state from an event type.
+// For canonical events, the well-known state is returned.
+// For custom events (which are uppercase by convention), the lowercase
+// form is returned to match custom state names.
 func stateFromEventType(eventType statekit.EventType) agent.State {
 	switch eventType {
 	case "EXPLORE":
@@ -69,6 +74,6 @@ func stateFromEventType(eventType statekit.EventType) agent.State {
 	case "FAIL":
 		return agent.StateFailed
 	default:
-		return agent.State(eventType)
+		return agent.State(strings.ToLower(string(eventType)))
 	}
 }

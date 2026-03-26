@@ -18,8 +18,9 @@ type TransitionPayload struct {
 
 // Interpreter wraps the statekit interpreter with agent-specific functionality.
 type Interpreter struct {
-	interp *statekit.Interpreter[*Context]
-	ctx    *Context
+	interp    *statekit.Interpreter[*Context]
+	ctx       *Context
+	registry  *agent.StateRegistry
 }
 
 // NewInterpreter creates a new interpreter for the agent state machine.
@@ -30,8 +31,24 @@ func NewInterpreter(machine *statekit.MachineConfig[*Context], ctx *Context) *In
 		*c = ctx
 	})
 	return &Interpreter{
-		interp: interp,
-		ctx:    ctx,
+		interp:   interp,
+		ctx:      ctx,
+		registry: agent.NewStateRegistry(),
+	}
+}
+
+// NewInterpreterFromDefinition creates a new interpreter from a MachineDefinition,
+// inheriting the custom state registry.
+func NewInterpreterFromDefinition(def *MachineDefinition, ctx *Context) *Interpreter {
+	interp := statekit.NewInterpreter(def.Config)
+	interp.UpdateContext(func(c **Context) {
+		*c = ctx
+	})
+	ctx.StateRegistry = def.StateRegistry
+	return &Interpreter{
+		interp:   interp,
+		ctx:      ctx,
+		registry: def.StateRegistry,
 	}
 }
 

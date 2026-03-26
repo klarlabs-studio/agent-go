@@ -64,7 +64,7 @@ func TestEventForTransition(t *testing.T) {
 		{agent.StateValidate, "VALIDATE"},
 		{agent.StateDone, "DONE"},
 		{agent.StateFailed, "FAIL"},
-		{agent.State("custom"), "custom"}, // Unknown state uses state as event
+		{agent.State("custom"), "CUSTOM"}, // Unknown/custom state uses uppercase name as event
 	}
 
 	for _, tt := range tests {
@@ -609,7 +609,7 @@ func TestStateFromEventType(t *testing.T) {
 		{"VALIDATE", agent.StateValidate},
 		{"DONE", agent.StateDone},
 		{"FAIL", agent.StateFailed},
-		{"CUSTOM_EVENT", agent.State("CUSTOM_EVENT")}, // default case
+		{"CUSTOM_EVENT", agent.State("custom_event")}, // default case lowercases to match state names
 	}
 
 	for _, tt := range tests {

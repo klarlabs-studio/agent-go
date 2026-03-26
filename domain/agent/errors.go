@@ -27,4 +27,10 @@ var (
 
 	// ErrInvalidHumanInput indicates the human input is not valid for the pending question.
 	ErrInvalidHumanInput = errors.New("invalid human input for pending question")
+
+	// ErrCustomStateConflict indicates a custom state name conflicts with a canonical state.
+	ErrCustomStateConflict = errors.New("custom state name conflicts with canonical state")
+
+	// ErrCustomStateDuplicate indicates a custom state with the same name is already registered.
+	ErrCustomStateDuplicate = errors.New("custom state already registered")
 )
