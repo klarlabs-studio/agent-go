@@ -73,8 +73,10 @@
 //
 // Planners make decisions about what the agent should do next:
 //
-//   - ScriptedPlanner: Predefined sequence for testing
+//   - ScriptedPlanner: Predefined sequence for testing (supports looping, conditional steps, error injection)
 //   - MockPlanner: Returns specific decisions for testing
+//   - RuleBasedPlanner: Evaluates Go-native rules in priority order, first match wins
+//   - HybridPlanner: Combines rule-based with any fallback planner
 //   - LLMPlanner: Uses an LLM provider for intelligent planning
 //
 // # Policies

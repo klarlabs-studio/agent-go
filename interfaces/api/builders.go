@@ -40,6 +40,29 @@ func NewScriptedPlanner(steps ...planner.ScriptStep) *planner.ScriptedPlanner {
 // ScriptStep is a step in a scripted planner.
 type ScriptStep = planner.ScriptStep
 
+// Rule is a condition-decision pair for the rule-based planner.
+type Rule = planner.Rule
+
+// RuleBuilder constructs rules using a fluent API.
+type RuleBuilder = planner.RuleBuilder
+
+// NewRule creates a new rule builder with the given name.
+func NewRule(name string) *planner.RuleBuilder {
+	return planner.NewRule(name)
+}
+
+// NewRuleBasedPlanner creates a rule-based planner that evaluates rules in priority order.
+// The fallback decision is returned when no rule matches.
+func NewRuleBasedPlanner(fallback Decision, rules ...planner.Rule) *planner.RuleBasedPlanner {
+	return planner.NewRuleBasedPlanner(fallback, rules...)
+}
+
+// NewHybridPlanner creates a hybrid planner that tries rules first,
+// then falls back to the given planner when no rule matches.
+func NewHybridPlanner(rules *planner.RuleBasedPlanner, fallback planner.Planner) *planner.HybridPlanner {
+	return planner.NewHybridPlanner(rules, fallback)
+}
+
 // EligibilityRules maps states to the tools allowed in each state.
 // This is the preferred way to configure tool eligibility declaratively.
 //

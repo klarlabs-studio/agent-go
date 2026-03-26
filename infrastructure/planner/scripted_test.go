@@ -3,6 +3,7 @@ package planner
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"sync"
 	"testing"
 
@@ -311,5 +312,237 @@ func TestConditionFailedError_Error(t *testing.T) {
 	msg := err.Error()
 	if msg == "" {
 		t.Error("Error() should return non-empty string")
+	}
+}
+
+// --- Enhanced ScriptedPlanner tests ---
+
+func TestScriptedPlanner_SkipConditionalStep(t *testing.T) {
+	t.Parallel()
+
+	p := NewScriptedPlanner(
+		ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("optional_tool", nil, "optional"),
+			Skip:        true,
+			Condition: func(req PlanRequest) bool {
+				_, ok := req.Vars["need_tool"]
+				return ok
+			},
+		},
+		ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewFinishDecision("done", nil),
+		},
+	)
+
+	ctx := context.Background()
+
+	// Without the var, the first step should be skipped
+	d, err := p.Plan(ctx, PlanRequest{
+		CurrentState: agent.StateExplore,
+		Vars:         map[string]any{},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if d.Type != agent.DecisionFinish {
+		t.Errorf("should skip to finish, got %s", d.Type)
+	}
+
+	// Reset and try with the var set
+	p.Reset()
+	d, err = p.Plan(ctx, PlanRequest{
+		CurrentState: agent.StateExplore,
+		Vars:         map[string]any{"need_tool": true},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if d.Type != agent.DecisionCallTool {
+		t.Errorf("should execute tool call, got %s", d.Type)
+	}
+}
+
+func TestScriptedPlanner_ErrorInjection(t *testing.T) {
+	t.Parallel()
+
+	injectedErr := errors.New("simulated planner failure")
+
+	p := NewScriptedPlanner(
+		ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "begin"),
+		},
+		ScriptStep{
+			ExpectState: agent.StateExplore,
+			Error:       injectedErr,
+		},
+		ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewFinishDecision("reachable after error", nil),
+		},
+	)
+
+	ctx := context.Background()
+
+	// Step 1 - normal
+	_, err := p.Plan(ctx, PlanRequest{CurrentState: agent.StateIntake})
+	if err != nil {
+		t.Fatalf("step 1: %v", err)
+	}
+
+	// Step 2 - error injection
+	_, err = p.Plan(ctx, PlanRequest{CurrentState: agent.StateExplore})
+	if err == nil {
+		t.Fatal("expected injected error")
+	}
+	if !errors.Is(err, injectedErr) {
+		t.Errorf("error = %v, want %v", err, injectedErr)
+	}
+
+	// Step 3 should still be reachable (error step was consumed)
+	if p.CurrentStep() != 2 {
+		t.Errorf("current step = %d, want 2", p.CurrentStep())
+	}
+
+	d, err := p.Plan(ctx, PlanRequest{CurrentState: agent.StateExplore})
+	if err != nil {
+		t.Fatalf("step 3: %v", err)
+	}
+	if d.Type != agent.DecisionFinish {
+		t.Errorf("step 3: type = %s, want finish", d.Type)
+	}
+}
+
+func TestScriptedPlanner_LoopCount(t *testing.T) {
+	t.Parallel()
+
+	p := NewScriptedPlanner(
+		ScriptStep{
+			Decision: agent.NewTransitionDecision(agent.StateExplore, "loop step"),
+		},
+	).WithLoop(3)
+
+	ctx := context.Background()
+
+	// Should execute the step 3 times
+	for i := 0; i < 3; i++ {
+		d, err := p.Plan(ctx, PlanRequest{})
+		if err != nil {
+			t.Fatalf("iteration %d: %v", i, err)
+		}
+		if d.Type != agent.DecisionTransition {
+			t.Errorf("iteration %d: type = %s, want transition", i, d.Type)
+		}
+	}
+
+	if p.LoopIteration() != 2 {
+		t.Errorf("loop iteration = %d, want 2", p.LoopIteration())
+	}
+
+	// 4th call should hit onUnexpected
+	d, err := p.Plan(ctx, PlanRequest{})
+	if err != nil {
+		t.Fatalf("post-loop: %v", err)
+	}
+	if d.Type != agent.DecisionFail {
+		t.Errorf("post-loop: type = %s, want fail (onUnexpected)", d.Type)
+	}
+}
+
+func TestScriptedPlanner_LoopUntil(t *testing.T) {
+	iteration := 0
+
+	p := NewScriptedPlanner(
+		ScriptStep{
+			Decision: agent.NewTransitionDecision(agent.StateExplore, "loop"),
+		},
+	).WithLoopUntil(func(_ PlanRequest) bool {
+		iteration++
+		return iteration >= 3 // Stop after 3 iterations
+	})
+
+	ctx := context.Background()
+
+	for i := 0; i < 3; i++ {
+		d, err := p.Plan(ctx, PlanRequest{})
+		if err != nil {
+			t.Fatalf("iteration %d: %v", i, err)
+		}
+		if d.Type != agent.DecisionTransition {
+			t.Errorf("iteration %d: type = %s, want transition", i, d.Type)
+		}
+	}
+
+	// Next call should hit onUnexpected since loopUntil returned true
+	d, err := p.Plan(ctx, PlanRequest{})
+	if err != nil {
+		t.Fatalf("post-loop: %v", err)
+	}
+	if d.Type != agent.DecisionFail {
+		t.Errorf("post-loop: type = %s, want fail", d.Type)
+	}
+}
+
+func TestScriptedPlanner_LoopMultipleSteps(t *testing.T) {
+	t.Parallel()
+
+	p := NewScriptedPlanner(
+		ScriptStep{
+			Decision: agent.NewTransitionDecision(agent.StateExplore, "step-1"),
+		},
+		ScriptStep{
+			Decision: agent.NewTransitionDecision(agent.StateDecide, "step-2"),
+		},
+	).WithLoop(2)
+
+	ctx := context.Background()
+
+	// 4 total calls: 2 steps * 2 iterations
+	expectedStates := []agent.State{
+		agent.StateExplore, agent.StateDecide, // iteration 1
+		agent.StateExplore, agent.StateDecide, // iteration 2
+	}
+
+	for i, expected := range expectedStates {
+		d, err := p.Plan(ctx, PlanRequest{})
+		if err != nil {
+			t.Fatalf("call %d: %v", i, err)
+		}
+		if d.Transition.ToState != expected {
+			t.Errorf("call %d: to_state = %s, want %s", i, d.Transition.ToState, expected)
+		}
+	}
+
+	// 5th call should exhaust
+	d, err := p.Plan(ctx, PlanRequest{})
+	if err != nil {
+		t.Fatalf("post-loop: %v", err)
+	}
+	if d.Type != agent.DecisionFail {
+		t.Errorf("post-loop: type = %s, want fail", d.Type)
+	}
+}
+
+func TestScriptedPlanner_SkipAllStepsInLoop(t *testing.T) {
+	t.Parallel()
+
+	// All steps are skippable, should exhaust after loop count
+	p := NewScriptedPlanner(
+		ScriptStep{
+			Decision:  agent.NewTransitionDecision(agent.StateExplore, "skipped"),
+			Skip:      true,
+			Condition: func(_ PlanRequest) bool { return false },
+		},
+	).WithLoop(2)
+
+	// Both iterations skip all steps, so we hit onUnexpected
+	d, err := p.Plan(context.Background(), PlanRequest{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if d.Type != agent.DecisionFail {
+		t.Errorf("type = %s, want fail", d.Type)
 	}
 }
