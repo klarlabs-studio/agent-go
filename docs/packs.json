@@ -1,0 +1,959 @@
+{
+  "generated": "2026-03-28T17:37:48Z",
+  "count": 119,
+  "total_tools": 1236,
+  "packs": [
+    {
+      "name": "pack-analytics",
+      "package": "analytics",
+      "category": "Data & Analytics",
+      "tool_count": 4,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-api",
+      "package": "api",
+      "category": "Web & Network",
+      "tool_count": 4,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-archive",
+      "package": "archive",
+      "category": "Archive & Compression",
+      "tool_count": 13,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-ascii",
+      "package": "ascii",
+      "category": "Text & String Processing",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-ast",
+      "package": "ast",
+      "category": "Code & AST",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-audio",
+      "package": "audio",
+      "category": "Media & Documents",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-base64",
+      "package": "base64",
+      "category": "Text & String Processing",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-browser",
+      "package": "browser",
+      "category": "Web & Network",
+      "tool_count": 24,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-cache",
+      "package": "cache",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-calendar",
+      "package": "calendar",
+      "category": "Utilities",
+      "tool_count": 7,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-case",
+      "package": "caseconv",
+      "category": "Text & String Processing",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-changelog",
+      "package": "changelog",
+      "category": "Code & AST",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-chart",
+      "package": "chart",
+      "category": "Media & Documents",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-chunker",
+      "package": "chunker",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-ci",
+      "package": "ci",
+      "category": "Infrastructure",
+      "tool_count": 8,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-cloud",
+      "package": "cloud",
+      "category": "Infrastructure",
+      "tool_count": 7,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-code",
+      "package": "code",
+      "category": "Text & String Processing",
+      "tool_count": 7,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-collection",
+      "package": "collection",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-color",
+      "package": "color",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-compression",
+      "package": "compression",
+      "category": "Archive & Compression",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-config",
+      "package": "config",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-convert",
+      "package": "convert",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-copilot",
+      "package": "copilot",
+      "category": "Integrations",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-country",
+      "package": "country",
+      "category": "Geo & Localization",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-creditcard",
+      "package": "creditcard",
+      "category": "Business & CRM",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-crm",
+      "package": "crm",
+      "category": "Business & CRM",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-cron",
+      "package": "cron",
+      "category": "Utilities",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-crypto",
+      "package": "crypto",
+      "category": "Security & Crypto",
+      "tool_count": 19,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-database",
+      "package": "database",
+      "category": "Infrastructure",
+      "tool_count": 7,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-dataframe",
+      "package": "dataframe",
+      "category": "Data & Analytics",
+      "tool_count": 28,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-diff",
+      "package": "diff",
+      "category": "Text & String Processing",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-dns",
+      "package": "dns",
+      "category": "Web & Network",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-docker",
+      "package": "docker",
+      "category": "Infrastructure",
+      "tool_count": 9,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-docs",
+      "package": "docs",
+      "category": "Code & AST",
+      "tool_count": 5,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-email",
+      "package": "email",
+      "category": "Messaging & Notifications",
+      "tool_count": 5,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-embeddings",
+      "package": "embeddings",
+      "category": "AI & ML",
+      "tool_count": 8,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-emoji",
+      "package": "emoji",
+      "category": "Geo & Localization",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-env",
+      "package": "env",
+      "category": "Utilities",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-etl",
+      "package": "etl",
+      "category": "Data & Analytics",
+      "tool_count": 5,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-fileops",
+      "package": "fileops",
+      "category": "Infrastructure",
+      "tool_count": 9,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-filesystem",
+      "package": "filesystem",
+      "category": "Infrastructure",
+      "tool_count": 8,
+      "tested": true,
+      "has_handlers": false
+    },
+    {
+      "name": "pack-finance",
+      "package": "finance",
+      "category": "Data & Analytics",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-fuzzy",
+      "package": "fuzzy",
+      "category": "Validation & Parsing",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-geo",
+      "package": "geo",
+      "category": "Geo & Localization",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-git",
+      "package": "git",
+      "category": "Infrastructure",
+      "tool_count": 11,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-github",
+      "package": "github",
+      "category": "Integrations",
+      "tool_count": 19,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-gpio",
+      "package": "gpio",
+      "category": "Hardware & IoT",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-graphql",
+      "package": "graphql",
+      "category": "Web & Network",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-grpc",
+      "package": "grpc",
+      "category": "Web & Network",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-hash",
+      "package": "hash",
+      "category": "Text & String Processing",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-html",
+      "package": "html",
+      "category": "Data Formats",
+      "tool_count": 13,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-http",
+      "package": "http",
+      "category": "Web & Network",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-image",
+      "package": "image",
+      "category": "Media & Documents",
+      "tool_count": 8,
+      "tested": true,
+      "has_handlers": false
+    },
+    {
+      "name": "pack-ip",
+      "package": "ip",
+      "category": "Web & Network",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-jira",
+      "package": "jira",
+      "category": "Integrations",
+      "tool_count": 17,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-json",
+      "package": "json",
+      "category": "Data Formats",
+      "tool_count": 18,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-jwt",
+      "package": "jwt",
+      "category": "Security & Crypto",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-kubernetes",
+      "package": "kubernetes",
+      "category": "Infrastructure",
+      "tool_count": 9,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-license",
+      "package": "license",
+      "category": "Code & AST",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-linear",
+      "package": "linear",
+      "category": "Integrations",
+      "tool_count": 7,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-llm",
+      "package": "llm",
+      "category": "AI & ML",
+      "tool_count": 7,
+      "tested": true,
+      "has_handlers": false
+    },
+    {
+      "name": "pack-markdown",
+      "package": "markdown",
+      "category": "Text & String Processing",
+      "tool_count": 13,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-math",
+      "package": "mathutil",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-messaging",
+      "package": "messaging",
+      "category": "Messaging & Notifications",
+      "tool_count": 7,
+      "tested": true,
+      "has_handlers": false
+    },
+    {
+      "name": "pack-metrics",
+      "package": "metrics",
+      "category": "Data & Analytics",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-mime",
+      "package": "mime",
+      "category": "Validation & Parsing",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-model",
+      "package": "model",
+      "category": "AI & ML",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-monitoring",
+      "package": "monitoring",
+      "category": "Data & Analytics",
+      "tool_count": 8,
+      "tested": true,
+      "has_handlers": false
+    },
+    {
+      "name": "pack-mqtt",
+      "package": "mqtt",
+      "category": "Messaging & Notifications",
+      "tool_count": 7,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-network",
+      "package": "network",
+      "category": "Web & Network",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-notification",
+      "package": "notification",
+      "category": "Messaging & Notifications",
+      "tool_count": 7,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-ocr",
+      "package": "ocr",
+      "category": "Media & Documents",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-openapi",
+      "package": "openapi",
+      "category": "Code & AST",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-password",
+      "package": "password",
+      "category": "Security & Crypto",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-path",
+      "package": "pathutil",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-payments",
+      "package": "payments",
+      "category": "Data & Analytics",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-pdf",
+      "package": "pdf",
+      "category": "Media & Documents",
+      "tool_count": 8,
+      "tested": true,
+      "has_handlers": false
+    },
+    {
+      "name": "pack-phone",
+      "package": "phone",
+      "category": "Geo & Localization",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-pluralize",
+      "package": "pluralize",
+      "category": "Text & String Processing",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-process",
+      "package": "process",
+      "category": "Infrastructure",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-prompt",
+      "package": "prompt",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-qrcode",
+      "package": "qrcode",
+      "category": "Media & Documents",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-rag",
+      "package": "rag",
+      "category": "AI & ML",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-random",
+      "package": "random",
+      "category": "Utilities",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-rate",
+      "package": "rate",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-regex",
+      "package": "regex",
+      "category": "Text & String Processing",
+      "tool_count": 13,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-retry",
+      "package": "retry",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-scheduler",
+      "package": "scheduler",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-scrape",
+      "package": "scrape",
+      "category": "Web & Network",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-search",
+      "package": "search",
+      "category": "Data & Analytics",
+      "tool_count": 7,
+      "tested": true,
+      "has_handlers": false
+    },
+    {
+      "name": "pack-secrets",
+      "package": "secrets",
+      "category": "Security & Crypto",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": false
+    },
+    {
+      "name": "pack-semver",
+      "package": "semver",
+      "category": "Code & AST",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-serial",
+      "package": "serial",
+      "category": "Hardware & IoT",
+      "tool_count": 6,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-shell",
+      "package": "shell",
+      "category": "Infrastructure",
+      "tool_count": 3,
+      "tested": true,
+      "has_handlers": false
+    },
+    {
+      "name": "pack-similarity",
+      "package": "similarity",
+      "category": "Text & String Processing",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-slack",
+      "package": "slack",
+      "category": "Messaging & Notifications",
+      "tool_count": 17,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-slug",
+      "package": "slug",
+      "category": "Text & String Processing",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-spreadsheet",
+      "package": "spreadsheet",
+      "category": "Media & Documents",
+      "tool_count": 20,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-sql",
+      "package": "sql",
+      "category": "Infrastructure",
+      "tool_count": 13,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-sse",
+      "package": "sse",
+      "category": "Web & Network",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-ssh",
+      "package": "ssh",
+      "category": "Infrastructure",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-stats",
+      "package": "stats",
+      "category": "Utilities",
+      "tool_count": 25,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-string",
+      "package": "stringutil",
+      "category": "Text & String Processing",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-sysinfo",
+      "package": "sysinfo",
+      "category": "Validation & Parsing",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-template",
+      "package": "template",
+      "category": "Text & String Processing",
+      "tool_count": 16,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-terraform",
+      "package": "terraform",
+      "category": "Infrastructure",
+      "tool_count": 7,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-testing",
+      "package": "testing",
+      "category": "Utilities",
+      "tool_count": 5,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-time",
+      "package": "time",
+      "category": "Utilities",
+      "tool_count": 20,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-tokenizer",
+      "package": "tokenizer",
+      "category": "AI & ML",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-url",
+      "package": "url",
+      "category": "Web & Network",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-useragent",
+      "package": "useragent",
+      "category": "Web & Network",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-uuid",
+      "package": "uuid",
+      "category": "Utilities",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-validate",
+      "package": "validate",
+      "category": "Utilities",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-vectordb",
+      "package": "vectordb",
+      "category": "AI & ML",
+      "tool_count": 8,
+      "tested": true,
+      "has_handlers": false
+    },
+    {
+      "name": "pack-video",
+      "package": "video",
+      "category": "Media & Documents",
+      "tool_count": 7,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-visualization",
+      "package": "visualization",
+      "category": "Media & Documents",
+      "tool_count": 4,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-websocket",
+      "package": "websocket",
+      "category": "Web & Network",
+      "tool_count": 10,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-xml",
+      "package": "xml",
+      "category": "Data Formats",
+      "tool_count": 12,
+      "tested": true,
+      "has_handlers": true
+    },
+    {
+      "name": "pack-yaml",
+      "package": "yaml",
+      "category": "Data Formats",
+      "tool_count": 13,
+      "tested": true,
+      "has_handlers": true
+    }
+  ]
+}

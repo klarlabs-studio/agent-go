@@ -141,6 +141,19 @@ hooks:
 	@echo "  pre-commit: gofmt, go vet, golangci-lint, nox, build, core tests"
 	@echo "  pre-push:   race tests, coverage check, nox security scan"
 
+# Documentation generation
+docs: docs-packs docs-api
+
+docs-packs:
+	@scripts/generate-pack-index.sh
+
+docs-api:
+	@scripts/generate-api-docs.sh
+
+# Integration tests
+test-integration:
+	go test -race -v -tags=integration ./test/integration/...
+
 # All checks (CI/CD)
 check: lint test-coverage coverage-check security
 
