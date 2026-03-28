@@ -39,6 +39,13 @@ import (
 	"sync"
 	"time"
 
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+
+	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"github.com/felixgeelhaar/agent-go/domain/event"
+	"github.com/felixgeelhaar/agent-go/domain/middleware"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 )
 
@@ -78,6 +85,16 @@ type Config struct {
 
 	// ResourceHandlers maps resource URIs to handler functions.
 	ResourceHandlers map[string]ResourceHandler
+
+	// Middleware is the optional middleware registry for tool execution.
+	// When set, MCP tool calls are routed through the same middleware chain
+	// as engine tool calls (eligibility, approval, logging, etc.).
+	Middleware *middleware.Registry
+
+	// EventStore is the optional event store for MCP audit trail.
+	// When set, tool.called/succeeded/failed events are published for
+	// every MCP tool invocation.
+	EventStore event.Store
 }
 
 // Server implements the MCP server.
@@ -234,8 +251,8 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Execute the tool
-	result, err := t.Execute(r.Context(), req.Arguments)
+	// Execute the tool (through middleware if configured)
+	result, err := s.executeTool(r.Context(), t, req.Arguments)
 	if err != nil {
 		resp := CallToolResponse{
 			IsError: true,
@@ -504,7 +521,7 @@ func (s *Server) rpcCallTool(ctx context.Context, params json.RawMessage) (any, 
 		return nil, &jsonRPCError{Code: -32602, Message: "Tool not found"}
 	}
 
-	result, err := t.Execute(ctx, req.Arguments)
+	result, err := s.executeTool(ctx, t, req.Arguments)
 	if err != nil {
 		return CallToolResponse{
 			IsError: true,
@@ -600,6 +617,107 @@ func (s *Server) rpcGetPrompt(params json.RawMessage) (any, *jsonRPCError) {
 // MCP Protocol Types
 
 // jsonRPCRequest represents a JSON-RPC 2.0 request.
+// executeTool runs a tool through the middleware chain if configured,
+// or directly if not. This is the single execution path for both HTTP
+// and JSON-RPC tool calls, ensuring policy enforcement.
+func (s *Server) executeTool(ctx context.Context, t tool.Tool, input json.RawMessage) (tool.Result, error) {
+	// If no middleware configured, execute directly (backward compatible)
+	if s.config.Middleware == nil {
+		result, err := t.Execute(ctx, input)
+		s.publishMCPToolEvents(ctx, t.Name(), input, result, err)
+		return result, err
+	}
+
+	// Generate a synthetic MCP call ID for audit trail
+	mcpCallID := generateMCPCallID()
+
+	// Build execution context for middleware
+	execCtx := &middleware.ExecutionContext{
+		RunID:        mcpCallID,
+		CurrentState: agent.StateAct, // MCP calls are always "acting"
+		Tool:         t,
+		Input:        input,
+		Reason:       "mcp-invocation",
+	}
+
+	// Wire event publisher if event store is configured
+	if s.config.EventStore != nil {
+		execCtx.EventPublisher = func(eventType string, payload any) {
+			evt, err := event.NewEvent(mcpCallID, event.Type(eventType), payload)
+			if err == nil {
+				_ = s.config.EventStore.Append(ctx, evt)
+			}
+		}
+	}
+
+	// Publish tool.called event
+	s.publishMCPEvent(ctx, mcpCallID, event.TypeToolCalled, event.ToolCalledPayload{
+		ToolName: t.Name(), Input: input, State: agent.StateAct, Reason: "mcp-invocation",
+	})
+
+	// Core handler wraps direct tool execution
+	coreHandler := func(ctx context.Context, ec *middleware.ExecutionContext) (tool.Result, error) {
+		return ec.Tool.Execute(ctx, ec.Input)
+	}
+
+	// Execute through middleware chain
+	start := time.Now()
+	handler := s.config.Middleware.Chain()(coreHandler)
+	result, err := handler(ctx, execCtx)
+	duration := time.Since(start)
+
+	// Publish success/failure events
+	if err != nil {
+		s.publishMCPEvent(ctx, mcpCallID, event.TypeToolFailed, event.ToolFailedPayload{
+			ToolName: t.Name(), Error: err.Error(), Duration: duration,
+		})
+	} else {
+		s.publishMCPEvent(ctx, mcpCallID, event.TypeToolSucceeded, event.ToolSucceededPayload{
+			ToolName: t.Name(), Output: result.Output, Duration: duration, Cached: result.Cached,
+		})
+	}
+
+	return result, err
+}
+
+// publishMCPEvent publishes a single event to the event store. Nil-safe.
+func (s *Server) publishMCPEvent(ctx context.Context, mcpCallID string, eventType event.Type, payload any) {
+	if s.config.EventStore == nil {
+		return
+	}
+	evt, err := event.NewEvent(mcpCallID, eventType, payload)
+	if err == nil {
+		_ = s.config.EventStore.Append(ctx, evt)
+	}
+}
+
+// publishMCPToolEvents publishes tool events for non-middleware execution path.
+func (s *Server) publishMCPToolEvents(ctx context.Context, toolName string, input json.RawMessage, result tool.Result, err error) {
+	if s.config.EventStore == nil {
+		return
+	}
+	mcpCallID := generateMCPCallID()
+	s.publishMCPEvent(ctx, mcpCallID, event.TypeToolCalled, event.ToolCalledPayload{
+		ToolName: toolName, Input: input, State: agent.StateAct,
+	})
+	if err != nil {
+		s.publishMCPEvent(ctx, mcpCallID, event.TypeToolFailed, event.ToolFailedPayload{
+			ToolName: toolName, Error: err.Error(),
+		})
+	} else {
+		s.publishMCPEvent(ctx, mcpCallID, event.TypeToolSucceeded, event.ToolSucceededPayload{
+			ToolName: toolName, Output: result.Output,
+		})
+	}
+}
+
+// generateMCPCallID creates a unique ID for MCP tool calls.
+func generateMCPCallID() string {
+	b := make([]byte, 4)
+	_, _ = rand.Read(b)
+	return fmt.Sprintf("mcp-%d-%s", time.Now().UnixNano(), hex.EncodeToString(b))
+}
+
 type jsonRPCRequest struct {
 	JSONRPC string          `json:"jsonrpc"`
 	ID      json.RawMessage `json:"id"`
