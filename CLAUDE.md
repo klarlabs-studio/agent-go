@@ -162,7 +162,7 @@ States are **structural constraints**, not behavioral definitions. Tools are exp
 **Output** (one of):
 - `CallTool` - Execute a tool with JSON input
 - `Transition` - Move to another state with reason
-- `AskHuman` - Request human input (not yet implemented)
+- `AskHuman` - Request human input (resume with `engine.ResumeWithInput()`)
 - `Finish` - Complete successfully with result
 - `Fail` - Terminate with failure
 

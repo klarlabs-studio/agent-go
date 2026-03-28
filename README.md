@@ -376,9 +376,12 @@ agent-go/
 | [02-tools](example/02-tools/) | Custom tool creation | Beginner |
 | [03-policies](example/03-policies/) | Budgets and approvals | Intermediate |
 | [04-llm-planner](example/04-llm-planner/) | Real LLM integration | Intermediate |
-| [05-observability](example/05-observability/) | Tracing and metrics | Intermediate |
 | [06-distributed](example/06-distributed/) | Multi-worker setup | Advanced |
-| [07-production](example/07-production/) | Full production setup | Advanced |
+| [fileops](example/fileops/) | File operation tools | Beginner |
+| [webscraper](example/webscraper/) | Web scraping agent | Intermediate |
+| [customer-support](example/customer-support/) | Customer support agent | Intermediate |
+| [devops-monitor](example/devops-monitor/) | DevOps monitoring agent | Advanced |
+| [governed-adaptivity](example/governed_adaptivity/) | Governed adaptive behavior | Advanced |
 
 ---
 
