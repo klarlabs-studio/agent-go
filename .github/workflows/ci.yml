@@ -60,6 +60,35 @@ jobs:
           go install github.com/felixgeelhaar/coverctl@latest
           coverctl check --profile=coverage.out --fail-under=60
 
+  benchmark:
+    name: Benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Sync workspace
+        run: go work sync
+
+      - name: Run benchmarks
+        run: |
+          go test -bench=. -benchmem -count=3 -timeout=5m \
+            ./application/... \
+            ./infrastructure/statemachine/... \
+            ./infrastructure/planner/... \
+            | tee bench-results.txt
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: bench-results.txt
+
   test-contrib-storage:
     name: Test Storage Backends
     runs-on: ubuntu-latest

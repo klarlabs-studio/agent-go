@@ -127,6 +127,10 @@ workspace-verify:
 	go build ./...
 	@echo "Workspace verified successfully"
 
+# Create new contrib module
+new-contrib:
+	@scripts/new-contrib.sh $(NAME)
+
 # Install git hooks
 hooks:
 	@echo "Installing git hooks..."

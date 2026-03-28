@@ -25,6 +25,12 @@ const (
 	ScopePerTool RateLimitScope = "per_tool"
 	// ScopePerRunTool applies rate limiting per run and tool combination.
 	ScopePerRunTool RateLimitScope = "per_run_tool"
+	// ScopePerUser applies rate limiting per user (extracted from Vars["user_id"]).
+	ScopePerUser RateLimitScope = "per_user"
+	// ScopePerTenant applies rate limiting per tenant (extracted from Vars["tenant_id"]).
+	ScopePerTenant RateLimitScope = "per_tenant"
+	// ScopePerUserTool applies rate limiting per user and tool combination.
+	ScopePerUserTool RateLimitScope = "per_user_tool"
 )
 
 // RateLimitConfig configures the rate limiting middleware.
@@ -53,6 +59,14 @@ type RateLimitConfig struct {
 	// OnLimitExceeded is called when a request is rate limited.
 	// Receives the execution context that was limited.
 	OnLimitExceeded func(ctx context.Context, execCtx *middleware.ExecutionContext)
+
+	// UserKey is the Vars key used to extract the user ID for ScopePerUser/ScopePerUserTool.
+	// Defaults to "user_id" if empty.
+	UserKey string
+
+	// TenantKey is the Vars key used to extract the tenant ID for ScopePerTenant.
+	// Defaults to "tenant_id" if empty.
+	TenantKey string
 }
 
 // DefaultRateLimitConfig returns a sensible default rate limit configuration.
@@ -93,7 +107,7 @@ func RateLimit(cfg RateLimitConfig) middleware.Middleware {
 	return func(next middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, execCtx *middleware.ExecutionContext) (tool.Result, error) {
 			// Generate key based on scope
-			key := generateRateLimitKey(scope, execCtx)
+			key := generateRateLimitKeyWithConfig(scope, execCtx, cfg.UserKey, cfg.TenantKey)
 
 			// Check rate limit
 			if !limiter.Allow(ctx, key) {
@@ -120,6 +134,11 @@ func RateLimit(cfg RateLimitConfig) middleware.Middleware {
 
 // generateRateLimitKey generates a rate limiting key based on scope.
 func generateRateLimitKey(scope RateLimitScope, execCtx *middleware.ExecutionContext) string {
+	return generateRateLimitKeyWithConfig(scope, execCtx, "", "")
+}
+
+// generateRateLimitKeyWithConfig generates a rate limiting key with configurable Vars keys.
+func generateRateLimitKeyWithConfig(scope RateLimitScope, execCtx *middleware.ExecutionContext, userKey, tenantKey string) string {
 	switch scope {
 	case ScopePerRun:
 		return execCtx.RunID
@@ -127,9 +146,26 @@ func generateRateLimitKey(scope RateLimitScope, execCtx *middleware.ExecutionCon
 		return execCtx.Tool.Name()
 	case ScopePerRunTool:
 		return fmt.Sprintf("%s:%s", execCtx.RunID, execCtx.Tool.Name())
+	case ScopePerUser:
+		return fmt.Sprintf("user:%s", extractVarKey(execCtx, userKey, "user_id"))
+	case ScopePerTenant:
+		return fmt.Sprintf("tenant:%s", extractVarKey(execCtx, tenantKey, "tenant_id"))
+	case ScopePerUserTool:
+		return fmt.Sprintf("user:%s:tool:%s", extractVarKey(execCtx, userKey, "user_id"), execCtx.Tool.Name())
 	default:
 		return "global"
 	}
+}
+
+// extractVarKey extracts a value from Vars, using the configured key or a default.
+func extractVarKey(execCtx *middleware.ExecutionContext, key, defaultKey string) string {
+	if key == "" {
+		key = defaultKey
+	}
+	if v, ok := execCtx.Vars[key]; ok {
+		return fmt.Sprintf("%v", v)
+	}
+	return "unknown"
 }
 
 // PerToolRateLimitConfig configures per-tool rate limiting.
