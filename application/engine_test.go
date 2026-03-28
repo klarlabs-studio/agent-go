@@ -1149,3 +1149,874 @@ func TestGenerateRunID_Format(t *testing.T) {
 		t.Error("expected run ID to have reasonable length")
 	}
 }
+
+// Concurrency Tests
+
+func TestRun_ConcurrentRuns_SameEngine(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	registry := newTestRegistry(readTool)
+
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+
+	// Use a MockPlanner which is safe for concurrent use (mutex-protected)
+	// Each concurrent run gets its own planner since MockPlanner is stateful
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Eligibility: eligibility,
+		// We set planner per-run below; use a simple planner that finishes immediately
+		Planner: &concurrentSafePlanner{},
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	const numRuns = 10
+	errs := make(chan error, numRuns)
+	runs := make(chan *agent.Run, numRuns)
+
+	for i := 0; i < numRuns; i++ {
+		go func() {
+			ctx := context.Background()
+			run, runErr := engine.Run(ctx, "concurrent test")
+			if runErr != nil {
+				errs <- runErr
+				return
+			}
+			runs <- run
+			errs <- nil
+		}()
+	}
+
+	completedCount := 0
+	for i := 0; i < numRuns; i++ {
+		if e := <-errs; e != nil {
+			t.Errorf("concurrent run failed: %v", e)
+		} else {
+			completedCount++
+		}
+	}
+
+	if completedCount != numRuns {
+		t.Errorf("expected %d completed runs, got %d", numRuns, completedCount)
+	}
+
+	// Drain and verify runs
+	close(runs)
+	runIDs := make(map[string]bool)
+	for run := range runs {
+		if run.Status != agent.RunStatusCompleted {
+			t.Errorf("expected completed status, got %s", run.Status)
+		}
+		if runIDs[run.ID] {
+			t.Errorf("duplicate run ID: %s", run.ID)
+		}
+		runIDs[run.ID] = true
+	}
+}
+
+// concurrentSafePlanner always follows a minimal path: intake -> explore -> decide -> done
+type concurrentSafePlanner struct{}
+
+func (p *concurrentSafePlanner) Plan(_ context.Context, req planner.PlanRequest) (agent.Decision, error) {
+	switch req.CurrentState {
+	case agent.StateIntake:
+		return agent.NewTransitionDecision(agent.StateExplore, "explore"), nil
+	case agent.StateExplore:
+		return agent.NewTransitionDecision(agent.StateDecide, "decide"), nil
+	case agent.StateDecide:
+		return agent.NewFinishDecision("done", json.RawMessage(`{}`)), nil
+	default:
+		return agent.NewFinishDecision("done", json.RawMessage(`{}`)), nil
+	}
+}
+
+// Context Cancellation Tests (Additional)
+
+func TestRun_ContextCancelledBeforeFirstStep(t *testing.T) {
+	registry := newTestRegistry()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry: registry,
+		Planner:  scriptedPlanner,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately before running
+
+	run, runErr := engine.Run(ctx, "test pre-cancelled context")
+	if !errors.Is(runErr, context.Canceled) {
+		t.Errorf("expected context.Canceled, got %v", runErr)
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Errorf("expected run to fail, got status %s", run.Status)
+	}
+}
+
+func TestRun_ContextCancelledDuringToolExecution(t *testing.T) {
+	slowTool, err := tool.NewBuilder("slow_tool").
+		WithDescription("Slow tool").
+		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
+			select {
+			case <-ctx.Done():
+				return tool.Result{}, ctx.Err()
+			case <-time.After(5 * time.Second):
+				return tool.Result{Output: json.RawMessage(`{}`)}, nil
+			}
+		}).
+		Build()
+	if err != nil {
+		t.Fatalf("failed to build tool: %v", err)
+	}
+
+	registry := newTestRegistry(slowTool)
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"slow_tool"},
+	})
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("slow_tool", json.RawMessage(`{}`), "call slow tool"),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	run, runErr := engine.Run(ctx, "test cancel during tool")
+	if runErr == nil {
+		t.Error("expected error from context cancellation")
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Errorf("expected run to fail, got status %s", run.Status)
+	}
+}
+
+// Max Steps Tests (Additional)
+
+func TestRun_MaxSteps_ExactBoundary(t *testing.T) {
+	registry := newTestRegistry()
+
+	// Planner that finishes on exactly step 3
+	// Step 1: intake -> explore
+	// Step 2: explore -> decide
+	// Step 3: decide -> finish (done)
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateDecide, "decide"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateDecide,
+			Decision:    agent.NewFinishDecision("done", json.RawMessage(`{}`)),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry: registry,
+		Planner:  scriptedPlanner,
+		MaxSteps: 3, // Exactly enough steps
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, runErr := engine.Run(context.Background(), "test exact boundary")
+	if runErr != nil {
+		t.Fatalf("expected success, got error: %v", runErr)
+	}
+	if run.Status != agent.RunStatusCompleted {
+		t.Errorf("expected completed, got %s", run.Status)
+	}
+}
+
+func TestRun_MaxSteps_OneStepShort(t *testing.T) {
+	registry := newTestRegistry()
+
+	// Needs 3 steps, but only allowed 2
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateDecide, "decide"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateDecide,
+			Decision:    agent.NewFinishDecision("done", json.RawMessage(`{}`)),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry: registry,
+		Planner:  scriptedPlanner,
+		MaxSteps: 2, // One step short
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, runErr := engine.Run(context.Background(), "test one step short")
+	if runErr == nil || runErr.Error() != "max steps exceeded" {
+		t.Errorf("expected max steps exceeded, got %v", runErr)
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Errorf("expected failed, got %s", run.Status)
+	}
+}
+
+// Budget Exhaustion Tests (Additional)
+
+func TestRun_BudgetExhaustion_MidRun(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	writeTool := newTestTool("write_file", false)
+	registry := newTestRegistry(readTool, writeTool)
+
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+		agent.StateAct:     {"write_file"},
+	})
+
+	// Budget allows 2 tool calls - first two succeed, third fails
+	budgets := map[string]int{"tool_calls": 2}
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "first"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "second"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "third - should fail"),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:     registry,
+		Planner:      scriptedPlanner,
+		Eligibility:  eligibility,
+		BudgetLimits: budgets,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, runErr := engine.Run(context.Background(), "test budget mid-run")
+	if !errors.Is(runErr, policy.ErrBudgetExceeded) {
+		t.Errorf("expected ErrBudgetExceeded, got %v", runErr)
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Errorf("expected failed, got %s", run.Status)
+	}
+	// Should have 2 evidence entries from the successful calls
+	if len(run.Evidence) != 2 {
+		t.Errorf("expected 2 evidence entries from successful calls, got %d", len(run.Evidence))
+	}
+}
+
+// Empty Goal Test
+
+func TestRun_EmptyGoal(t *testing.T) {
+	registry := newTestRegistry()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateDecide, "decide"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateDecide,
+			Decision:    agent.NewFinishDecision("done", json.RawMessage(`{}`)),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry: registry,
+		Planner:  scriptedPlanner,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	// Empty goal should still work - the engine does not validate goal content
+	run, runErr := engine.Run(context.Background(), "")
+	if runErr != nil {
+		t.Fatalf("empty goal should not cause error, got: %v", runErr)
+	}
+	if run.Goal != "" {
+		t.Errorf("expected empty goal, got %q", run.Goal)
+	}
+	if run.Status != agent.RunStatusCompleted {
+		t.Errorf("expected completed, got %s", run.Status)
+	}
+}
+
+// Nil Planner Test
+
+func TestNewEngine_NilPlanner_ReturnsError(t *testing.T) {
+	_, err := NewEngine(EngineConfig{
+		Registry: newTestRegistry(),
+		Planner:  nil,
+	})
+	if err == nil {
+		t.Error("expected error when planner is nil")
+	}
+	if err.Error() != "planner is required" {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+// Planner Error Tests
+
+func TestRun_PlannerError_FailsRun(t *testing.T) {
+	registry := newTestRegistry()
+
+	plannerErr := errors.New("LLM rate limit exceeded")
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Error:       plannerErr,
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry: registry,
+		Planner:  scriptedPlanner,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, runErr := engine.Run(context.Background(), "test planner error")
+	if runErr == nil {
+		t.Error("expected error from planner")
+	}
+	if !errors.Is(runErr, plannerErr) {
+		t.Errorf("expected planner error to be wrapped, got %v", runErr)
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Errorf("expected failed, got %s", run.Status)
+	}
+}
+
+func TestRun_PlannerError_MidRun(t *testing.T) {
+	registry := newTestRegistry()
+
+	plannerErr := errors.New("network timeout")
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Error:       plannerErr, // Fail on second call
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry: registry,
+		Planner:  scriptedPlanner,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, runErr := engine.Run(context.Background(), "test planner error mid-run")
+	if !errors.Is(runErr, plannerErr) {
+		t.Errorf("expected wrapped planner error, got %v", runErr)
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Errorf("expected failed, got %s", run.Status)
+	}
+}
+
+// Tool Execution Failure Tests (Additional)
+
+func TestRun_ToolExecutionError_PreservesEvidence(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	toolErr := errors.New("disk full")
+	failTool := newFailingTool("write_file", toolErr)
+	registry := newTestRegistry(readTool, failTool)
+
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+		agent.StateAct:     {"write_file"},
+	})
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "read"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateDecide, "decide"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateDecide,
+			Decision:    agent.NewTransitionDecision(agent.StateAct, "act"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateAct,
+			Decision:    agent.NewCallToolDecision("write_file", json.RawMessage(`{}`), "write - fails"),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, _ := engine.Run(context.Background(), "test evidence preservation on error")
+	// Evidence from the successful read_file call should be preserved
+	if len(run.Evidence) != 1 {
+		t.Errorf("expected 1 evidence entry from successful call, got %d", len(run.Evidence))
+	}
+	if run.Evidence[0].Source != "read_file" {
+		t.Errorf("expected evidence from read_file, got %s", run.Evidence[0].Source)
+	}
+}
+
+// State Machine Violation Tests (Additional)
+
+func TestRun_InvalidTransition_IntakeToValidate(t *testing.T) {
+	registry := newTestRegistry()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateValidate, "jump to validate"),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry: registry,
+		Planner:  scriptedPlanner,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, runErr := engine.Run(context.Background(), "test invalid intake->validate")
+	if runErr == nil {
+		t.Error("expected error for invalid transition")
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Errorf("expected failed, got %s", run.Status)
+	}
+}
+
+func TestRun_InvalidTransition_ExploreToAct(t *testing.T) {
+	registry := newTestRegistry()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateAct, "skip decide - invalid"),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry: registry,
+		Planner:  scriptedPlanner,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, runErr := engine.Run(context.Background(), "test invalid explore->act")
+	if runErr == nil {
+		t.Error("expected error for invalid transition")
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Errorf("expected failed, got %s", run.Status)
+	}
+}
+
+// ResumeWithInput Tests (Additional)
+
+func TestResumeWithInput_NilRun(t *testing.T) {
+	registry := newTestRegistry()
+	engine, err := NewEngine(EngineConfig{
+		Registry: registry,
+		Planner:  planner.NewMockPlanner(),
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	_, err = engine.ResumeWithInput(context.Background(), nil, "input")
+	if err == nil {
+		t.Error("expected error for nil run")
+	}
+}
+
+func TestResumeWithInput_MultipleResumes(t *testing.T) {
+	registry := newTestRegistry()
+
+	// Planner asks two questions in sequence
+	scriptedPlanner := planner.NewScriptedPlanner(
+		// First run: ask first question
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewAskHumanDecision("First question?", "A", "B"),
+		},
+		// After first resume: transition then ask second question
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewAskHumanDecision("Second question?"),
+		},
+		// After second resume: complete
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateDecide, "decide"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateDecide,
+			Decision:    agent.NewFinishDecision("done", json.RawMessage(`{}`)),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry: registry,
+		Planner:  scriptedPlanner,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	ctx := context.Background()
+
+	// First run pauses
+	run, err := engine.Run(ctx, "test multiple resumes")
+	if !errors.Is(err, agent.ErrAwaitingHumanInput) {
+		t.Fatalf("expected ErrAwaitingHumanInput, got %v", err)
+	}
+	if run.PendingQuestion.Question != "First question?" {
+		t.Errorf("expected first question, got %q", run.PendingQuestion.Question)
+	}
+
+	// First resume - pauses again
+	run, err = engine.ResumeWithInput(ctx, run, "A")
+	if !errors.Is(err, agent.ErrAwaitingHumanInput) {
+		t.Fatalf("expected second ErrAwaitingHumanInput, got %v", err)
+	}
+	if run.PendingQuestion.Question != "Second question?" {
+		t.Errorf("expected second question, got %q", run.PendingQuestion.Question)
+	}
+
+	// Second resume - completes
+	run, err = engine.ResumeWithInput(ctx, run, "freeform answer")
+	if err != nil {
+		t.Fatalf("second resume failed: %v", err)
+	}
+	if run.Status != agent.RunStatusCompleted {
+		t.Errorf("expected completed, got %s", run.Status)
+	}
+
+	// Should have 2 human input evidence entries
+	humanCount := 0
+	for _, e := range run.Evidence {
+		if e.Type == agent.EvidenceHumanInput {
+			humanCount++
+		}
+	}
+	if humanCount != 2 {
+		t.Errorf("expected 2 human input evidence entries, got %d", humanCount)
+	}
+}
+
+// Evidence Accumulation Tests (Additional)
+
+func TestRun_EvidenceAccumulation_OrderPreserved(t *testing.T) {
+	tool1 := newTestTool("tool_a", true)
+	tool2 := newTestTool("tool_b", true)
+	registry := newTestRegistry(tool1, tool2)
+
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"tool_a", "tool_b"},
+	})
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("tool_a", json.RawMessage(`{}`), "first"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("tool_b", json.RawMessage(`{}`), "second"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("tool_a", json.RawMessage(`{}`), "third"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateDecide, "decide"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateDecide,
+			Decision:    agent.NewFinishDecision("done", json.RawMessage(`{}`)),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, err := engine.Run(context.Background(), "test evidence order")
+	if err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+
+	if len(run.Evidence) != 3 {
+		t.Fatalf("expected 3 evidence entries, got %d", len(run.Evidence))
+	}
+
+	// Verify order: tool_a, tool_b, tool_a
+	expectedSources := []string{"tool_a", "tool_b", "tool_a"}
+	for i, src := range expectedSources {
+		if run.Evidence[i].Source != src {
+			t.Errorf("evidence[%d]: expected source %q, got %q", i, src, run.Evidence[i].Source)
+		}
+	}
+
+	// Verify timestamps are non-decreasing
+	for i := 1; i < len(run.Evidence); i++ {
+		if run.Evidence[i].Timestamp.Before(run.Evidence[i-1].Timestamp) {
+			t.Errorf("evidence[%d] timestamp is before evidence[%d]", i, i-1)
+		}
+	}
+}
+
+func TestRun_EvidencePassedToPlanner(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	registry := newTestRegistry(readTool)
+
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+
+	var capturedEvidence []agent.Evidence
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "call tool"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateDecide, "decide"),
+			Condition: func(req planner.PlanRequest) bool {
+				capturedEvidence = req.Evidence
+				return true
+			},
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateDecide,
+			Decision:    agent.NewFinishDecision("done", json.RawMessage(`{}`)),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	_, err = engine.Run(context.Background(), "test evidence in plan request")
+	if err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+
+	// After the tool call, the planner should receive 1 evidence entry
+	if len(capturedEvidence) != 1 {
+		t.Fatalf("expected planner to see 1 evidence entry, got %d", len(capturedEvidence))
+	}
+	if capturedEvidence[0].Source != "read_file" {
+		t.Errorf("expected evidence from read_file, got %s", capturedEvidence[0].Source)
+	}
+}
+
+// Sequential Runs on Same Engine
+
+func TestRun_SequentialRuns_SameEngine(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	registry := newTestRegistry(readTool)
+
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+
+	// Use a concurrent safe planner for multiple sequential runs
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     &concurrentSafePlanner{},
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	ctx := context.Background()
+	var runs []*agent.Run
+
+	for i := 0; i < 5; i++ {
+		run, runErr := engine.Run(ctx, "sequential run")
+		if runErr != nil {
+			t.Fatalf("run %d failed: %v", i, runErr)
+		}
+		if run.Status != agent.RunStatusCompleted {
+			t.Errorf("run %d: expected completed, got %s", i, run.Status)
+		}
+		runs = append(runs, run)
+	}
+
+	// Each run should have a unique ID
+	ids := make(map[string]bool)
+	for _, run := range runs {
+		if ids[run.ID] {
+			t.Errorf("duplicate run ID across sequential runs: %s", run.ID)
+		}
+		ids[run.ID] = true
+	}
+}
+
+// Fail Decision Tests
+
+func TestRun_FailDecision_FromExploreState(t *testing.T) {
+	registry := newTestRegistry()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewFailDecision("discovered unsolvable problem", errors.New("cannot proceed")),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry: registry,
+		Planner:  scriptedPlanner,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, _ := engine.Run(context.Background(), "test fail from explore")
+	if run.Status != agent.RunStatusFailed {
+		t.Errorf("expected failed, got %s", run.Status)
+	}
+	if run.CurrentState != agent.StateFailed {
+		t.Errorf("expected state failed, got %s", run.CurrentState)
+	}
+	if run.Error != "discovered unsolvable problem" {
+		t.Errorf("expected error message, got %q", run.Error)
+	}
+}
+
+// NewEngineWithOptions Tests
+
+func TestNewEngineWithOptions_AllOptions(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	registry := newTestRegistry(readTool)
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+
+	engine, err := NewEngineWithOptions(
+		WithRegistry(registry),
+		WithPlanner(&concurrentSafePlanner{}),
+		WithEligibility(eligibility),
+		WithBudgets(map[string]int{"tool_calls": 50}),
+		WithMaxSteps(25),
+	)
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	if engine.maxSteps != 25 {
+		t.Errorf("expected maxSteps 25, got %d", engine.maxSteps)
+	}
+	if engine.budgetLimits["tool_calls"] != 50 {
+		t.Errorf("expected budget limit 50, got %d", engine.budgetLimits["tool_calls"])
+	}
+}
