@@ -661,3 +661,634 @@ func TestCache_Get_ExpiredTTL(t *testing.T) {
 		t.Fatal("Expected expired key not to be found")
 	}
 }
+
+// --- Additional Cache error scenario tests ---
+
+func TestCache_Get_DynamoDBError(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		getItemFunc: func(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+			return nil, errors.New("provisioned throughput exceeded")
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	_, _, err := c.Get(ctx, "test-key")
+	if err == nil {
+		t.Fatal("Expected error from Get")
+	}
+	if !errors.Is(err, errors.Unwrap(err)) {
+		// Just verify it wraps something
+	}
+}
+
+func TestCache_Set_DynamoDBError(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		putItemFunc: func(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
+			return nil, errors.New("service unavailable")
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	err := c.Set(ctx, "test-key", []byte("value"), cache.SetOptions{})
+	if err == nil {
+		t.Fatal("Expected error from Set")
+	}
+}
+
+func TestCache_Delete_DynamoDBError(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		deleteItemFunc: func(ctx context.Context, params *dynamodb.DeleteItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error) {
+			return nil, errors.New("internal server error")
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	err := c.Delete(ctx, "test-key")
+	if err == nil {
+		t.Fatal("Expected error from Delete")
+	}
+}
+
+func TestCache_Exists_DynamoDBError(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		getItemFunc: func(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+			return nil, errors.New("access denied")
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	_, err := c.Exists(ctx, "test-key")
+	if err == nil {
+		t.Fatal("Expected error from Exists")
+	}
+}
+
+func TestCache_Exists_NotFound(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		getItemFunc: func(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+			return &dynamodb.GetItemOutput{Item: nil}, nil
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	exists, err := c.Exists(ctx, "nonexistent")
+	if err != nil {
+		t.Fatalf("Exists failed: %v", err)
+	}
+	if exists {
+		t.Fatal("Expected key not to exist")
+	}
+}
+
+func TestCache_Exists_ExpiredTTL(t *testing.T) {
+	expiredTTL := time.Now().Add(-1 * time.Hour).Unix()
+
+	mock := &mockDynamoDBClient{
+		getItemFunc: func(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+			return &dynamodb.GetItemOutput{
+				Item: map[string]types.AttributeValue{
+					"pk":  &types.AttributeValueMemberS{Value: "test-key"},
+					"ttl": &types.AttributeValueMemberN{Value: strconv.FormatInt(expiredTTL, 10)},
+				},
+			}, nil
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	exists, err := c.Exists(ctx, "test-key")
+	if err != nil {
+		t.Fatalf("Exists failed: %v", err)
+	}
+	if exists {
+		t.Fatal("Expected expired key not to exist")
+	}
+}
+
+func TestCache_Clear_DynamoDBScanError(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		scanFunc: func(ctx context.Context, params *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			return nil, errors.New("scan error")
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	err := c.Clear(ctx)
+	if err == nil {
+		t.Fatal("Expected error from Clear")
+	}
+}
+
+func TestCache_Clear_BatchWriteError(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		scanFunc: func(ctx context.Context, params *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			return &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{
+					{"pk": &types.AttributeValueMemberS{Value: "key1"}},
+				},
+			}, nil
+		},
+		batchWriteItemFunc: func(ctx context.Context, params *dynamodb.BatchWriteItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.BatchWriteItemOutput, error) {
+			return nil, errors.New("batch write error")
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	err := c.Clear(ctx)
+	if err == nil {
+		t.Fatal("Expected error from Clear batch write")
+	}
+}
+
+func TestCache_Clear_EmptyTable(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		scanFunc: func(ctx context.Context, params *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			return &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{},
+			}, nil
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	err := c.Clear(ctx)
+	if err != nil {
+		t.Fatalf("Clear on empty table failed: %v", err)
+	}
+}
+
+func TestCache_Clear_Pagination(t *testing.T) {
+	callCount := 0
+	mock := &mockDynamoDBClient{
+		scanFunc: func(ctx context.Context, params *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			callCount++
+			if callCount == 1 {
+				return &dynamodb.ScanOutput{
+					Items: []map[string]types.AttributeValue{
+						{"pk": &types.AttributeValueMemberS{Value: "key1"}},
+					},
+					LastEvaluatedKey: map[string]types.AttributeValue{
+						"pk": &types.AttributeValueMemberS{Value: "key1"},
+					},
+				}, nil
+			}
+			return &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{
+					{"pk": &types.AttributeValueMemberS{Value: "key2"}},
+				},
+			}, nil
+		},
+		batchWriteItemFunc: func(ctx context.Context, params *dynamodb.BatchWriteItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.BatchWriteItemOutput, error) {
+			return &dynamodb.BatchWriteItemOutput{}, nil
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	err := c.Clear(ctx)
+	if err != nil {
+		t.Fatalf("Clear with pagination failed: %v", err)
+	}
+	if callCount != 2 {
+		t.Errorf("Expected 2 scan calls for pagination, got %d", callCount)
+	}
+}
+
+func TestCache_Get_CancelledContext(t *testing.T) {
+	mock := &mockDynamoDBClient{}
+	c := NewCache(mock, "test-table")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, _, err := c.Get(ctx, "test-key")
+	if err == nil {
+		t.Fatal("Expected error from cancelled context")
+	}
+}
+
+func TestCache_Get_MissingValueAttribute(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		getItemFunc: func(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+			return &dynamodb.GetItemOutput{
+				Item: map[string]types.AttributeValue{
+					"pk": &types.AttributeValueMemberS{Value: "test-key"},
+					// No "value" attribute
+				},
+			}, nil
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	_, _, err := c.Get(ctx, "test-key")
+	if err == nil {
+		t.Fatal("Expected error for missing value attribute")
+	}
+}
+
+func TestCache_Get_WrongValueType(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		getItemFunc: func(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+			return &dynamodb.GetItemOutput{
+				Item: map[string]types.AttributeValue{
+					"pk":    &types.AttributeValueMemberS{Value: "test-key"},
+					"value": &types.AttributeValueMemberS{Value: "not-binary"},
+				},
+			}, nil
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	_, _, err := c.Get(ctx, "test-key")
+	if err == nil {
+		t.Fatal("Expected error for wrong value type")
+	}
+}
+
+func TestCache_Set_WithoutTTL(t *testing.T) {
+	var capturedItem map[string]types.AttributeValue
+
+	mock := &mockDynamoDBClient{
+		putItemFunc: func(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
+			capturedItem = params.Item
+			return &dynamodb.PutItemOutput{}, nil
+		},
+	}
+
+	c := NewCache(mock, "test-table")
+	ctx := context.Background()
+
+	err := c.Set(ctx, "test-key", []byte("test-value"), cache.SetOptions{})
+	if err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
+
+	// Verify no TTL attribute when TTL is 0
+	if _, ok := capturedItem["ttl"]; ok {
+		t.Fatal("Expected no TTL attribute when TTL is 0")
+	}
+}
+
+// --- Additional RunStore error scenario tests ---
+
+func TestRunStore_Save_DynamoDBError(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		putItemFunc: func(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
+			return nil, errors.New("service unavailable")
+		},
+	}
+
+	s := NewRunStore(mock, "test-table")
+	ctx := context.Background()
+
+	r := agent.NewRun("test-run-1", "test goal")
+	err := s.Save(ctx, r)
+	if err == nil {
+		t.Fatal("Expected error from Save")
+	}
+}
+
+func TestRunStore_Get_DynamoDBError(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		getItemFunc: func(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+			return nil, errors.New("service unavailable")
+		},
+	}
+
+	s := NewRunStore(mock, "test-table")
+	ctx := context.Background()
+
+	_, err := s.Get(ctx, "test-run-1")
+	if err == nil {
+		t.Fatal("Expected error from Get")
+	}
+}
+
+func TestRunStore_Update_DynamoDBError(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		putItemFunc: func(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
+			return nil, errors.New("service unavailable")
+		},
+	}
+
+	s := NewRunStore(mock, "test-table")
+	ctx := context.Background()
+
+	r := agent.NewRun("test-run-1", "test goal")
+	err := s.Update(ctx, r)
+	if err == nil {
+		t.Fatal("Expected error from Update")
+	}
+}
+
+func TestRunStore_Delete_DynamoDBError(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		deleteItemFunc: func(ctx context.Context, params *dynamodb.DeleteItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error) {
+			return nil, errors.New("service unavailable")
+		},
+	}
+
+	s := NewRunStore(mock, "test-table")
+	ctx := context.Background()
+
+	err := s.Delete(ctx, "test-run-1")
+	if err == nil {
+		t.Fatal("Expected error from Delete")
+	}
+}
+
+func TestRunStore_List_DynamoDBError(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		scanFunc: func(ctx context.Context, params *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			return nil, errors.New("scan error")
+		},
+	}
+
+	s := NewRunStore(mock, "test-table")
+	ctx := context.Background()
+
+	_, err := s.List(ctx, run.ListFilter{})
+	if err == nil {
+		t.Fatal("Expected error from List")
+	}
+}
+
+func TestRunStore_Count_DynamoDBError(t *testing.T) {
+	mock := &mockDynamoDBClient{
+		scanFunc: func(ctx context.Context, params *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			return nil, errors.New("scan error")
+		},
+	}
+
+	s := NewRunStore(mock, "test-table")
+	ctx := context.Background()
+
+	_, err := s.Count(ctx, run.ListFilter{})
+	if err == nil {
+		t.Fatal("Expected error from Count")
+	}
+}
+
+func TestRunStore_List_WithOffset(t *testing.T) {
+	r1 := agent.NewRun("run-1", "goal 1")
+	r1.StartTime = time.Now().Add(-2 * time.Hour)
+
+	r2 := agent.NewRun("run-2", "goal 2")
+	r2.StartTime = time.Now().Add(-1 * time.Hour)
+
+	r3 := agent.NewRun("run-3", "goal 3")
+	r3.StartTime = time.Now()
+
+	dr1, _ := runToDynamo(r1)
+	dr2, _ := runToDynamo(r2)
+	dr3, _ := runToDynamo(r3)
+	item1, _ := attributevalue.MarshalMap(dr1)
+	item2, _ := attributevalue.MarshalMap(dr2)
+	item3, _ := attributevalue.MarshalMap(dr3)
+
+	mock := &mockDynamoDBClient{
+		scanFunc: func(ctx context.Context, params *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			return &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{item1, item2, item3},
+			}, nil
+		},
+	}
+
+	s := NewRunStore(mock, "test-table")
+	ctx := context.Background()
+
+	// List with offset=1
+	runs, err := s.List(ctx, run.ListFilter{Offset: 1})
+	if err != nil {
+		t.Fatalf("List with offset failed: %v", err)
+	}
+	if len(runs) != 2 {
+		t.Fatalf("Expected 2 runs with offset, got %d", len(runs))
+	}
+
+	// List with offset exceeding length
+	runs, err = s.List(ctx, run.ListFilter{Offset: 10})
+	if err != nil {
+		t.Fatalf("List with large offset failed: %v", err)
+	}
+	if len(runs) != 0 {
+		t.Fatalf("Expected 0 runs with large offset, got %d", len(runs))
+	}
+}
+
+func TestRunStore_List_Descending(t *testing.T) {
+	r1 := agent.NewRun("run-1", "goal 1")
+	r1.StartTime = time.Now().Add(-2 * time.Hour)
+
+	r2 := agent.NewRun("run-2", "goal 2")
+	r2.StartTime = time.Now().Add(-1 * time.Hour)
+
+	dr1, _ := runToDynamo(r1)
+	dr2, _ := runToDynamo(r2)
+	item1, _ := attributevalue.MarshalMap(dr1)
+	item2, _ := attributevalue.MarshalMap(dr2)
+
+	mock := &mockDynamoDBClient{
+		scanFunc: func(ctx context.Context, params *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			return &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{item1, item2},
+			}, nil
+		},
+	}
+
+	s := NewRunStore(mock, "test-table")
+	ctx := context.Background()
+
+	runs, err := s.List(ctx, run.ListFilter{Descending: true})
+	if err != nil {
+		t.Fatalf("List descending failed: %v", err)
+	}
+	if len(runs) != 2 {
+		t.Fatalf("Expected 2 runs, got %d", len(runs))
+	}
+	// With descending order by start time, run-2 (newer) should come first
+	if runs[0].ID != "run-2" {
+		t.Errorf("Expected run-2 first in descending order, got %s", runs[0].ID)
+	}
+}
+
+// --- Interface compliance tests ---
+
+func TestCache_ImplementsCacheInterface(t *testing.T) {
+	var _ cache.Cache = (*Cache)(nil)
+}
+
+func TestRunStore_ImplementsRunStoreInterface(t *testing.T) {
+	var _ run.Store = (*RunStore)(nil)
+}
+
+// --- Constructor tests ---
+
+func TestNewCacheWithConfig(t *testing.T) {
+	mock := &mockDynamoDBClient{}
+	c := NewCacheWithConfig(mock, CacheConfig{
+		TableName:        "custom-table",
+		TTLAttributeName: "custom-ttl",
+		KeyPrefix:        "prefix:",
+	})
+	if c == nil {
+		t.Fatal("Expected non-nil cache")
+	}
+}
+
+func TestNewRunStoreWithConfig(t *testing.T) {
+	mock := &mockDynamoDBClient{}
+	s := NewRunStoreWithConfig(mock, RunStoreConfig{
+		TableName: "custom-runs-table",
+		GSIName:   "status-gsi",
+	})
+	if s == nil {
+		t.Fatal("Expected non-nil run store")
+	}
+}
+
+// --- Run conversion edge cases ---
+
+func TestRunConversion_EmptyRun(t *testing.T) {
+	r := agent.NewRun("minimal-run", "minimal goal")
+
+	dr, err := runToDynamo(r)
+	if err != nil {
+		t.Fatalf("runToDynamo failed: %v", err)
+	}
+
+	r2, err := dynamoToRun(dr)
+	if err != nil {
+		t.Fatalf("dynamoToRun failed: %v", err)
+	}
+
+	if r2.ID != r.ID {
+		t.Errorf("ID mismatch: expected %s, got %s", r.ID, r2.ID)
+	}
+	if r2.Goal != r.Goal {
+		t.Errorf("Goal mismatch: expected %s, got %s", r.Goal, r2.Goal)
+	}
+	if len(r2.Evidence) != 0 {
+		t.Errorf("Expected empty evidence, got %d", len(r2.Evidence))
+	}
+	if r2.Vars == nil {
+		t.Error("Expected non-nil vars map")
+	}
+}
+
+func TestRunConversion_NilVars(t *testing.T) {
+	r := agent.NewRun("test-run", "test goal")
+	r.Vars = nil
+
+	dr, err := runToDynamo(r)
+	if err != nil {
+		t.Fatalf("runToDynamo failed: %v", err)
+	}
+
+	if dr.Vars != "" {
+		t.Errorf("Expected empty vars string for nil vars, got %q", dr.Vars)
+	}
+
+	r2, err := dynamoToRun(dr)
+	if err != nil {
+		t.Fatalf("dynamoToRun failed: %v", err)
+	}
+
+	if r2.Vars == nil {
+		t.Error("Expected non-nil vars map after round-trip")
+	}
+}
+
+func TestDynamoToRun_InvalidStartTime(t *testing.T) {
+	dr := &dynamoRun{
+		ID:        "test-run",
+		Goal:      "test",
+		StartTime: "not-a-time",
+		Evidence:  "[]",
+	}
+
+	_, err := dynamoToRun(dr)
+	if err == nil {
+		t.Fatal("Expected error for invalid start time")
+	}
+}
+
+func TestDynamoToRun_InvalidEndTime(t *testing.T) {
+	dr := &dynamoRun{
+		ID:        "test-run",
+		Goal:      "test",
+		StartTime: time.Now().Format(time.RFC3339Nano),
+		EndTime:   "not-a-time",
+		Evidence:  "[]",
+	}
+
+	_, err := dynamoToRun(dr)
+	if err == nil {
+		t.Fatal("Expected error for invalid end time")
+	}
+}
+
+func TestDynamoToRun_InvalidEvidence(t *testing.T) {
+	dr := &dynamoRun{
+		ID:        "test-run",
+		Goal:      "test",
+		StartTime: time.Now().Format(time.RFC3339Nano),
+		Evidence:  "not-valid-json",
+	}
+
+	_, err := dynamoToRun(dr)
+	if err == nil {
+		t.Fatal("Expected error for invalid evidence JSON")
+	}
+}
+
+func TestDynamoToRun_InvalidVars(t *testing.T) {
+	dr := &dynamoRun{
+		ID:        "test-run",
+		Goal:      "test",
+		StartTime: time.Now().Format(time.RFC3339Nano),
+		Vars:      "not-valid-json",
+		Evidence:  "[]",
+	}
+
+	_, err := dynamoToRun(dr)
+	if err == nil {
+		t.Fatal("Expected error for invalid vars JSON")
+	}
+}
+
+func TestDynamoToRun_InvalidPendingQuestion(t *testing.T) {
+	dr := &dynamoRun{
+		ID:              "test-run",
+		Goal:            "test",
+		StartTime:       time.Now().Format(time.RFC3339Nano),
+		Evidence:        "[]",
+		PendingQuestion: "not-valid-json",
+	}
+
+	_, err := dynamoToRun(dr)
+	if err == nil {
+		t.Fatal("Expected error for invalid pending question JSON")
+	}
+}

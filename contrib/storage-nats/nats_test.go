@@ -570,6 +570,197 @@ func TestEventStore_ServerRestart(t *testing.T) {
 	assert.Equal(t, event.Type("run.started"), loaded[0].Type)
 }
 
+// --- Additional tests ---
+
+func TestEventStore_AppendEmptySlice(t *testing.T) {
+	_, js := startTestServer(t)
+	store := NewEventStore(js, "AGENT_EVENTS")
+
+	ctx := context.Background()
+
+	// Append with no events should be a no-op
+	err := store.Append(ctx)
+	require.NoError(t, err)
+}
+
+func TestEventStore_LoadEvents_EmptyRun(t *testing.T) {
+	_, js := startTestServer(t)
+	store := NewEventStore(js, "AGENT_EVENTS")
+
+	ctx := context.Background()
+
+	// Load events for a run that has no events
+	events, err := store.LoadEvents(ctx, "nonexistent-run")
+	require.NoError(t, err)
+	assert.Empty(t, events)
+}
+
+func TestEventStore_LoadEventsFrom_NoMatch(t *testing.T) {
+	_, js := startTestServer(t)
+	store := NewEventStore(js, "AGENT_EVENTS")
+
+	ctx := context.Background()
+	runID := "test-run-from-nomatch"
+
+	// Append 3 events
+	for i := 0; i < 3; i++ {
+		payload := map[string]int{"step": i}
+		data, _ := json.Marshal(payload)
+		ev := event.Event{
+			RunID:   runID,
+			Type:    event.Type("step.executed"),
+			Payload: data,
+		}
+		err := store.Append(ctx, ev)
+		require.NoError(t, err)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Load from sequence beyond what exists
+	loaded, err := store.LoadEventsFrom(ctx, runID, 100)
+	require.NoError(t, err)
+	assert.Empty(t, loaded)
+}
+
+func TestEventStore_AppendMultipleRunsSameCall(t *testing.T) {
+	_, js := startTestServer(t)
+	store := NewEventStore(js, "AGENT_EVENTS")
+
+	ctx := context.Background()
+
+	// Append events for two different runs in a single call
+	events := []event.Event{
+		{
+			RunID:   "run-A",
+			Type:    event.Type("run.started"),
+			Payload: json.RawMessage(`{"run":"A"}`),
+		},
+		{
+			RunID:   "run-B",
+			Type:    event.Type("run.started"),
+			Payload: json.RawMessage(`{"run":"B"}`),
+		},
+	}
+
+	err := store.Append(ctx, events...)
+	require.NoError(t, err)
+
+	// Each run should have sequence 1
+	assert.Equal(t, uint64(1), events[0].Sequence)
+	assert.Equal(t, uint64(1), events[1].Sequence)
+}
+
+func TestEventStore_VersionDefaults(t *testing.T) {
+	_, js := startTestServer(t)
+	store := NewEventStore(js, "AGENT_EVENTS")
+
+	ctx := context.Background()
+
+	ev := event.Event{
+		RunID:   "test-run-version",
+		Type:    event.Type("test.event"),
+		Payload: json.RawMessage(`{}`),
+	}
+
+	// Version should be 0 before append
+	assert.Equal(t, 0, ev.Version)
+
+	err := store.Append(ctx, ev)
+	require.NoError(t, err)
+
+	// After append, version should default to 1
+	// But since ev is a copy, check via LoadEvents
+	time.Sleep(100 * time.Millisecond)
+
+	loaded, err := store.LoadEvents(ctx, "test-run-version")
+	require.NoError(t, err)
+	require.Len(t, loaded, 1)
+	assert.Equal(t, 1, loaded[0].Version)
+}
+
+func TestEventStore_IDAssignment(t *testing.T) {
+	_, js := startTestServer(t)
+	store := NewEventStore(js, "AGENT_EVENTS")
+
+	ctx := context.Background()
+
+	// Event with pre-set ID
+	events := []event.Event{
+		{
+			ID:      "custom-id-1",
+			RunID:   "test-run-id",
+			Type:    event.Type("test.event"),
+			Payload: json.RawMessage(`{}`),
+		},
+		{
+			RunID:   "test-run-id",
+			Type:    event.Type("test.event"),
+			Payload: json.RawMessage(`{}`),
+		},
+	}
+
+	err := store.Append(ctx, events...)
+	require.NoError(t, err)
+
+	// Custom ID should be preserved
+	assert.Equal(t, "custom-id-1", events[0].ID)
+	// Auto-generated ID should be non-empty
+	assert.NotEmpty(t, events[1].ID)
+}
+
+func TestEventStore_WrapError_Nil(t *testing.T) {
+	store := &EventStore{}
+	err := store.wrapError(nil)
+	assert.Nil(t, err)
+}
+
+func TestEventStore_WrapError_Timeout(t *testing.T) {
+	store := &EventStore{}
+	err := store.wrapError(context.DeadlineExceeded)
+	assert.ErrorIs(t, err, event.ErrOperationTimeout)
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+}
+
+func TestEventStore_WrapError_NATSTimeout(t *testing.T) {
+	store := &EventStore{}
+	err := store.wrapError(nats.ErrTimeout)
+	assert.ErrorIs(t, err, event.ErrOperationTimeout)
+}
+
+func TestEventStore_WrapError_GenericError(t *testing.T) {
+	store := &EventStore{}
+	original := assert.AnError
+	err := store.wrapError(original)
+	assert.ErrorIs(t, err, event.ErrConnectionFailed)
+}
+
+func TestEventStore_InterfaceCompliance(t *testing.T) {
+	var _ event.Store = (*EventStore)(nil)
+}
+
+func TestNewEventStoreWithConfig_DefaultPrefix(t *testing.T) {
+	_, js := startTestServer(t)
+	store := NewEventStoreWithConfig(js, EventStoreConfig{
+		StreamName: "AGENT_EVENTS",
+	})
+
+	subject := store.eventSubject("run-1")
+	assert.Equal(t, "agent.events.run-1", subject)
+}
+
+func TestNewEventStoreWithConfig_EmptyPrefix(t *testing.T) {
+	_, js := startTestServer(t)
+	store := NewEventStoreWithConfig(js, EventStoreConfig{
+		StreamName:    "AGENT_EVENTS",
+		SubjectPrefix: "",
+	})
+
+	// Empty prefix should default to "agent.events"
+	subject := store.eventSubject("run-1")
+	assert.Equal(t, "agent.events.run-1", subject)
+}
+
 // Example demonstrates typical usage of the NATS event store.
 func ExampleNewEventStore() {
 	// Connect to NATS
