@@ -1,5 +1,5 @@
 .PHONY: all build test lint clean coverage coverage-check coverage-report \
-        security security-sast security-vuln security-secrets \
+        security security-secrets security-diff \
         release-plan release-bump release-notes release-publish \
         check example help hooks \
         workspace-sync workspace-tidy contrib-build contrib-test
@@ -58,21 +58,15 @@ coverage-debt:
 coverage-suggest:
 	coverctl suggest
 
-# Security scanning (verdict)
+# Security scanning (nox)
 security:
-	verdict scan .
-
-security-sast:
-	verdict sast .
-
-security-vuln:
-	verdict vuln .
+	nox scan . --severity-threshold=high
 
 security-secrets:
-	verdict secrets .
+	nox scan . --history --history-depth=50 --severity-threshold=high
 
-security-policy:
-	verdict policy-check .
+security-diff:
+	nox diff --base=main --head=HEAD
 
 # Release management (relicta)
 release-status:
@@ -165,12 +159,10 @@ help:
 	@echo "    coverage-debt    - Show coverage debt by domain"
 	@echo "    coverage-suggest - Suggest optimal thresholds"
 	@echo ""
-	@echo "  Security (verdict):"
-	@echo "    security         - Run all security scans"
-	@echo "    security-sast    - Static analysis security testing"
-	@echo "    security-vuln    - Vulnerability scanning"
-	@echo "    security-secrets - Secret detection"
-	@echo "    security-policy  - Policy compliance check"
+	@echo "  Security (nox):"
+	@echo "    security         - Run nox security scan (high+ severity)"
+	@echo "    security-secrets - Scan git history for leaked secrets"
+	@echo "    security-diff    - Show new findings vs main branch"
 	@echo ""
 	@echo "  Release (relicta):"
 	@echo "    release-status   - Show current release state"
