@@ -6,6 +6,7 @@ use (
 	./contrib/approval-cli
 	./contrib/approval-slack
 	./contrib/approval-webhook
+	./contrib/sandbox-wasm
 	./contrib/dashboard
 	./contrib/distributed
 	./contrib/mcp
