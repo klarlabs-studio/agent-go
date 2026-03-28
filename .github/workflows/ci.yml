@@ -28,9 +28,8 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.64.8
+          version: v2.1.6
           args: --timeout=10m
-        continue-on-error: true  # Allow CI to pass while golangci-lint catches up to Go 1.25
 
   test-core:
     name: Test Core
@@ -55,6 +54,11 @@ jobs:
         with:
           files: coverage.out
           fail_ci_if_error: false
+
+      - name: Check coverage threshold
+        run: |
+          go install github.com/felixgeelhaar/coverctl@latest
+          coverctl check --profile=coverage.out --fail-under=60
 
   test-contrib-storage:
     name: Test Storage Backends
