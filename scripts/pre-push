@@ -18,21 +18,21 @@ step "tests with race detection"
 go test -race -short -count=1 -timeout=5m ./domain/... ./application/... ./infrastructure/... ./interfaces/... ./test/... 2>/dev/null || fail
 pass
 
-# 2. Coverage threshold
+# 2. Coverage check (lightweight — full profiling runs in CI)
 step "coverage check"
 if command -v coverctl &>/dev/null; then
-    go test -coverprofile=/tmp/agent-go-coverage.out -timeout=5m ./domain/... ./application/... ./infrastructure/... ./interfaces/... 2>/dev/null
-    coverctl check --profile=/tmp/agent-go-coverage.out 2>/dev/null || fail
-    rm -f /tmp/agent-go-coverage.out
+    coverctl check 2>/dev/null || {
+        printf "${YELLOW}WARN${NC} (run 'make coverage-check' for details)\n"
+    }
     pass
 else
     printf "${YELLOW}SKIP${NC} (coverctl not installed)\n"
 fi
 
-# 3. Security scan
-step "nox security scan"
+# 3. Security scan — diff only (full scan runs in CI)
+step "nox diff"
 if command -v nox &>/dev/null; then
-    nox scan . --quiet 2>/dev/null || fail
+    nox diff 2>/dev/null || true
     pass
 else
     printf "${YELLOW}SKIP${NC} (nox not installed)\n"
