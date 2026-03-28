@@ -22,8 +22,10 @@ package dashboard
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"strconv"
 	"strings"
@@ -34,6 +36,9 @@ import (
 	"github.com/felixgeelhaar/agent-go/domain/event"
 	"github.com/felixgeelhaar/agent-go/domain/run"
 )
+
+//go:embed static/*
+var staticFiles embed.FS
 
 // Config configures the dashboard server.
 type Config struct {
@@ -169,14 +174,28 @@ func (s *Server) withMiddleware(handler http.Handler) http.Handler {
 	})
 }
 
-// handleIndex serves the main dashboard page.
+// handleIndex serves the main dashboard page from embedded static files.
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != s.config.BasePath && r.URL.Path != s.config.BasePath+"index.html" {
+		// Try serving from embedded static files
+		sub, err := fs.Sub(staticFiles, "static")
+		if err == nil {
+			http.FileServer(http.FS(sub)).ServeHTTP(w, r)
+			return
+		}
 		http.NotFound(w, r)
 		return
 	}
+	// Serve index.html from embedded static files
+	data, err := staticFiles.ReadFile("static/index.html")
+	if err != nil {
+		// Fallback to legacy inline HTML
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(indexHTML))
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(indexHTML))
+	_, _ = w.Write(data)
 }
 
 // handleListRuns returns a list of all runs.

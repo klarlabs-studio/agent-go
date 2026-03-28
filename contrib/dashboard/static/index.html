@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agent-go Dashboard</title>
+<style>
+:root {
+  --bg: #1a1b26; --bg2: #24283b; --bg3: #292e42;
+  --fg: #c0caf5; --fg2: #a9b1d6; --fg3: #565f89;
+  --blue: #7aa2f7; --green: #9ece6a; --red: #f7768e;
+  --yellow: #e0af68; --purple: #bb9af7; --orange: #ff9e64;
+  --cyan: #7dcfff; --mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg); color: var(--fg); display: flex; flex-direction: column; height: 100vh; }
+header { background: var(--bg2); padding: 12px 20px; display: flex; align-items: center;
+  border-bottom: 1px solid var(--bg3); }
+header h1 { font-size: 16px; font-weight: 600; }
+header .health { margin-left: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--fg3); }
+header .health.up { background: var(--green); }
+header .health.down { background: var(--red); }
+.container { display: flex; flex: 1; overflow: hidden; }
+.sidebar { width: 360px; background: var(--bg2); border-right: 1px solid var(--bg3);
+  display: flex; flex-direction: column; overflow-y: auto; }
+.sidebar h2 { padding: 12px 16px; font-size: 13px; color: var(--fg3); text-transform: uppercase;
+  letter-spacing: 0.5px; border-bottom: 1px solid var(--bg3); }
+.run-item { padding: 10px 16px; border-bottom: 1px solid var(--bg3); cursor: pointer;
+  transition: background 0.15s; }
+.run-item:hover { background: var(--bg3); }
+.run-item.active { background: var(--bg3); border-left: 3px solid var(--blue); }
+.run-item .goal { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.run-item .meta { font-size: 11px; color: var(--fg3); margin-top: 4px; display: flex; gap: 8px; }
+.badge { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 600; text-transform: uppercase; }
+.badge.running { background: rgba(122,162,247,0.2); color: var(--blue); }
+.badge.completed { background: rgba(158,206,106,0.2); color: var(--green); }
+.badge.failed { background: rgba(247,118,142,0.2); color: var(--red); }
+.badge.paused { background: rgba(224,175,104,0.2); color: var(--yellow); }
+.badge.pending { background: rgba(86,95,137,0.2); color: var(--fg3); }
+.main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 20px; }
+.main.empty { display: flex; align-items: center; justify-content: center; color: var(--fg3); }
+.detail-header { margin-bottom: 16px; }
+.detail-header h2 { font-size: 18px; margin-bottom: 8px; }
+.detail-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px; margin-bottom: 20px; }
+.meta-card { background: var(--bg2); padding: 12px; border-radius: 6px; }
+.meta-card label { font-size: 11px; color: var(--fg3); text-transform: uppercase; display: block; }
+.meta-card span { font-size: 14px; font-family: var(--mono); }
+.section { margin-bottom: 20px; }
+.section h3 { font-size: 13px; color: var(--fg3); text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--bg3); }
+.event-list { display: flex; flex-direction: column; gap: 4px; }
+.event { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px;
+  background: var(--bg2); border-radius: 4px; font-size: 12px; font-family: var(--mono); }
+.event .time { color: var(--fg3); min-width: 80px; }
+.event .type { min-width: 140px; font-weight: 600; }
+.event .type.run { color: var(--blue); }
+.event .type.tool { color: var(--orange); }
+.event .type.state { color: var(--purple); }
+.event .type.decision { color: var(--fg3); }
+.event .type.success { color: var(--green); }
+.event .type.error { color: var(--red); }
+.event .payload { color: var(--fg2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evidence-item { background: var(--bg2); padding: 10px; border-radius: 4px; margin-bottom: 6px; }
+.evidence-item .source { font-size: 11px; color: var(--cyan); font-weight: 600; margin-bottom: 4px; }
+.evidence-item pre { font-size: 11px; font-family: var(--mono); color: var(--fg2);
+  white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow-y: auto; }
+.vars-table { width: 100%; font-size: 12px; font-family: var(--mono); }
+.vars-table td { padding: 4px 8px; border-bottom: 1px solid var(--bg3); }
+.vars-table td:first-child { color: var(--cyan); width: 30%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>agent-go Dashboard</h1>
+  <div class="health" id="health"></div>
+</header>
+<div class="container">
+  <div class="sidebar">
+    <h2>Runs</h2>
+    <div id="run-list"></div>
+  </div>
+  <div class="main empty" id="main">
+    <span>Select a run to view details</span>
+  </div>
+</div>
+<script>
+const API = window.location.origin;
+let activeRunID = null;
+let eventSource = null;
+
+async function fetchJSON(path) {
+  const r = await fetch(API + path);
+  return r.ok ? r.json() : null;
+}
+
+function badge(status) {
+  return `<span class="badge ${status}">${status}</span>`;
+}
+
+function fmtTime(ts) {
+  if (!ts) return '-';
+  const d = new Date(ts);
+  return d.toLocaleTimeString();
+}
+
+function eventTypeClass(type) {
+  if (type.startsWith('run.')) return type.includes('fail') ? 'error' : 'run';
+  if (type.startsWith('tool.fail')) return 'error';
+  if (type.startsWith('tool.succeed')) return 'success';
+  if (type.startsWith('tool.')) return 'tool';
+  if (type.startsWith('state.')) return 'state';
+  return 'decision';
+}
+
+async function loadRuns() {
+  const data = await fetchJSON('/api/runs');
+  if (!data) return;
+  const list = document.getElementById('run-list');
+  list.innerHTML = (data.runs || []).map(r => `
+    <div class="run-item ${r.id === activeRunID ? 'active' : ''}" onclick="selectRun('${r.id}')">
+      <div class="goal">${r.goal || '(no goal)'}</div>
+      <div class="meta">
+        ${badge(r.status || 'pending')}
+        <span>${r.state || '-'}</span>
+        <span>${r.id.substring(0, 20)}...</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function selectRun(id) {
+  activeRunID = id;
+  loadRuns();
+  const data = await fetchJSON('/api/runs/' + id);
+  if (!data) return;
+  const main = document.getElementById('main');
+  main.className = 'main';
+  main.innerHTML = `
+    <div class="detail-header">
+      <h2>${data.goal || '(no goal)'}</h2>
+    </div>
+    <div class="detail-meta">
+      <div class="meta-card"><label>Status</label>${badge(data.status || 'pending')}</div>
+      <div class="meta-card"><label>State</label><span>${data.state || '-'}</span></div>
+      <div class="meta-card"><label>ID</label><span>${data.id}</span></div>
+      <div class="meta-card"><label>Duration</label><span>${data.duration || '-'}</span></div>
+    </div>
+    <div class="section"><h3>Events</h3><div class="event-list" id="events"></div></div>
+    <div class="section"><h3>Evidence (${(data.evidence||[]).length})</h3><div id="evidence"></div></div>
+    <div class="section"><h3>Variables</h3><table class="vars-table" id="vars"></table></div>
+  `;
+
+  // Render evidence
+  const evEl = document.getElementById('evidence');
+  (data.evidence || []).forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'evidence-item';
+    let content = '';
+    try { content = JSON.stringify(JSON.parse(e.content), null, 2); } catch { content = e.content || ''; }
+    div.innerHTML = `<div class="source">${e.source || e.type || 'unknown'}</div><pre>${content}</pre>`;
+    evEl.appendChild(div);
+  });
+
+  // Render variables
+  const varsEl = document.getElementById('vars');
+  const vars = data.variables || {};
+  varsEl.innerHTML = Object.entries(vars).map(([k,v]) =>
+    `<tr><td>${k}</td><td>${JSON.stringify(v)}</td></tr>`
+  ).join('') || '<tr><td colspan="2" style="color:var(--fg3)">No variables</td></tr>';
+
+  // Load events
+  const events = await fetchJSON('/api/runs/events?run_id=' + id);
+  renderEvents(events || []);
+
+  // Start SSE for live updates
+  connectSSE(id);
+}
+
+function renderEvents(events) {
+  const el = document.getElementById('events');
+  if (!el) return;
+  el.innerHTML = events.map(e => {
+    let payload = '';
+    try { const p = JSON.parse(e.payload); payload = JSON.stringify(p); } catch { payload = e.payload || ''; }
+    return `<div class="event">
+      <span class="time">${fmtTime(e.timestamp)}</span>
+      <span class="type ${eventTypeClass(e.type)}">${e.type}</span>
+      <span class="payload">${payload}</span>
+    </div>`;
+  }).join('');
+}
+
+function connectSSE(runID) {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource(API + '/ws/' + runID);
+  eventSource.onmessage = (msg) => {
+    try {
+      const evt = JSON.parse(msg.data);
+      const el = document.getElementById('events');
+      if (!el) return;
+      let payload = '';
+      try { const p = JSON.parse(evt.payload); payload = JSON.stringify(p); } catch { payload = evt.payload || ''; }
+      el.innerHTML += `<div class="event">
+        <span class="time">${fmtTime(evt.timestamp)}</span>
+        <span class="type ${eventTypeClass(evt.type)}">${evt.type}</span>
+        <span class="payload">${payload}</span>
+      </div>`;
+      el.scrollTop = el.scrollHeight;
+    } catch {}
+  };
+}
+
+// Health check
+async function checkHealth() {
+  try {
+    const r = await fetch(API + '/api/health');
+    document.getElementById('health').className = r.ok ? 'health up' : 'health down';
+  } catch { document.getElementById('health').className = 'health down'; }
+}
+
+// Auto-refresh
+loadRuns();
+checkHealth();
+setInterval(loadRuns, 5000);
+setInterval(checkHealth, 10000);
+</script>
+</body>
+</html>

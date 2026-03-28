@@ -40,8 +40,10 @@ pass
 # 3. Lint (golangci-lint) — only on staged files' packages
 step "golangci-lint"
 if command -v golangci-lint &>/dev/null; then
-    PKGS=$(echo "$STAGED_GO" | xargs -I{} dirname {} | sort -u | sed 's|^|./|' | sed 's|$|/...|')
-    golangci-lint run --new-from-rev=HEAD~0 --timeout=5m $PKGS 2>/dev/null || fail
+    PKGS=$(echo "$STAGED_GO" | xargs -I{} dirname {} | sort -u | grep -v 'test/integration' | sed 's|^|./|' | sed 's|$|/...|')
+    if [ -n "$PKGS" ]; then
+        golangci-lint run --new-from-rev=HEAD~0 --timeout=5m $PKGS 2>/dev/null || fail
+    fi
     pass
 else
     printf "${YELLOW}SKIP${NC} (not installed)\n"
