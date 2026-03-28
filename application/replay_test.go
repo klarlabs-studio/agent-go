@@ -14,10 +14,10 @@ import (
 
 // mockEventStore implements event.Store for testing.
 type mockEventStore struct {
-	appendFn        func(ctx context.Context, events ...event.Event) error
-	loadEventsFn    func(ctx context.Context, runID string) ([]event.Event, error)
+	appendFn         func(ctx context.Context, events ...event.Event) error
+	loadEventsFn     func(ctx context.Context, runID string) ([]event.Event, error)
 	loadEventsFromFn func(ctx context.Context, runID string, fromSeq uint64) ([]event.Event, error)
-	subscribeFn     func(ctx context.Context, runID string) (<-chan event.Event, error)
+	subscribeFn      func(ctx context.Context, runID string) (<-chan event.Event, error)
 }
 
 func (m *mockEventStore) Append(ctx context.Context, events ...event.Event) error {
