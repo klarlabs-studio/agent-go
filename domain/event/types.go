@@ -23,9 +23,9 @@ const (
 	TypeStateTransitioned Type = "state.transitioned"
 
 	// Tool execution events
-	TypeToolCalled   Type = "tool.called"
+	TypeToolCalled    Type = "tool.called"
 	TypeToolSucceeded Type = "tool.succeeded"
-	TypeToolFailed   Type = "tool.failed"
+	TypeToolFailed    Type = "tool.failed"
 
 	// Decision events
 	TypeDecisionMade Type = "decision.made"
@@ -36,22 +36,30 @@ const (
 	TypeApprovalDenied    Type = "approval.denied"
 
 	// Budget events
-	TypeBudgetConsumed   Type = "budget.consumed"
-	TypeBudgetExhausted  Type = "budget.exhausted"
+	TypeBudgetConsumed  Type = "budget.consumed"
+	TypeBudgetExhausted Type = "budget.exhausted"
 
 	// Evidence events
 	TypeEvidenceAdded Type = "evidence.added"
 
 	// Variable events
 	TypeVariableSet Type = "variable.set"
+
+	// Planner events
+	TypePlannerProposed Type = "planner.proposed"
+
+	// Agent protocol events
+	TypeAgentMessageSent     Type = "agent.message.sent"
+	TypeAgentMessageReceived Type = "agent.message.received"
+	TypeAgentDelegated       Type = "agent.delegated"
 )
 
 // Event payload structures
 
 // RunStartedPayload contains data for run.started events.
 type RunStartedPayload struct {
-	Goal string            `json:"goal"`
-	Vars map[string]any    `json:"vars,omitempty"`
+	Goal string         `json:"goal"`
+	Vars map[string]any `json:"vars,omitempty"`
 }
 
 // RunCompletedPayload contains data for run.completed events.
@@ -143,4 +151,33 @@ type EvidenceAddedPayload struct {
 type VariableSetPayload struct {
 	Key   string `json:"key"`
 	Value any    `json:"value"`
+}
+
+// PlannerProposedPayload contains data for planner.proposed events.
+// This captures what the planner intended BEFORE execution, allowing
+// comparison with the actual outcome (decision.made).
+type PlannerProposedPayload struct {
+	DecisionType string          `json:"decision_type"`
+	ToolName     string          `json:"tool_name,omitempty"`
+	ToState      agent.State     `json:"to_state,omitempty"`
+	Reason       string          `json:"reason,omitempty"`
+	Input        json.RawMessage `json:"input,omitempty"`
+}
+
+// AgentMessagePayload contains data for agent message events.
+type AgentMessagePayload struct {
+	MessageID     string `json:"message_id"`
+	CorrelationID string `json:"correlation_id"`
+	Sender        string `json:"sender"`
+	Receiver      string `json:"receiver,omitempty"`
+	Action        string `json:"action"`
+	MessageType   string `json:"message_type"`
+}
+
+// AgentDelegatedPayload contains data for agent.delegated events.
+type AgentDelegatedPayload struct {
+	ParentRunID string `json:"parent_run_id"`
+	ChildRunID  string `json:"child_run_id"`
+	AgentName   string `json:"agent_name"`
+	Goal        string `json:"goal"`
 }

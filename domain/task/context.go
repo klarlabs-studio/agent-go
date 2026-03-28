@@ -32,6 +32,7 @@ type Context struct {
 
 	mu          sync.RWMutex
 	sharedVars  map[string]any
+	privateVars map[string]map[string]any // runID -> vars (scoped per agent)
 	evidence    []agent.Evidence
 	artifactIDs []string
 }
@@ -39,10 +40,47 @@ type Context struct {
 // NewContext creates a new task context.
 func NewContext(id, rootRunID string) *Context {
 	return &Context{
-		ID:         id,
-		RootRunID:  rootRunID,
-		sharedVars: make(map[string]any),
+		ID:          id,
+		RootRunID:   rootRunID,
+		sharedVars:  make(map[string]any),
+		privateVars: make(map[string]map[string]any),
 	}
+}
+
+// SetPrivateVar sets a variable scoped to a specific run (not visible to other agents).
+func (c *Context) SetPrivateVar(runID, key string, value any) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.privateVars[runID] == nil {
+		c.privateVars[runID] = make(map[string]any)
+	}
+	c.privateVars[runID][key] = value
+}
+
+// GetPrivateVar reads a run-scoped variable.
+func (c *Context) GetPrivateVar(runID, key string) (any, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if vars, ok := c.privateVars[runID]; ok {
+		v, found := vars[key]
+		return v, found
+	}
+	return nil, false
+}
+
+// PrivateVars returns a snapshot of all private variables for a run.
+func (c *Context) PrivateVars(runID string) map[string]any {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	vars, ok := c.privateVars[runID]
+	if !ok {
+		return nil
+	}
+	snapshot := make(map[string]any, len(vars))
+	for k, v := range vars {
+		snapshot[k] = v
+	}
+	return snapshot
 }
 
 // SetVar sets a shared variable visible to all agents in this task.

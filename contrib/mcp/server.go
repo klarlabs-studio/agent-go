@@ -46,6 +46,7 @@ import (
 	"github.com/felixgeelhaar/agent-go/domain/agent"
 	"github.com/felixgeelhaar/agent-go/domain/event"
 	"github.com/felixgeelhaar/agent-go/domain/middleware"
+	"github.com/felixgeelhaar/agent-go/domain/policy"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 )
 
@@ -95,6 +96,15 @@ type Config struct {
 	// When set, tool.called/succeeded/failed events are published for
 	// every MCP tool invocation.
 	EventStore event.Store
+
+	// Eligibility is the optional tool eligibility configuration.
+	// When set, MCP tool calls are checked against state-based eligibility.
+	Eligibility *policy.ToolEligibility
+
+	// BudgetPerClient enables per-client budget tracking.
+	// Key is the client identifier, value is the budget limit.
+	// When set, each MCP client gets its own tool call budget.
+	BudgetPerClient map[string]int
 }
 
 // Server implements the MCP server.

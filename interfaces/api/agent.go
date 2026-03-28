@@ -99,6 +99,7 @@ import (
 	"github.com/felixgeelhaar/agent-go/domain/knowledge"
 	"github.com/felixgeelhaar/agent-go/domain/middleware"
 	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"github.com/felixgeelhaar/agent-go/domain/protocol"
 	"github.com/felixgeelhaar/agent-go/domain/run"
 	"github.com/felixgeelhaar/agent-go/domain/task"
 	"github.com/felixgeelhaar/agent-go/domain/telemetry"
@@ -197,6 +198,39 @@ type (
 	KnowledgeStats = knowledge.Stats
 )
 
+// Re-export protocol types for multi-agent coordination.
+type (
+	// Message is the envelope for inter-agent communication.
+	Message = protocol.Message
+	// AgentDescriptor describes an agent's capabilities and trust level.
+	AgentDescriptor = protocol.AgentDescriptor
+	// Capability advertises what an agent can do.
+	Capability = protocol.Capability
+	// TrustPolicy defines trust relationships between agents.
+	TrustPolicy = protocol.TrustPolicy
+	// Router dispatches messages between agents.
+	Router = protocol.Router
+	// TaskContext spans a multi-agent task for shared state.
+	TaskContext = task.Context
+)
+
+// Re-export protocol constructors.
+var (
+	NewMessage     = protocol.NewRequest
+	NewNotify      = protocol.NewNotify
+	NewBroadcast   = protocol.NewBroadcast
+	NewTrustPolicy = protocol.NewTrustPolicy
+	NewTaskContext = task.NewContext
+)
+
+// Re-export trust levels.
+const (
+	TrustNone     = protocol.TrustNone
+	TrustReadOnly = protocol.TrustReadOnly
+	TrustLimited  = protocol.TrustLimited
+	TrustFull     = protocol.TrustFull
+)
+
 // Re-export knowledge errors.
 var (
 	// ErrKnowledgeNotFound indicates the requested vector was not found.
@@ -292,6 +326,29 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *Run, input string) (*
 func (e *Engine) Stream(ctx context.Context, goal string) (string, <-chan event.Event, error) {
 	return e.engine.Stream(ctx, goal)
 }
+
+// NewReplay creates a replay engine for reconstructing historical runs.
+// Requires an EventStore for loading events.
+//
+// Example:
+//
+//	replay := api.NewReplay(eventStore)
+//	run, _ := replay.ReconstructRun(ctx, "run-123")
+//	timeline, _ := replay.NewTimeline(ctx, "run-123")
+//	fmt.Println("Duration:", timeline.Duration())
+func NewReplay(eventStore event.Store) *application.Replay {
+	return application.NewReplay(eventStore)
+}
+
+// Re-export replay types for convenience.
+type (
+	// Replay provides run reconstruction and timeline analysis from events.
+	Replay = application.Replay
+	// Timeline provides temporal analysis of a run's event history.
+	Timeline = application.Timeline
+	// EventIterator steps through events sequentially.
+	EventIterator = application.EventIterator
+)
 
 // Knowledge returns the knowledge store, if configured.
 // Returns nil if no knowledge store was provided via WithKnowledgeStore.

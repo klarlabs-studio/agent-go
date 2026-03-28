@@ -518,10 +518,22 @@ func (e *Engine) step(ctx context.Context, interp *statemachine.Interpreter, mac
 		return fmt.Errorf("planner error: %w", err)
 	}
 
+	// Publish planner.proposed (what the planner intended, before execution)
+	pp := event.PlannerProposedPayload{DecisionType: string(decision.Type)}
+	if decision.CallTool != nil {
+		pp.ToolName = decision.CallTool.ToolName
+		pp.Reason = decision.CallTool.Reason
+		pp.Input = decision.CallTool.Input
+	} else if decision.Transition != nil {
+		pp.ToState = decision.Transition.ToState
+		pp.Reason = decision.Transition.Reason
+	}
+	e.publishEvent(ctx, run.ID, event.TypePlannerProposed, pp)
+
 	// Record decision
 	runLedger.RecordDecision(run.CurrentState, decision)
 
-	// Publish decision event
+	// Publish decision.made (after recording, confirms execution intent)
 	dp := event.DecisionMadePayload{DecisionType: string(decision.Type)}
 	if decision.CallTool != nil {
 		dp.ToolName = decision.CallTool.ToolName

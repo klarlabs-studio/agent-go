@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/felixgeelhaar/agent-go)](https://goreportcard.com/report/github.com/felixgeelhaar/agent-go)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Build trustworthy AI agents in Go.** A state-driven runtime where intelligence is constrained by design, not hope.
+**Build trustworthy AI agents in Go.** A state-driven runtime where intelligence is constrained by design, not hope. Works great for a **single agent** — scales to **multi-agent systems** when you're ready.
 
 ```go
 engine, _ := agent.New(
@@ -51,6 +51,34 @@ agent-go is more than a single-agent engine — it's a **policy-aware, event-dri
 | **134 contrib modules** | Storage backends (SQLite, PostgreSQL, Redis, etc.), 118 tool packs, 7 LLM planner providers. |
 
 > **See it in action**: `go run ./example/flagship` — 3 agents, shared state, streaming, persistence, budgets, and approval in one program.
+
+### State Machine
+
+Every agent runs within a canonical state graph. Side effects only happen in `act`:
+
+```mermaid
+stateDiagram-v2
+    [*] --> intake
+    intake --> explore
+    explore --> decide
+    decide --> act
+    decide --> done
+    act --> validate
+    validate --> done
+    validate --> explore
+    done --> [*]
+    note right of act : Side effects allowed
+```
+
+### Architecture
+
+```
+interfaces/api/     → Public API (5 lines to get started)
+application/        → Engine (Run, Stream, Replay, Fork)
+domain/             → Pure types (State, Decision, Tool, Policy, Protocol)
+infrastructure/     → Implementations (statekit, fortify, storage, planner)
+contrib/            → 134 optional modules (storage, tools, enhancements)
+```
 
 ---
 
