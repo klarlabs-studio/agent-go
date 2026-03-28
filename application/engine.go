@@ -168,6 +168,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	r := agent.NewRun(runID, goal)
 	for k, v := range vars {
 		r.SetVar(k, v)
+		e.publishEvent(ctx, runID, event.TypeVariableSet, event.VariableSetPayload{Key: k, Value: v})
 	}
 
 	// Persist run creation
@@ -546,6 +547,9 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 	// Check budget before execution
 	if !budget.CanConsume("tool_calls", 1) {
 		runLedger.RecordBudgetExhausted(run.CurrentState, "tool_calls")
+		e.publishEvent(ctx, run.ID, event.TypeBudgetExhausted, event.BudgetExhaustedPayload{
+			BudgetName: "tool_calls",
+		})
 		return policy.ErrBudgetExceeded
 	}
 
@@ -558,6 +562,9 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 		Reason:       decision.Reason,
 		Budget:       budget,
 		Vars:         run.Vars,
+		EventPublisher: func(eventType string, payload any) {
+			e.publishEvent(ctx, run.ID, event.Type(eventType), payload)
+		},
 	}
 
 	// Record tool call in ledger
@@ -611,14 +618,22 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 	runLedger.RecordBudgetConsumed(run.CurrentState, "tool_calls", 1, budget.Remaining("tool_calls"))
 	runLedger.RecordToolResult(run.CurrentState, decision.ToolName, result.Output, result.Duration, result.Cached)
 
+	// Publish budget consumed event
+	e.publishEvent(ctx, run.ID, event.TypeBudgetConsumed, event.BudgetConsumedPayload{
+		BudgetName: "tool_calls", Amount: 1, Remaining: budget.Remaining("tool_calls"),
+	})
+
 	// Publish tool.succeeded event
 	e.publishEvent(ctx, run.ID, event.TypeToolSucceeded, event.ToolSucceededPayload{
 		ToolName: decision.ToolName, Output: result.Output,
 		Duration: result.Duration, Cached: result.Cached,
 	})
 
-	// Add evidence
+	// Add evidence and publish event
 	run.AddEvidence(agent.NewToolEvidence(decision.ToolName, result.Output))
+	e.publishEvent(ctx, run.ID, event.TypeEvidenceAdded, event.EvidenceAddedPayload{
+		Type: string(agent.EvidenceToolResult), Source: decision.ToolName, Content: result.Output,
+	})
 
 	return nil
 }

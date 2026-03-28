@@ -33,6 +33,10 @@ type ExecutionContext struct {
 	Budget BudgetView
 	// Vars contains shared variables for the run.
 	Vars map[string]any
+	// EventPublisher is an optional callback for middleware to publish events.
+	// The eventType is a string like "approval.requested" and payload is the
+	// event-specific data struct. Nil-safe: middleware must check before calling.
+	EventPublisher func(eventType string, payload any)
 }
 
 // Handler executes a tool and returns its result.

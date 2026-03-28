@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/felixgeelhaar/agent-go/domain/event"
 	"github.com/felixgeelhaar/agent-go/domain/middleware"
 	"github.com/felixgeelhaar/agent-go/domain/policy"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
@@ -46,6 +47,13 @@ func Approval(cfg ApprovalConfig) middleware.Middleware {
 				Timestamp: time.Now(),
 			}
 
+			// Publish approval.requested event
+			publishEvent(execCtx, string(event.TypeApprovalRequested), event.ApprovalRequestedPayload{
+				ToolName:  t.Name(),
+				Input:     execCtx.Input,
+				RiskLevel: annotations.RiskLevel.String(),
+			})
+
 			// Request approval
 			resp, err := cfg.Approver.Approve(ctx, req)
 			if err != nil {
@@ -57,10 +65,29 @@ func Approval(cfg ApprovalConfig) middleware.Middleware {
 				if resp.Reason != "" {
 					reason = resp.Reason
 				}
+				// Publish approval.denied event
+				publishEvent(execCtx, string(event.TypeApprovalDenied), event.ApprovalResultPayload{
+					ToolName: t.Name(),
+					Approver: resp.Approver,
+					Reason:   reason,
+				})
 				return tool.Result{}, fmt.Errorf("%w: %s", tool.ErrApprovalDenied, reason)
 			}
 
+			// Publish approval.granted event
+			publishEvent(execCtx, string(event.TypeApprovalGranted), event.ApprovalResultPayload{
+				ToolName: t.Name(),
+				Approver: resp.Approver,
+			})
+
 			return next(ctx, execCtx)
 		}
+	}
+}
+
+// publishEvent is a nil-safe helper for middleware event publishing.
+func publishEvent(execCtx *middleware.ExecutionContext, eventType string, payload any) {
+	if execCtx.EventPublisher != nil {
+		execCtx.EventPublisher(eventType, payload)
 	}
 }
