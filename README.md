@@ -33,6 +33,25 @@ Most agent frameworks treat safety as an afterthought. agent-go makes **trust th
 
 **The key insight**: Structure agent behavior through constraints, not prompts.
 
+### Platform Capabilities
+
+agent-go is more than a single-agent engine — it's a **policy-aware, event-driven runtime for multi-agent systems**:
+
+| Capability | What It Does |
+|-----------|-------------|
+| **Multi-agent coordination** | DelegateTool wraps child engines as tools. TaskContext shares state across agent hierarchies. |
+| **Agent protocol** | Message envelope with correlation IDs, capability discovery, trust boundaries, request-reply and broadcast patterns. |
+| **Event streaming** | `Stream()` returns a real-time channel of 12 event types. Powers dashboards, debugging, and orchestration. |
+| **MCP integration** | Expose tools via Model Context Protocol with full policy enforcement (approval, budgets, audit trail). |
+| **Replay and fork** | Replay historical runs from events. Fork runs at any step for simulation and testing. |
+| **Shared memory** | Cross-agent TaskContext with thread-safe shared variables, evidence, and artifact references. |
+| **WASM sandbox** | Isolate tool execution with wazero (memory limits, time limits, filesystem restrictions). |
+| **Dashboard** | Real-time web UI with SSE event stream, run history, and evidence viewer. |
+| **CLI (agentctl)** | `run`, `validate`, `visualize`, `repl` commands for development and debugging. |
+| **134 contrib modules** | Storage backends (SQLite, PostgreSQL, Redis, etc.), 118 tool packs, 7 LLM planner providers. |
+
+> **See it in action**: `go run ./example/flagship` — 3 agents, shared state, streaming, persistence, budgets, and approval in one program.
+
 ---
 
 ## Quick Start
@@ -377,6 +396,7 @@ agent-go/
 | [03-policies](example/03-policies/) | Budgets and approvals | Intermediate |
 | [04-llm-planner](example/04-llm-planner/) | Real LLM integration | Intermediate |
 | [06-distributed](example/06-distributed/) | Multi-worker setup | Advanced |
+| **[flagship](example/flagship/)** | **Full platform demo: 3 agents, streaming, persistence** | **Advanced** |
 | [fileops](example/fileops/) | File operation tools | Beginner |
 | [webscraper](example/webscraper/) | Web scraping agent | Intermediate |
 | [customer-support](example/customer-support/) | Customer support agent | Intermediate |
