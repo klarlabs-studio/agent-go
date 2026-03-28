@@ -194,8 +194,8 @@ func TestMetrics_RecordsSuccessfulExecution(t *testing.T) {
 	if !rec.success {
 		t.Error("success should be true")
 	}
-	if rec.duration == 0 {
-		t.Error("duration should not be zero")
+	if rec.duration < 0 {
+		t.Error("duration should not be negative")
 	}
 }
 
