@@ -66,7 +66,7 @@ var devicePatterns = []struct {
 	Type    string
 	Pattern *regexp.Regexp
 }{
-	{"tablet", regexp.MustCompile(`(?i)iPad|Android.*(?!Mobile)|Tablet`)},
+	{"tablet", regexp.MustCompile(`(?i)iPad|Tablet`)},
 	{"mobile", regexp.MustCompile(`(?i)Mobile|iPhone|iPod|Android.*Mobile|Windows Phone`)},
 	{"tv", regexp.MustCompile(`(?i)Smart-?TV|BRAVIA|GoogleTV|Apple\s?TV`)},
 	{"console", regexp.MustCompile(`(?i)PlayStation|Xbox|Nintendo`)},
@@ -133,6 +133,10 @@ func parseTool() tool.Tool {
 					deviceType = dp.Type
 					break
 				}
+			}
+			// Android without "Mobile" is typically a tablet
+			if deviceType == "desktop" && strings.Contains(ua, "Android") && !strings.Contains(ua, "Mobile") {
+				deviceType = "tablet"
 			}
 
 			// Check if bot

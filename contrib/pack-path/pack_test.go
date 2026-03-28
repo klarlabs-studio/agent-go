@@ -1,0 +1,34 @@
+package pathutil_test
+
+import (
+	"testing"
+
+	pathutil "github.com/felixgeelhaar/agent-go/contrib/pack-path"
+	"github.com/felixgeelhaar/agent-go/domain/tool"
+)
+
+func TestRegister(t *testing.T) {
+	p := pathutil.Pack()
+	if p == nil {
+		t.Fatal("Pack() returned nil")
+	}
+	if len(p.Tools) == 0 {
+		t.Fatal("Pack() returned no tools")
+	}
+	if p.Name != "path" {
+		t.Errorf("expected pack name %q, got %q", "path", p.Name)
+	}
+}
+
+func TestToolsImplementInterface(t *testing.T) {
+	p := pathutil.Pack()
+	for _, tt := range p.Tools {
+		var _ tool.Tool = tt
+		if tt.Name() == "" {
+			t.Error("tool has empty name")
+		}
+		if tt.Description() == "" {
+			t.Errorf("tool %q has empty description", tt.Name())
+		}
+	}
+}
