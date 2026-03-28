@@ -37,6 +37,8 @@ type Run struct {
 	Result          json.RawMessage  `json:"result,omitempty"`
 	Error           string           `json:"error,omitempty"`
 	PendingQuestion *PendingQuestion `json:"pending_question,omitempty"`
+	ParentRunID     string           `json:"parent_run_id,omitempty"`
+	TaskID          string           `json:"task_id,omitempty"`
 }
 
 // NewRun creates a new run with the given ID and initial state.

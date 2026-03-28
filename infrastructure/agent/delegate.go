@@ -11,6 +11,8 @@ import (
 	"fmt"
 
 	"github.com/felixgeelhaar/agent-go/application"
+	domainagent "github.com/felixgeelhaar/agent-go/domain/agent"
+	"github.com/felixgeelhaar/agent-go/domain/task"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 )
 
@@ -34,10 +36,20 @@ type DelegateTool struct {
 	description string
 	engine      *application.Engine
 	riskLevel   tool.RiskLevel
+	taskCtx     *task.Context
 }
 
 // DelegateOption configures a DelegateTool.
 type DelegateOption func(*DelegateTool)
+
+// WithDelegateTaskContext sets a shared task context for the delegation.
+// When set, the child engine runs within this task context, enabling
+// shared variables and evidence between parent and child.
+func WithDelegateTaskContext(tc *task.Context) DelegateOption {
+	return func(d *DelegateTool) {
+		d.taskCtx = tc
+	}
+}
 
 // WithRiskLevel sets the risk level for the delegate tool.
 // This allows the parent agent to reason about the risk of delegating
@@ -114,7 +126,14 @@ func (d *DelegateTool) Execute(ctx context.Context, input json.RawMessage) (tool
 		return tool.Result{}, fmt.Errorf("delegate input requires a non-empty goal")
 	}
 
-	run, err := d.engine.Run(ctx, in.Goal)
+	// Run child engine — with task context if configured
+	var run *domainagent.Run
+	var err error
+	if d.taskCtx != nil {
+		run, err = d.engine.RunInTask(ctx, in.Goal, d.taskCtx)
+	} else {
+		run, err = d.engine.Run(ctx, in.Goal)
+	}
 
 	out := delegateOutput{}
 	if run != nil {

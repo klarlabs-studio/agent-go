@@ -6,6 +6,7 @@ import (
 	"github.com/felixgeelhaar/agent-go/domain/middleware"
 	"github.com/felixgeelhaar/agent-go/domain/policy"
 	"github.com/felixgeelhaar/agent-go/domain/run"
+	"github.com/felixgeelhaar/agent-go/domain/task"
 	"github.com/felixgeelhaar/agent-go/domain/telemetry"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 	"github.com/felixgeelhaar/agent-go/infrastructure/planner"
@@ -122,6 +123,15 @@ func WithRunStore(s run.Store) Option {
 func WithEventStore(s event.Store) Option {
 	return func(c *EngineConfig) {
 		c.EventStore = s
+	}
+}
+
+// WithTaskContext sets a shared task context for multi-agent coordination.
+// When configured, the engine merges shared variables, propagates evidence
+// to the task context, and sets ParentRunID/TaskID on runs.
+func WithTaskContext(tc *task.Context) Option {
+	return func(c *EngineConfig) {
+		c.TaskContext = tc
 	}
 }
 

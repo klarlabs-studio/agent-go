@@ -58,6 +58,12 @@ type ListFilter struct {
 
 	// Descending reverses the sort order.
 	Descending bool
+
+	// ParentRunID filters by parent run ID (for delegation hierarchy queries).
+	ParentRunID string
+
+	// TaskID filters by task ID (for cross-agent task queries).
+	TaskID string
 }
 
 // OrderBy specifies how to sort run results.

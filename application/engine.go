@@ -18,6 +18,7 @@ import (
 	"github.com/felixgeelhaar/agent-go/domain/middleware"
 	"github.com/felixgeelhaar/agent-go/domain/policy"
 	"github.com/felixgeelhaar/agent-go/domain/run"
+	"github.com/felixgeelhaar/agent-go/domain/task"
 	"github.com/felixgeelhaar/agent-go/domain/telemetry"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 	"github.com/felixgeelhaar/agent-go/infrastructure/logging"
@@ -44,6 +45,7 @@ type Engine struct {
 	meter        telemetry.Meter
 	runStore     run.Store
 	eventStore   event.Store
+	taskCtx      *task.Context
 }
 
 // EngineConfig contains configuration for the engine.
@@ -63,6 +65,7 @@ type EngineConfig struct {
 	Meter        telemetry.Meter
 	RunStore     run.Store
 	EventStore   event.Store
+	TaskContext  *task.Context
 }
 
 // NewEngine creates a new engine with the given configuration.
@@ -90,6 +93,7 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 		meter:        config.Meter,
 		runStore:     config.RunStore,
 		eventStore:   config.EventStore,
+		taskCtx:      config.TaskContext,
 	}
 
 	// Set defaults
@@ -166,6 +170,26 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 
 	// Create run
 	r := agent.NewRun(runID, goal)
+
+	// Wire task context for multi-agent coordination
+	if e.taskCtx != nil {
+		r.TaskID = e.taskCtx.ID
+		// Merge shared vars as defaults (run vars override)
+		for k, v := range e.taskCtx.Vars() {
+			if _, exists := vars[k]; !exists {
+				r.SetVar(k, v)
+			}
+		}
+	}
+
+	// Set parent run ID from Go context (set by parent engine)
+	if parentID := task.RunIDFromContext(ctx); parentID != "" {
+		r.ParentRunID = parentID
+	}
+
+	// Propagate run ID into context for child agents
+	ctx = task.WithRunID(ctx, runID)
+
 	for k, v := range vars {
 		r.SetVar(k, v)
 		e.publishEvent(ctx, runID, event.TypeVariableSet, event.VariableSetPayload{Key: k, Value: v})
@@ -629,8 +653,12 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 		Duration: result.Duration, Cached: result.Cached,
 	})
 
-	// Add evidence and publish event
-	run.AddEvidence(agent.NewToolEvidence(decision.ToolName, result.Output))
+	// Add evidence to run, task context, and event stream
+	evidence := agent.NewToolEvidence(decision.ToolName, result.Output)
+	run.AddEvidence(evidence)
+	if e.taskCtx != nil {
+		e.taskCtx.AddEvidence(evidence)
+	}
 	e.publishEvent(ctx, run.ID, event.TypeEvidenceAdded, event.EvidenceAddedPayload{
 		Type: string(agent.EvidenceToolResult), Source: decision.ToolName, Content: result.Output,
 	})
@@ -750,6 +778,16 @@ func (e *Engine) buildToolDefs(allowedTools []string) []planner.ToolDef {
 		}
 	}
 	return defs
+}
+
+// RunInTask executes the agent within a shared task context.
+// The task context enables sharing variables, evidence, and artifact references
+// between parent and child agents in a delegation hierarchy.
+func (e *Engine) RunInTask(ctx context.Context, goal string, tc *task.Context) (*agent.Run, error) {
+	origTC := e.taskCtx
+	e.taskCtx = tc
+	defer func() { e.taskCtx = origTC }()
+	return e.RunWithVars(ctx, goal, nil)
 }
 
 // Knowledge returns the knowledge store, if configured.
