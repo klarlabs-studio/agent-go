@@ -2,8 +2,11 @@ package application
 
 import (
 	"github.com/felixgeelhaar/agent-go/domain/artifact"
+	"github.com/felixgeelhaar/agent-go/domain/event"
 	"github.com/felixgeelhaar/agent-go/domain/middleware"
 	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"github.com/felixgeelhaar/agent-go/domain/run"
+	"github.com/felixgeelhaar/agent-go/domain/telemetry"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 	"github.com/felixgeelhaar/agent-go/infrastructure/planner"
 	"github.com/felixgeelhaar/agent-go/infrastructure/resilience"
@@ -83,6 +86,42 @@ func WithMaxSteps(n int) Option {
 func WithMiddleware(m *middleware.Registry) Option {
 	return func(c *EngineConfig) {
 		c.Middleware = m
+	}
+}
+
+// WithTracer sets the OpenTelemetry tracer for distributed tracing.
+// When configured, the engine creates spans for runs, steps, planner decisions,
+// and tool executions. Pass nil to disable tracing.
+func WithTracer(t telemetry.Tracer) Option {
+	return func(c *EngineConfig) {
+		c.Tracer = t
+	}
+}
+
+// WithMeter sets the OpenTelemetry meter for metrics collection.
+// When configured, the engine records run duration, step counts, and tool latency.
+func WithMeter(m telemetry.Meter) Option {
+	return func(c *EngineConfig) {
+		c.Meter = m
+	}
+}
+
+// WithRunStore sets the run store for persistent run state.
+// When configured, runs are automatically saved on creation and updated on
+// each step and terminal state. Persistence is best-effort — failures are
+// logged but do not abort the run.
+func WithRunStore(s run.Store) Option {
+	return func(c *EngineConfig) {
+		c.RunStore = s
+	}
+}
+
+// WithEventStore sets the event store for event sourcing and streaming.
+// When configured, domain events (run.started, tool.called, state.transitioned, etc.)
+// are published throughout the run. Required for Stream() to work.
+func WithEventStore(s event.Store) Option {
+	return func(c *EngineConfig) {
+		c.EventStore = s
 	}
 }
 

@@ -95,9 +95,12 @@ import (
 	"github.com/felixgeelhaar/agent-go/application"
 	"github.com/felixgeelhaar/agent-go/domain/agent"
 	"github.com/felixgeelhaar/agent-go/domain/artifact"
+	"github.com/felixgeelhaar/agent-go/domain/event"
 	"github.com/felixgeelhaar/agent-go/domain/knowledge"
 	"github.com/felixgeelhaar/agent-go/domain/middleware"
 	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"github.com/felixgeelhaar/agent-go/domain/run"
+	"github.com/felixgeelhaar/agent-go/domain/telemetry"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 	inframw "github.com/felixgeelhaar/agent-go/infrastructure/middleware"
 	"github.com/felixgeelhaar/agent-go/infrastructure/planner"
@@ -235,6 +238,10 @@ func New(opts ...Option) (*Engine, error) {
 		BudgetLimits: config.budgets,
 		MaxSteps:     config.maxSteps,
 		Middleware:   config.middleware,
+		Tracer:       config.tracer,
+		Meter:        config.meter,
+		RunStore:     config.runStore,
+		EventStore:   config.eventStore,
 	}
 
 	engine, err := application.NewEngine(appConfig)
@@ -271,6 +278,19 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *Run, input string) (*
 	return e.engine.ResumeWithInput(ctx, run, input)
 }
 
+// Stream executes the agent in the background and returns a channel of events.
+// Requires an EventStore to be configured via WithEventStore.
+//
+// Example:
+//
+//	runID, events, _ := engine.Stream(ctx, "Process files")
+//	for evt := range events {
+//	    fmt.Printf("[%s] %s\n", evt.Type, evt.Payload)
+//	}
+func (e *Engine) Stream(ctx context.Context, goal string) (string, <-chan event.Event, error) {
+	return e.engine.Stream(ctx, goal)
+}
+
 // Knowledge returns the knowledge store, if configured.
 // Returns nil if no knowledge store was provided via WithKnowledgeStore.
 func (e *Engine) Knowledge() knowledge.Store {
@@ -290,6 +310,10 @@ type engineConfig struct {
 	budgets     map[string]int
 	maxSteps    int
 	middleware  *middleware.Registry
+	tracer      telemetry.Tracer
+	meter       telemetry.Meter
+	runStore    run.Store
+	eventStore  event.Store
 }
 
 // Option configures the Engine.
@@ -465,4 +489,36 @@ type ToolRateConfig struct {
 	Rate int
 	// Burst is the maximum tokens (bucket capacity).
 	Burst int
+}
+
+// WithTracer sets the OpenTelemetry tracer for distributed tracing.
+// When configured, the engine creates spans for runs, steps, planner decisions,
+// and tool executions.
+func WithTracer(t telemetry.Tracer) Option {
+	return func(c *engineConfig) {
+		c.tracer = t
+	}
+}
+
+// WithMeter sets the OpenTelemetry meter for metrics collection.
+func WithMeter(m telemetry.Meter) Option {
+	return func(c *engineConfig) {
+		c.meter = m
+	}
+}
+
+// WithRunStore sets the run store for persistent run state.
+// Runs are automatically saved on creation and updated on each step.
+func WithRunStore(s run.Store) Option {
+	return func(c *engineConfig) {
+		c.runStore = s
+	}
+}
+
+// WithEventStore sets the event store for event sourcing and streaming.
+// Required for the Stream() method to work.
+func WithEventStore(s event.Store) Option {
+	return func(c *engineConfig) {
+		c.eventStore = s
+	}
 }

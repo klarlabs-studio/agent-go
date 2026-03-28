@@ -12,10 +12,13 @@ import (
 
 	"github.com/felixgeelhaar/agent-go/domain/agent"
 	"github.com/felixgeelhaar/agent-go/domain/artifact"
+	"github.com/felixgeelhaar/agent-go/domain/event"
 	"github.com/felixgeelhaar/agent-go/domain/knowledge"
 	"github.com/felixgeelhaar/agent-go/domain/ledger"
 	"github.com/felixgeelhaar/agent-go/domain/middleware"
 	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"github.com/felixgeelhaar/agent-go/domain/run"
+	"github.com/felixgeelhaar/agent-go/domain/telemetry"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 	"github.com/felixgeelhaar/agent-go/infrastructure/logging"
 	inframw "github.com/felixgeelhaar/agent-go/infrastructure/middleware"
@@ -37,6 +40,10 @@ type Engine struct {
 	budgetLimits map[string]int
 	maxSteps     int
 	middleware   *middleware.Registry
+	tracer       telemetry.Tracer
+	meter        telemetry.Meter
+	runStore     run.Store
+	eventStore   event.Store
 }
 
 // EngineConfig contains configuration for the engine.
@@ -52,6 +59,10 @@ type EngineConfig struct {
 	BudgetLimits map[string]int
 	MaxSteps     int
 	Middleware   *middleware.Registry
+	Tracer       telemetry.Tracer
+	Meter        telemetry.Meter
+	RunStore     run.Store
+	EventStore   event.Store
 }
 
 // NewEngine creates a new engine with the given configuration.
@@ -75,6 +86,10 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 		budgetLimits: config.BudgetLimits,
 		maxSteps:     config.MaxSteps,
 		middleware:   config.Middleware,
+		tracer:       config.Tracer,
+		meter:        config.Meter,
+		runStore:     config.RunStore,
+		eventStore:   config.EventStore,
 	}
 
 	// Set defaults
@@ -131,21 +146,39 @@ func (e *Engine) Run(ctx context.Context, goal string) (*agent.Run, error) {
 
 // RunWithVars executes the agent with the given goal and initial variables.
 func (e *Engine) RunWithVars(ctx context.Context, goal string, vars map[string]any) (*agent.Run, error) {
-	// Generate run ID
-	runID := generateRunID()
+	return e.executeRun(ctx, generateRunID(), goal, vars)
+}
+
+// executeRun is the internal run method that accepts a pre-generated run ID.
+func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[string]any) (*agent.Run, error) {
+
+	// Start trace span for the entire run
+	if e.tracer != nil {
+		var span telemetry.Span
+		ctx, span = e.tracer.StartSpan(ctx, "agent.run",
+			telemetry.WithAttributes(
+				telemetry.String("agent.run_id", runID),
+				telemetry.String("agent.goal", goal),
+			),
+		)
+		defer span.End()
+	}
 
 	// Create run
-	run := agent.NewRun(runID, goal)
+	r := agent.NewRun(runID, goal)
 	for k, v := range vars {
-		run.SetVar(k, v)
+		r.SetVar(k, v)
 	}
+
+	// Persist run creation
+	e.saveRun(ctx, r)
 
 	// Create supporting components
 	budget := policy.NewBudget(e.budgetLimits)
 	runLedger := ledger.New(runID)
 
 	// Create state machine context
-	machineCtx := statemachine.NewContext(run, budget, runLedger)
+	machineCtx := statemachine.NewContext(r, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
 
@@ -168,14 +201,24 @@ func (e *Engine) RunWithVars(ctx context.Context, goal string, vars map[string]a
 	interp.Start()
 	runLedger.RecordRunStarted(goal)
 
+	// Publish run.started event
+	e.publishEvent(ctx, runID, event.TypeRunStarted, event.RunStartedPayload{
+		Goal: goal,
+		Vars: vars,
+	})
+
 	// Execute until terminal state or max steps
 	steps := 0
 	for !interp.IsTerminal() && steps < e.maxSteps {
 		select {
 		case <-ctx.Done():
-			run.Fail("context cancelled")
-			runLedger.RecordRunFailed(run.CurrentState, "context cancelled")
-			return run, ctx.Err()
+			r.Fail("context cancelled")
+			runLedger.RecordRunFailed(r.CurrentState, "context cancelled")
+			e.publishEvent(ctx, runID, event.TypeRunFailed, event.RunFailedPayload{
+				Error: "context cancelled", State: r.CurrentState, Duration: r.Duration(),
+			})
+			e.updateRun(ctx, r)
+			return r, ctx.Err()
 		default:
 		}
 
@@ -184,43 +227,99 @@ func (e *Engine) RunWithVars(ctx context.Context, goal string, vars map[string]a
 			if errors.Is(err, agent.ErrAwaitingHumanInput) {
 				logging.Info().
 					Add(logging.RunID(runID)).
-					Add(logging.State(run.CurrentState)).
+					Add(logging.State(r.CurrentState)).
 					Msg("run paused for human input")
-				return run, err
+				e.publishEvent(ctx, runID, event.TypeRunPaused, nil)
+				e.updateRun(ctx, r)
+				return r, err
 			}
 
-			run.Fail(err.Error())
-			runLedger.RecordRunFailed(run.CurrentState, err.Error())
+			r.Fail(err.Error())
+			runLedger.RecordRunFailed(r.CurrentState, err.Error())
 
 			logging.Error().
 				Add(logging.RunID(runID)).
-				Add(logging.State(run.CurrentState)).
+				Add(logging.State(r.CurrentState)).
 				Add(logging.ErrorField(err)).
 				Msg("run failed")
 
-			return run, err
+			e.publishEvent(ctx, runID, event.TypeRunFailed, event.RunFailedPayload{
+				Error: err.Error(), State: r.CurrentState, Duration: r.Duration(),
+			})
+			e.updateRun(ctx, r)
+
+			// Record error on trace span
+			if e.tracer != nil {
+				if _, span := e.tracer.StartSpan(ctx, ""); span != nil {
+					span.RecordError(err)
+					span.End()
+				}
+			}
+
+			return r, err
 		}
 		steps++
+
+		// Persist run state after each step
+		e.updateRun(ctx, r)
 	}
 
 	if steps >= e.maxSteps && !interp.IsTerminal() {
-		run.Fail("max steps exceeded")
-		runLedger.RecordRunFailed(run.CurrentState, "max steps exceeded")
-		return run, errors.New("max steps exceeded")
+		r.Fail("max steps exceeded")
+		runLedger.RecordRunFailed(r.CurrentState, "max steps exceeded")
+		e.publishEvent(ctx, runID, event.TypeRunFailed, event.RunFailedPayload{
+			Error: "max steps exceeded", State: r.CurrentState, Duration: r.Duration(),
+		})
+		e.updateRun(ctx, r)
+		return r, errors.New("max steps exceeded")
 	}
 
 	// Log completion
 	logging.Info().
 		Add(logging.RunID(runID)).
-		Add(logging.State(run.CurrentState)).
-		Add(logging.Duration(run.Duration())).
+		Add(logging.State(r.CurrentState)).
+		Add(logging.Duration(r.Duration())).
 		Msg("run completed")
 
-	if run.Status == agent.RunStatusCompleted {
-		runLedger.RecordRunCompleted(run.Result)
+	if r.Status == agent.RunStatusCompleted {
+		runLedger.RecordRunCompleted(r.Result)
+		e.publishEvent(ctx, runID, event.TypeRunCompleted, event.RunCompletedPayload{
+			Result: r.Result, Duration: r.Duration(),
+		})
 	}
 
-	return run, nil
+	e.updateRun(ctx, r)
+	return r, nil
+}
+
+// Stream executes the agent in the background and returns a channel of events.
+// The returned channel receives events as the agent executes. It is closed when
+// the run completes, fails, or the context is cancelled.
+// Requires an EventStore to be configured via WithEventStore.
+func (e *Engine) Stream(ctx context.Context, goal string) (string, <-chan event.Event, error) {
+	if e.eventStore == nil {
+		return "", nil, errors.New("streaming requires an event store (use WithEventStore)")
+	}
+
+	runID := generateRunID()
+
+	// Subscribe before starting the run to avoid missing early events
+	ch, err := e.eventStore.Subscribe(ctx, runID)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to subscribe to events: %w", err)
+	}
+
+	// Run in background — use the pre-generated runID
+	go func() {
+		_, _ = e.runWithID(ctx, runID, goal, nil)
+	}()
+
+	return runID, ch, nil
+}
+
+// runWithID is an internal method that executes with a specified run ID.
+func (e *Engine) runWithID(ctx context.Context, runID, goal string, vars map[string]any) (*agent.Run, error) {
+	return e.executeRun(ctx, runID, goal, vars)
 }
 
 // ResumeWithInput continues a paused run with human-provided input.
@@ -371,13 +470,43 @@ func (e *Engine) step(ctx context.Context, interp *statemachine.Interpreter, mac
 		Vars:         run.Vars,
 	}
 
+	// Trace planner decision
+	var planSpan telemetry.Span
+	if e.tracer != nil {
+		ctx, planSpan = e.tracer.StartSpan(ctx, "agent.planner.decide",
+			telemetry.WithAttributes(telemetry.String("agent.state", string(run.CurrentState))),
+		)
+	}
+
 	decision, err := e.planner.Plan(ctx, req)
+
+	if planSpan != nil {
+		if err != nil {
+			planSpan.RecordError(err)
+		} else {
+			planSpan.SetAttributes(telemetry.String("agent.decision", string(decision.Type)))
+		}
+		planSpan.End()
+	}
+
 	if err != nil {
 		return fmt.Errorf("planner error: %w", err)
 	}
 
 	// Record decision
 	runLedger.RecordDecision(run.CurrentState, decision)
+
+	// Publish decision event
+	dp := event.DecisionMadePayload{DecisionType: string(decision.Type)}
+	if decision.CallTool != nil {
+		dp.ToolName = decision.CallTool.ToolName
+		dp.Reason = decision.CallTool.Reason
+		dp.Input = decision.CallTool.Input
+	} else if decision.Transition != nil {
+		dp.ToState = decision.Transition.ToState
+		dp.Reason = decision.Transition.Reason
+	}
+	e.publishEvent(ctx, run.ID, event.TypeDecisionMade, dp)
 
 	logging.Debug().
 		Add(logging.RunID(run.ID)).
@@ -390,7 +519,7 @@ func (e *Engine) step(ctx context.Context, interp *statemachine.Interpreter, mac
 	case agent.DecisionCallTool:
 		return e.executeToolDecision(ctx, interp, machineCtx, decision.CallTool)
 	case agent.DecisionTransition:
-		return e.executeTransition(ctx, interp, decision.Transition)
+		return e.executeTransition(ctx, interp, machineCtx, decision.Transition)
 	case agent.DecisionAskHuman:
 		return e.executeAskHuman(ctx, interp, machineCtx, decision.AskHuman)
 	case agent.DecisionFinish:
@@ -434,6 +563,23 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 	// Record tool call in ledger
 	runLedger.RecordToolCall(run.CurrentState, decision.ToolName, decision.Input)
 
+	// Publish tool.called event
+	e.publishEvent(ctx, run.ID, event.TypeToolCalled, event.ToolCalledPayload{
+		ToolName: decision.ToolName, Input: decision.Input,
+		State: run.CurrentState, Reason: decision.Reason,
+	})
+
+	// Trace tool execution
+	var toolSpan telemetry.Span
+	if e.tracer != nil {
+		ctx, toolSpan = e.tracer.StartSpan(ctx, "agent.tool.execute",
+			telemetry.WithAttributes(
+				telemetry.String("agent.tool", decision.ToolName),
+				telemetry.String("agent.state", string(run.CurrentState)),
+			),
+		)
+	}
+
 	// Core handler wraps the resilient executor
 	coreHandler := func(ctx context.Context, ec *middleware.ExecutionContext) (tool.Result, error) {
 		return e.executor.Execute(ctx, ec.Tool, ec.Input)
@@ -443,16 +589,33 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 	handler := e.middleware.Chain()(coreHandler)
 	result, err := handler(ctx, execCtx)
 
+	// End tool span
+	if toolSpan != nil {
+		if err != nil {
+			toolSpan.RecordError(err)
+		}
+		toolSpan.End()
+	}
+
 	// Handle errors
 	if err != nil {
 		runLedger.RecordToolError(run.CurrentState, decision.ToolName, err)
+		e.publishEvent(ctx, run.ID, event.TypeToolFailed, event.ToolFailedPayload{
+			ToolName: decision.ToolName, Error: err.Error(), Duration: result.Duration,
+		})
 		return fmt.Errorf("tool execution failed: %w", err)
 	}
 
 	// Consume budget on success
-	_ = budget.Consume("tool_calls", 1) // validated by CanConsume check above
+	_ = budget.Consume("tool_calls", 1)
 	runLedger.RecordBudgetConsumed(run.CurrentState, "tool_calls", 1, budget.Remaining("tool_calls"))
 	runLedger.RecordToolResult(run.CurrentState, decision.ToolName, result.Output, result.Duration, result.Cached)
+
+	// Publish tool.succeeded event
+	e.publishEvent(ctx, run.ID, event.TypeToolSucceeded, event.ToolSucceededPayload{
+		ToolName: decision.ToolName, Output: result.Output,
+		Duration: result.Duration, Cached: result.Cached,
+	})
 
 	// Add evidence
 	run.AddEvidence(agent.NewToolEvidence(decision.ToolName, result.Output))
@@ -461,8 +624,15 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 }
 
 // executeTransition executes a state transition decision.
-func (e *Engine) executeTransition(_ context.Context, interp *statemachine.Interpreter, decision *agent.TransitionDecision) error {
-	return interp.Transition(decision.ToState, decision.Reason)
+func (e *Engine) executeTransition(ctx context.Context, interp *statemachine.Interpreter, machineCtx *statemachine.Context, decision *agent.TransitionDecision) error {
+	fromState := machineCtx.Run.CurrentState
+	if err := interp.Transition(decision.ToState, decision.Reason); err != nil {
+		return err
+	}
+	e.publishEvent(ctx, machineCtx.Run.ID, event.TypeStateTransitioned, event.StateTransitionedPayload{
+		FromState: fromState, ToState: decision.ToState, Reason: decision.Reason,
+	})
+	return nil
 }
 
 // executeAskHuman handles human input requests by pausing the run.
@@ -508,6 +678,41 @@ func (e *Engine) executeFail(_ context.Context, interp *statemachine.Interpreter
 	run.Error = decision.Reason
 	run.Status = agent.RunStatusFailed
 	return nil
+}
+
+// saveRun persists a new run. Best-effort — logs errors but doesn't fail the run.
+func (e *Engine) saveRun(ctx context.Context, r *agent.Run) {
+	if e.runStore == nil {
+		return
+	}
+	if err := e.runStore.Save(ctx, r); err != nil {
+		logging.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).Msg("failed to save run")
+	}
+}
+
+// updateRun persists run state changes. Best-effort — logs errors but doesn't fail the run.
+func (e *Engine) updateRun(ctx context.Context, r *agent.Run) {
+	if e.runStore == nil {
+		return
+	}
+	if err := e.runStore.Update(ctx, r); err != nil {
+		logging.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).Msg("failed to update run")
+	}
+}
+
+// publishEvent publishes a domain event to the event store. Best-effort.
+func (e *Engine) publishEvent(ctx context.Context, runID string, eventType event.Type, payload any) {
+	if e.eventStore == nil {
+		return
+	}
+	evt, err := event.NewEvent(runID, eventType, payload)
+	if err != nil {
+		logging.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to create event")
+		return
+	}
+	if err := e.eventStore.Append(ctx, evt); err != nil {
+		logging.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to publish event")
+	}
 }
 
 // generateRunID creates a unique run ID using timestamp and random bytes.
