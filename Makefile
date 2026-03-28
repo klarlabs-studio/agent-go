@@ -1,7 +1,7 @@
 .PHONY: all build test lint clean coverage coverage-check coverage-report \
         security security-sast security-vuln security-secrets \
         release-plan release-bump release-notes release-publish \
-        check example help \
+        check example help hooks \
         workspace-sync workspace-tidy contrib-build contrib-test
 
 # Default target
@@ -133,6 +133,16 @@ workspace-verify:
 	go build ./...
 	@echo "Workspace verified successfully"
 
+# Install git hooks
+hooks:
+	@echo "Installing git hooks..."
+	@cp scripts/pre-commit .git/hooks/pre-commit
+	@cp scripts/pre-push .git/hooks/pre-push
+	@chmod +x .git/hooks/pre-commit .git/hooks/pre-push
+	@echo "Git hooks installed successfully."
+	@echo "  pre-commit: gofmt, go vet, golangci-lint, nox, build, core tests"
+	@echo "  pre-push:   race tests, coverage check, nox security scan"
+
 # All checks (CI/CD)
 check: lint test-coverage coverage-check security
 
@@ -177,6 +187,7 @@ help:
 	@echo "    workspace-verify - Verify workspace builds correctly"
 	@echo ""
 	@echo "  Other:"
+	@echo "    hooks            - Install pre-commit and pre-push git hooks"
 	@echo "    lint             - Run golangci-lint (workspace)"
 	@echo "    lint-core        - Run golangci-lint on core only"
 	@echo "    clean            - Remove generated files"

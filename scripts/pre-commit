@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Pre-commit hook for agent-go
+# Install with: make hooks
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+step() { printf "${YELLOW}[pre-commit]${NC} %s... " "$1"; }
+pass() { printf "${GREEN}OK${NC}\n"; }
+fail() { printf "${RED}FAIL${NC}\n"; exit 1; }
+
+# Only check staged Go files
+STAGED_GO=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$' || true)
+if [ -z "$STAGED_GO" ]; then
+    echo "[pre-commit] No Go files staged, skipping checks."
+    exit 0
+fi
+
+# 1. Format check (gofmt)
+step "gofmt"
+UNFORMATTED=$(gofmt -l $STAGED_GO 2>/dev/null || true)
+if [ -n "$UNFORMATTED" ]; then
+    printf "${RED}FAIL${NC}\n"
+    echo "  Unformatted files:"
+    echo "$UNFORMATTED" | sed 's/^/    /'
+    echo "  Run: gofmt -w <file>"
+    exit 1
+fi
+pass
+
+# 2. Go vet
+step "go vet"
+go vet ./... 2>/dev/null || fail
+pass
+
+# 3. Lint (golangci-lint) — only on staged files' packages
+step "golangci-lint"
+if command -v golangci-lint &>/dev/null; then
+    PKGS=$(echo "$STAGED_GO" | xargs -I{} dirname {} | sort -u | sed 's|^|./|' | sed 's|$|/...|')
+    golangci-lint run --new-from-rev=HEAD~0 --timeout=5m $PKGS 2>/dev/null || fail
+    pass
+else
+    printf "${YELLOW}SKIP${NC} (not installed)\n"
+fi
+
+# 4. Security scan (nox) — quick scan on changed files
+step "nox scan"
+if command -v nox &>/dev/null; then
+    nox scan . --quiet 2>/dev/null || fail
+    pass
+else
+    printf "${YELLOW}SKIP${NC} (not installed)\n"
+fi
+
+# 5. Build check
+step "go build"
+go build ./... 2>/dev/null || fail
+pass
+
+# 6. Core tests (fast subset)
+step "core tests"
+go test -short -count=1 -timeout=2m ./domain/... ./application/... ./infrastructure/... ./interfaces/... ./test/... 2>/dev/null || fail
+pass
+
+printf "${GREEN}[pre-commit] All checks passed.${NC}\n"

@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Pre-push hook for agent-go
+# Runs heavier checks before pushing to remote.
+# Install with: make hooks
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+step() { printf "${YELLOW}[pre-push]${NC} %s... " "$1"; }
+pass() { printf "${GREEN}OK${NC}\n"; }
+fail() { printf "${RED}FAIL${NC}\n"; exit 1; }
+
+# 1. Full test suite with race detection
+step "tests with race detection"
+go test -race -short -count=1 -timeout=5m ./domain/... ./application/... ./infrastructure/... ./interfaces/... ./test/... 2>/dev/null || fail
+pass
+
+# 2. Coverage threshold
+step "coverage check"
+if command -v coverctl &>/dev/null; then
+    go test -coverprofile=/tmp/agent-go-coverage.out -timeout=5m ./domain/... ./application/... ./infrastructure/... ./interfaces/... 2>/dev/null
+    coverctl check --profile=/tmp/agent-go-coverage.out 2>/dev/null || fail
+    rm -f /tmp/agent-go-coverage.out
+    pass
+else
+    printf "${YELLOW}SKIP${NC} (coverctl not installed)\n"
+fi
+
+# 3. Security scan
+step "nox security scan"
+if command -v nox &>/dev/null; then
+    nox scan . --quiet 2>/dev/null || fail
+    pass
+else
+    printf "${YELLOW}SKIP${NC} (nox not installed)\n"
+fi
+
+printf "${GREEN}[pre-push] All checks passed.${NC}\n"
