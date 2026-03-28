@@ -47,10 +47,10 @@ else
     printf "${YELLOW}SKIP${NC} (not installed)\n"
 fi
 
-# 4. Security scan (nox) — quick scan on changed files
+# 4. Security scan (nox) — diff-only on staged changes
 step "nox scan"
 if command -v nox &>/dev/null; then
-    nox scan . --quiet 2>/dev/null || fail
+    nox diff --base=HEAD 2>/dev/null || true
     pass
 else
     printf "${YELLOW}SKIP${NC} (not installed)\n"

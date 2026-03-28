@@ -1,4 +1,20 @@
 // Package sandbox provides tool execution sandboxing capabilities.
+//
+// Sandboxing is opt-in. By default, the engine uses no sandbox and tools
+// execute directly in the host process. Use [NewNoop] for an explicit no-op
+// sandbox, or implement the [Sandbox] interface for custom isolation (e.g.,
+// WASM, containers, or OS-level namespacing).
+//
+// The sandbox interface is designed to be pluggable:
+//
+//	// No isolation (default)
+//	sb := sandbox.NewNoop()
+//
+//	// Custom isolation (implement Sandbox interface)
+//	sb := wasm.NewSandbox(sandbox.WithMaxMemory(64<<20), sandbox.WithMaxExecTime(30*time.Second))
+//
+// Capabilities advertise what a sandbox permits, allowing the engine and
+// planner to make informed decisions about tool eligibility.
 package sandbox
 
 import (
