@@ -100,6 +100,7 @@ import (
 	"github.com/felixgeelhaar/agent-go/domain/middleware"
 	"github.com/felixgeelhaar/agent-go/domain/policy"
 	"github.com/felixgeelhaar/agent-go/domain/run"
+	"github.com/felixgeelhaar/agent-go/domain/task"
 	"github.com/felixgeelhaar/agent-go/domain/telemetry"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
 	inframw "github.com/felixgeelhaar/agent-go/infrastructure/middleware"
@@ -242,6 +243,7 @@ func New(opts ...Option) (*Engine, error) {
 		Meter:        config.meter,
 		RunStore:     config.runStore,
 		EventStore:   config.eventStore,
+		TaskContext:  config.taskCtx,
 	}
 
 	engine, err := application.NewEngine(appConfig)
@@ -314,6 +316,7 @@ type engineConfig struct {
 	meter       telemetry.Meter
 	runStore    run.Store
 	eventStore  event.Store
+	taskCtx     *task.Context
 }
 
 // Option configures the Engine.
@@ -520,5 +523,14 @@ func WithRunStore(s run.Store) Option {
 func WithEventStore(s event.Store) Option {
 	return func(c *engineConfig) {
 		c.eventStore = s
+	}
+}
+
+// WithTaskContext sets a shared task context for multi-agent coordination.
+// Enables shared variables, evidence, and artifact references across
+// parent and child agents in a delegation hierarchy.
+func WithTaskContext(tc *task.Context) Option {
+	return func(c *engineConfig) {
+		c.taskCtx = tc
 	}
 }
