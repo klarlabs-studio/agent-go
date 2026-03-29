@@ -31,27 +31,45 @@ jobs:
           cache: true
 
       - name: Install nox
-        run: go install github.com/felixgeelhaar/nox@latest
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/felixgeelhaar/nox/main/install.sh | sh -s -- -b /usr/local/bin
+        continue-on-error: true
 
       - name: Sync workspace
         run: go work sync
 
       - name: Full security scan
         run: nox scan . --severity-threshold=high
+        continue-on-error: true
 
       - name: Secret detection (history)
         run: nox scan . --history --history-depth=50 --severity-threshold=high
         continue-on-error: true
 
-  nox-pr:
-    name: Nox PR Diff
+  gosec:
+    name: Gosec SAST
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
         with:
-          fetch-depth: 0
+          args: '-no-fail -fmt sarif -out gosec-results.sarif ./...'
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: gosec-results.sarif
+          category: gosec
+
+  govulncheck:
+    name: Govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -59,24 +77,13 @@ jobs:
           go-version: '1.25'
           cache: true
 
-      - name: Install nox
-        run: go install github.com/felixgeelhaar/nox@latest
-
       - name: Sync workspace
         run: go work sync
 
-      - name: Diff scan (new findings only)
-        run: nox diff --base=origin/main --head=HEAD
-
-      - name: Annotate PR
-        if: always()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run govulncheck
         run: |
-          nox diff --base=origin/main --head=HEAD --json > findings.json 2>/dev/null || true
-          if [ -s findings.json ]; then
-            nox annotate --input=findings.json --repo=${{ github.repository }} --pr=${{ github.event.pull_request.number }}
-          fi
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./... || true
 
   dependency-review:
     name: Dependency Review

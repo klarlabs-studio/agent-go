@@ -494,8 +494,8 @@ func TestHandleIndex(t *testing.T) {
 		t.Error("Expected non-empty body")
 	}
 
-	if !contains(body, "Agent Dashboard") {
-		t.Error("Expected body to contain 'Agent Dashboard'")
+	if !contains(body, "agent-go Dashboard") && !contains(body, "Agent Dashboard") {
+		t.Error("Expected body to contain 'agent-go Dashboard' or 'Agent Dashboard'")
 	}
 }
 
