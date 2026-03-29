@@ -213,6 +213,9 @@ func (b *Builder) Build() (Tool, error) {
 }
 
 // MustBuild constructs the tool definition or panics on error.
+// This is intentional — use MustBuild only for static tool definitions
+// where a build failure indicates a programming error (e.g., missing name).
+// For dynamic tool creation where errors are expected, use Build instead.
 func (b *Builder) MustBuild() Tool {
 	tool, err := b.Build()
 	if err != nil {
