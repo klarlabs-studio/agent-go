@@ -56,7 +56,7 @@ func (f *DOTFormatter) formatStateMachine(sm *inspector.StateMachineExport) []by
 			attrs = append(attrs, "style=\"rounded,filled\"", "fillcolor=lightyellow")
 		}
 
-		b.WriteString(fmt.Sprintf("  %s [%s];\n", sanitizeDOTID(string(state.Name)), strings.Join(attrs, ", ")))
+		fmt.Fprintf(&b, "  %s [%s];\n", sanitizeDOTID(string(state.Name)), strings.Join(attrs, ", "))
 	}
 
 	b.WriteString("\n")
@@ -76,11 +76,11 @@ func (f *DOTFormatter) formatStateMachine(sm *inspector.StateMachineExport) []by
 			attrStr = fmt.Sprintf(" [%s]", strings.Join(attrs, ", "))
 		}
 
-		b.WriteString(fmt.Sprintf("  %s -> %s%s;\n",
+		fmt.Fprintf(&b, "  %s -> %s%s;\n",
 			sanitizeDOTID(string(trans.From)),
 			sanitizeDOTID(string(trans.To)),
 			attrStr,
-		))
+		)
 	}
 
 	b.WriteString("}\n")

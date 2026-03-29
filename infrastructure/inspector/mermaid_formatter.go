@@ -37,7 +37,7 @@ func (f *MermaidFormatter) formatStateMachine(sm *inspector.StateMachineExport) 
 	b.WriteString("stateDiagram-v2\n")
 
 	// Mark initial state
-	b.WriteString(fmt.Sprintf("  [*] --> %s\n", sm.Initial))
+	fmt.Fprintf(&b, "  [*] --> %s\n", sm.Initial)
 
 	// Define transitions
 	for _, trans := range sm.Transitions {
