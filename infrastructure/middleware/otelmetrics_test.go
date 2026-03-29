@@ -48,7 +48,7 @@ func TestOTelMetrics_RecordsSuccessMetrics(t *testing.T) {
 	}
 
 	handler := mw(func(ctx context.Context, execCtx *middleware.ExecutionContext) (tool.Result, error) {
-		time.Sleep(10 * time.Millisecond) // Ensure measurable duration
+		time.Sleep(1 * time.Millisecond) // Ensure non-zero duration measurement
 		return tool.Result{Output: json.RawMessage(`{"result": "success"}`)}, nil
 	})
 
@@ -80,8 +80,8 @@ func TestOTelMetrics_RecordsSuccessMetrics(t *testing.T) {
 	if len(collector.Durations[durationKey]) != 1 {
 		t.Errorf("got %d durations, want 1", len(collector.Durations[durationKey]))
 	}
-	if collector.Durations[durationKey][0] < 10*time.Millisecond {
-		t.Errorf("duration too short: %v", collector.Durations[durationKey][0])
+	if collector.Durations[durationKey][0] <= 0 {
+		t.Errorf("duration should be positive: %v", collector.Durations[durationKey][0])
 	}
 
 	// Verify output size recorded

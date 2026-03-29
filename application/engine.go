@@ -334,9 +334,12 @@ func (e *Engine) Stream(ctx context.Context, goal string) (string, <-chan event.
 		return "", nil, fmt.Errorf("failed to subscribe to events: %w", err)
 	}
 
-	// Run in background — use the pre-generated runID
+	// Run in background — use the pre-generated runID.
+	// Errors are captured via run.failed events in the event stream.
 	go func() {
-		_, _ = e.runWithID(ctx, runID, goal, nil)
+		if _, err := e.runWithID(ctx, runID, goal, nil); err != nil {
+			logging.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("streamed run failed")
+		}
 	}()
 
 	return runID, ch, nil

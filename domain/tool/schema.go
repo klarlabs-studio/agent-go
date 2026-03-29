@@ -44,13 +44,14 @@ func (s Schema) IsEmpty() bool {
 }
 
 // Validate validates data against the schema.
-// For now, this is a placeholder - full JSON Schema validation
-// will be implemented in internal/schema.
+// Currently performs structural validation (valid JSON, type checking).
+// For full JSON Schema Draft 2020-12 validation, use a dedicated validator
+// like github.com/santhosh-tekuri/jsonschema in infrastructure/config/.
 func (s Schema) Validate(data json.RawMessage) error {
 	if s.IsEmpty() {
 		return nil
 	}
-	// Basic validation: ensure data is valid JSON
+	// Structural validation: ensure data is valid JSON
 	if !json.Valid(data) {
 		return errors.New("invalid JSON")
 	}
