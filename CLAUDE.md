@@ -91,12 +91,22 @@ agent-go/
 │   │   ├── entry.go                # LedgerEntry value object
 │   │   └── events.go               # Domain events
 │   │
-│   └── artifact/                   # Artifact Subdomain
-│       ├── artifact.go             # ArtifactRef value object
-│       └── store.go                # ArtifactStore repository interface
+│   ├── artifact/                   # Artifact Subdomain
+│   │   ├── artifact.go             # ArtifactRef value object
+│   │   └── store.go                # ArtifactStore repository interface
+│   │
+│   ├── protocol/                   # Agent Protocol
+│   │   ├── message.go              # Message envelope (request/reply/notify/broadcast)
+│   │   ├── capability.go           # Agent capability discovery
+│   │   ├── trust.go                # Trust boundaries and permissions
+│   │   └── router.go               # Router interface
+│   │
+│   └── task/                       # Multi-Agent Task Context
+│       └── context.go              # Shared state across agent hierarchy
 │
 ├── application/                    # Application Layer (orchestration)
-│   ├── engine.go                   # Main orchestration service
+│   ├── engine.go                   # Main orchestration service (Run, Stream, RunInTask)
+│   ├── replay.go                   # Replay/Fork engine (Replay, Timeline, EventIterator)
 │   └── options.go                  # Functional options
 │
 ├── infrastructure/                 # Infrastructure Layer
@@ -120,23 +130,42 @@ agent-go/
 │   │   └── filesystem/             # Filesystem stores
 │   │       └── artifact_store.go
 │   │
-│   └── planner/                    # Planner implementations
-│       ├── mock.go                 # MockPlanner for testing
-│       └── scripted.go             # ScriptedPlanner for deterministic tests
+│   ├── planner/                    # Planner implementations
+│   │   ├── mock.go                 # MockPlanner for testing
+│   │   ├── scripted.go             # ScriptedPlanner for deterministic tests
+│   │   ├── rules.go                # RuleBasedPlanner (priority-ordered rules)
+│   │   └── hybrid.go               # HybridPlanner (rules + fallback)
+│   │
+│   ├── agent/                      # Agent composition
+│   │   └── delegate.go             # DelegateTool (agent-as-tool)
+│   │
+│   └── protocol/                   # Protocol implementations
+│       └── memory_router.go        # In-process message routing
 │
 ├── interfaces/                     # Interface Adapters
 │   └── api/                        # Public API
 │       ├── agent.go                # Engine constructor, options, re-exports
 │       └── builders.go             # Helper constructors
 │
+├── cmd/
+│   └── agentctl/                   # CLI tool (run, validate, visualize, repl)
+│
 ├── test/                           # Test suites
-│   └── invariant_test.go           # 8 design invariant tests
+│   ├── invariant_test.go           # 8 design invariant tests
+│   └── integration/                # End-to-end integration tests
 │
 └── example/
-    └── fileops/                    # Canonical example
-        ├── main.go                 # Example runner
-        ├── tools.go                # File operation tools
-        └── README.md
+    ├── 01-minimal/                 # Minimum working agent
+    ├── 02-tools/                   # Custom tool creation
+    ├── 03-policies/                # Budgets and approvals
+    ├── 04-llm-planner/             # Real LLM integration
+    ├── 06-distributed/             # Multi-worker setup
+    ├── flagship/                   # Full platform demo (3 agents, streaming, persistence)
+    ├── fileops/                    # File operation tools
+    ├── webscraper/                 # Web scraping agent
+    ├── customer-support/           # Customer support agent
+    ├── devops-monitor/             # DevOps monitoring
+    └── governed_adaptivity/        # Governed adaptive behavior
 ```
 
 ### State Machine
@@ -202,6 +231,65 @@ Configured via `resilience.Executor`:
 - **ToolRegistry**: In-memory tool registration
 - **ArtifactStore**: Large outputs with stable references
 - **Ledger**: Append-only audit log for all operations
+- **RunStore**: Persistent run state (memory, PostgreSQL, SQLite, DynamoDB)
+- **EventStore**: Event sourcing with Subscribe() channels (memory, PostgreSQL, SQLite, Badger, MongoDB, NATS)
+- **KnowledgeStore**: Vector storage with cosine similarity (SQLite, PostgreSQL)
+- **Cache**: TTL-based caching (Redis, Badger, etcd, DynamoDB, NATS, SQLite)
+
+### Event Streaming
+
+The engine publishes 16 event types to an optional EventStore:
+
+- **Run lifecycle**: `run.started`, `run.completed`, `run.failed`, `run.paused`, `run.resumed`
+- **State machine**: `state.transitioned`
+- **Tool execution**: `tool.called`, `tool.succeeded`, `tool.failed`
+- **Decisions**: `planner.proposed`, `decision.made`
+- **Policy**: `approval.requested`, `approval.granted`, `approval.denied`
+- **Budget**: `budget.consumed`, `budget.exhausted`
+- **Data**: `evidence.added`, `variable.set`
+- **Agent protocol**: `agent.message.sent`, `agent.message.received`, `agent.delegated`
+
+Use `engine.Stream(ctx, goal)` to get a real-time `<-chan event.Event`.
+
+### Multi-Agent Coordination
+
+- **DelegateTool**: Wraps a child engine as a tool for agent composition
+- **TaskContext**: Thread-safe shared state (variables, evidence, artifacts) across agent hierarchy
+- **ParentRunID**: Run hierarchy tracking for delegation chains
+- **Agent Protocol**: Message envelope with correlation IDs, capability discovery, trust boundaries
+- **MemoryRouter**: In-process message routing with trust policy enforcement
+
+### Replay and Fork
+
+- **Replay**: Reconstruct historical runs from events, step through with Timeline/EventIterator
+- **Fork**: Branch a run at any step with a different planner for simulation/testing
+- **ReplayPlanner**: Deterministic planner that replays recorded decisions
+
+### MCP Integration
+
+- **MCP Server**: Full Model Context Protocol support (stdio + HTTP, JSON-RPC 2.0)
+- **Policy-aware**: MCP tool calls route through middleware chain (eligibility, approval, budget, audit)
+- **Event auditing**: MCP tool calls publish events to EventStore
+
+### CLI (agentctl)
+
+- `agentctl run --config agent.yaml --goal "..."` — Execute agents from YAML config
+- `agentctl validate agent.yaml` — Schema validation
+- `agentctl visualize [--format dot|mermaid]` — Export state machine diagrams
+- `agentctl repl` — Interactive step-through mode
+
+### Dashboard
+
+- Web UI with SSE real-time event stream
+- Run list with status filtering
+- Event timeline, evidence viewer, variable inspector
+- Embedded via `//go:embed static/*`
+
+### WASM Sandbox
+
+- `contrib/sandbox-wasm`: wazero-based tool isolation
+- Memory limits, time limits, filesystem restrictions
+- Tools implementing `WASMExecutor` run in WASM; others fall back to direct execution
 
 ## Design Invariants
 
@@ -292,12 +380,32 @@ engine, err := api.New(
 
 // Run agent
 run, err := engine.Run(ctx, "Process the data files")
+
+// Stream events in real-time
+runID, events, err := engine.Stream(ctx, "Process files")
+for evt := range events {
+    fmt.Printf("[%s] %s\n", evt.Type, evt.Payload)
+}
+
+// Multi-agent delegation
+childEngine, _ := api.New(api.WithPlanner(childPlanner), api.WithTool(searchTool))
+delegate := infraagent.NewDelegateTool("researcher", "Research agent", childEngine,
+    infraagent.WithDelegateTaskContext(taskCtx),
+)
+
+// Shared task context
+tc := api.NewTaskContext("task-1", "root-run")
+tc.SetVar("api_key", os.Getenv("API_KEY"))
+engine, _ := api.New(api.WithTaskContext(tc), ...)
+
+// Replay historical runs
+replay := api.NewReplay(eventStore)
+timeline, _ := replay.NewTimeline(ctx, "run-123")
+fmt.Println("Duration:", timeline.Duration())
 ```
 
 ## Explicit Non-Goals
 
-- Multi-agent orchestration
-- Dynamic state creation by LLMs
-- UI dashboards
-- Model-specific abstractions
-- Prompt-only experimentation
+- Dynamic state creation by LLMs (states are structural, defined at build time)
+- Model-specific abstractions (planner interface is model-agnostic)
+- Prompt-only experimentation (behavior is defined by structure, not prompts)
