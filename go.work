@@ -6,6 +6,8 @@ use (
 	./contrib/approval-cli
 	./contrib/approval-slack
 	./contrib/approval-webhook
+	./contrib/queue-kafka
+	./contrib/queue-rabbitmq
 	./contrib/sandbox-wasm
 	./contrib/dashboard
 	./contrib/distributed
