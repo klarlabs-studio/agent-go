@@ -42,22 +42,22 @@ func (f *MermaidFormatter) formatStateMachine(sm *inspector.StateMachineExport) 
 	// Define transitions
 	for _, trans := range sm.Transitions {
 		if trans.Label != "" {
-			b.WriteString(fmt.Sprintf("  %s --> %s: %s\n", trans.From, trans.To, trans.Label))
+			fmt.Fprintf(&b, "  %s --> %s: %s\n", trans.From, trans.To, trans.Label)
 		} else {
-			b.WriteString(fmt.Sprintf("  %s --> %s\n", trans.From, trans.To))
+			fmt.Fprintf(&b, "  %s --> %s\n", trans.From, trans.To)
 		}
 	}
 
 	// Mark terminal states
 	for _, terminal := range sm.Terminal {
-		b.WriteString(fmt.Sprintf("  %s --> [*]\n", terminal))
+		fmt.Fprintf(&b, "  %s --> [*]\n", terminal)
 	}
 
 	// Add state notes for states with side effects
 	b.WriteString("\n")
 	for _, state := range sm.States {
 		if state.AllowsSideEffects {
-			b.WriteString(fmt.Sprintf("  note right of %s: Side effects allowed\n", state.Name))
+			fmt.Fprintf(&b, "  note right of %s: Side effects allowed\n", state.Name)
 		}
 	}
 
