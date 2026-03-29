@@ -236,9 +236,9 @@ func replaceTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Text        string `json:"text"`
-				Replacement string `json:"replacement,omitempty"`
-				UseShortcode bool  `json:"use_shortcode,omitempty"`
+				Text         string `json:"text"`
+				Replacement  string `json:"replacement,omitempty"`
+				UseShortcode bool   `json:"use_shortcode,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -398,7 +398,7 @@ func listTool() tool.Tool {
 					return tool.Result{Output: output}, nil
 				}
 				result := map[string]any{
-					"error":              "unknown category",
+					"error":                "unknown category",
 					"available_categories": getCategoryNames(),
 				}
 				output, _ := json.Marshal(result)
@@ -469,7 +469,7 @@ func sentimentTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Text string `json:"text,omitempty"`
+				Text  string `json:"text,omitempty"`
 				Emoji string `json:"emoji,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
@@ -507,10 +507,10 @@ func sentimentTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"emoji_count":    emojiCount,
-				"total_score":    totalScore,
-				"average_score":  avgScore,
-				"sentiment":      scoreTolabel(int(avgScore)),
+				"emoji_count":   emojiCount,
+				"total_score":   totalScore,
+				"average_score": avgScore,
+				"sentiment":     scoreTolabel(int(avgScore)),
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

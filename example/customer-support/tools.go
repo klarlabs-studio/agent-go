@@ -126,7 +126,7 @@ type EscalateInput struct {
 }
 
 type EscalateOutput struct {
-	Escalated bool   `json:"escalated"`
+	Escalated  bool   `json:"escalated"`
 	AssignedTo string `json:"assigned_to"`
 }
 

@@ -40,12 +40,12 @@ type CostEntry struct {
 
 // CostSummary provides aggregated cost information.
 type CostSummary struct {
-	RunID       string                  `json:"run_id"`
-	TotalByUnit map[CostUnit]float64    `json:"total_by_unit"`
-	ByTool      map[string]ToolCost     `json:"by_tool"`
-	EntryCount  int                     `json:"entry_count"`
-	StartTime   time.Time               `json:"start_time"`
-	EndTime     time.Time               `json:"end_time"`
+	RunID       string               `json:"run_id"`
+	TotalByUnit map[CostUnit]float64 `json:"total_by_unit"`
+	ByTool      map[string]ToolCost  `json:"by_tool"`
+	EntryCount  int                  `json:"entry_count"`
+	StartTime   time.Time            `json:"start_time"`
+	EndTime     time.Time            `json:"end_time"`
 }
 
 // ToolCost contains cost information for a specific tool.

@@ -596,13 +596,13 @@ func TestCalculateApprovalDelayConfidence_WaitTimeBonus(t *testing.T) {
 
 func TestCalculateApprovalDelayConfidence_BoundsCheck(t *testing.T) {
 	tests := []struct {
-		name         string
-		delayCount   int
-		totalCount   int
-		avgWait      time.Duration
-		threshold    time.Duration
-		minExpected  float64
-		maxExpected  float64
+		name        string
+		delayCount  int
+		totalCount  int
+		avgWait     time.Duration
+		threshold   time.Duration
+		minExpected float64
+		maxExpected float64
 	}{
 		{
 			name:        "minimum confidence",

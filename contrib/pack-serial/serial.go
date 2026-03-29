@@ -53,9 +53,9 @@ type ReadOptions struct {
 
 // ReadResult contains data read from the serial port.
 type ReadResult struct {
-	Data     string `json:"data"`
-	BytesRead int   `json:"bytes_read"`
-	Encoding string `json:"encoding"`
+	Data      string `json:"data"`
+	BytesRead int    `json:"bytes_read"`
+	Encoding  string `json:"encoding"`
 }
 
 // WriteResult contains serial write status.

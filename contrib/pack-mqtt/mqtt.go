@@ -27,19 +27,19 @@ type MQTTClient interface {
 
 // ConnectOptions configures broker connections.
 type ConnectOptions struct {
-	ClientID  string `json:"client_id,omitempty"`
-	Username  string `json:"username,omitempty"`
-	Password  string `json:"password,omitempty"`
-	TLS       bool   `json:"tls,omitempty"`
-	KeepAlive int    `json:"keep_alive_seconds,omitempty"`
-	CleanSession bool `json:"clean_session,omitempty"`
+	ClientID     string `json:"client_id,omitempty"`
+	Username     string `json:"username,omitempty"`
+	Password     string `json:"password,omitempty"`
+	TLS          bool   `json:"tls,omitempty"`
+	KeepAlive    int    `json:"keep_alive_seconds,omitempty"`
+	CleanSession bool   `json:"clean_session,omitempty"`
 }
 
 // PublishMessage describes a message to publish.
 type PublishMessage struct {
 	Topic   string `json:"topic"`
 	Payload string `json:"payload"`
-	QoS     int    `json:"qos,omitempty"`     // 0, 1, or 2
+	QoS     int    `json:"qos,omitempty"` // 0, 1, or 2
 	Retain  bool   `json:"retain,omitempty"`
 }
 

@@ -45,18 +45,18 @@ type AudioInput struct {
 
 // AudioOutput represents produced audio data.
 type AudioOutput struct {
-	Data     string `json:"data,omitempty"` // base64-encoded audio
-	Format   string `json:"format"`
+	Data     string  `json:"data,omitempty"` // base64-encoded audio
+	Format   string  `json:"format"`
 	Duration float64 `json:"duration_seconds"`
-	Size     int64  `json:"size_bytes"`
+	Size     int64   `json:"size_bytes"`
 }
 
 // TranscribeOptions configures speech-to-text.
 type TranscribeOptions struct {
-	Language       string `json:"language,omitempty"`
-	Model          string `json:"model,omitempty"`
-	Timestamps     bool   `json:"timestamps,omitempty"`
-	SpeakerLabels  bool   `json:"speaker_labels,omitempty"`
+	Language      string `json:"language,omitempty"`
+	Model         string `json:"model,omitempty"`
+	Timestamps    bool   `json:"timestamps,omitempty"`
+	SpeakerLabels bool   `json:"speaker_labels,omitempty"`
 }
 
 // TranscribeResult contains transcription output.
@@ -70,10 +70,10 @@ type TranscribeResult struct {
 
 // Segment represents a timed segment of transcription.
 type Segment struct {
-	Text      string  `json:"text"`
-	Start     float64 `json:"start"`
-	End       float64 `json:"end"`
-	Speaker   string  `json:"speaker,omitempty"`
+	Text       string  `json:"text"`
+	Start      float64 `json:"start"`
+	End        float64 `json:"end"`
+	Speaker    string  `json:"speaker,omitempty"`
 	Confidence float64 `json:"confidence,omitempty"`
 }
 
@@ -94,8 +94,8 @@ type ConvertOptions struct {
 
 // LanguageResult contains language detection output.
 type LanguageResult struct {
-	Language   string            `json:"language"`
-	Confidence float64           `json:"confidence"`
+	Language   string             `json:"language"`
+	Confidence float64            `json:"confidence"`
 	Scores     map[string]float64 `json:"scores,omitempty"`
 }
 

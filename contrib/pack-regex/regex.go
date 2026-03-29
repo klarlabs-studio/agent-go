@@ -273,8 +273,8 @@ func (p *regexPack) replaceAllTool() tool.Tool {
 			resultText := re.ReplaceAllString(params.Text, params.Replacement)
 
 			result := map[string]interface{}{
-				"output":        resultText,
-				"replacements":  len(matches),
+				"output":       resultText,
+				"replacements": len(matches),
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
@@ -492,10 +492,10 @@ func (p *regexPack) extractGroupsTool() tool.Tool {
 			}
 
 			result := map[string]interface{}{
-				"found":          true,
-				"full_match":     match[0],
-				"groups":         indexedGroups,
-				"named_groups":   groups,
+				"found":        true,
+				"full_match":   match[0],
+				"groups":       indexedGroups,
+				"named_groups": groups,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
@@ -645,10 +645,10 @@ func (p *regexPack) countMatchesTool() tool.Tool {
 		Idempotent().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Pattern    string `json:"pattern"`
-				Text       string `json:"text"`
-				IgnoreCase bool   `json:"ignore_case,omitempty"`
-				Overlapping bool  `json:"overlapping,omitempty"`
+				Pattern     string `json:"pattern"`
+				Text        string `json:"text"`
+				IgnoreCase  bool   `json:"ignore_case,omitempty"`
+				Overlapping bool   `json:"overlapping,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, fmt.Errorf("invalid input: %w", err)

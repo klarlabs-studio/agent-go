@@ -339,11 +339,11 @@ func (p *ragPack) hybridSearchTool() tool.Tool {
 		ReadOnly().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var in struct {
-				Query       string         `json:"query"`
-				Index       string         `json:"index,omitempty"`
-				TopK        int            `json:"top_k,omitempty"`
-				Filter      map[string]any `json:"filter,omitempty"`
-				VectorWeight float64       `json:"vector_weight,omitempty"`
+				Query        string         `json:"query"`
+				Index        string         `json:"index,omitempty"`
+				TopK         int            `json:"top_k,omitempty"`
+				Filter       map[string]any `json:"filter,omitempty"`
+				VectorWeight float64        `json:"vector_weight,omitempty"`
 			}
 			if err := json.Unmarshal(input, &in); err != nil {
 				return tool.Result{}, err

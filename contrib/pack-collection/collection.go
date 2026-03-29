@@ -64,9 +64,9 @@ func uniqueTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"unique":           unique,
-				"original_count":   len(params.Items),
-				"unique_count":     len(unique),
+				"unique":             unique,
+				"original_count":     len(params.Items),
+				"unique_count":       len(unique),
 				"duplicates_removed": len(params.Items) - len(unique),
 			}
 			output, _ := json.Marshal(result)
@@ -158,10 +158,10 @@ func chunkTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"chunks":       chunks,
-				"chunk_count":  len(chunks),
-				"chunk_size":   params.Size,
-				"total_items":  len(params.Items),
+				"chunks":      chunks,
+				"chunk_count": len(chunks),
+				"chunk_size":  params.Size,
+				"total_items": len(params.Items),
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
@@ -423,10 +423,10 @@ func partitionTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Items     []map[string]any `json:"items"`
-				Key       string           `json:"key"`
-				Value     any              `json:"value"`
-				Operator  string           `json:"operator,omitempty"` // eq, neq, gt, lt, gte, lte
+				Items    []map[string]any `json:"items"`
+				Key      string           `json:"key"`
+				Value    any              `json:"value"`
+				Operator string           `json:"operator,omitempty"` // eq, neq, gt, lt, gte, lte
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -466,8 +466,8 @@ func partitionTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"matching":     truthy,
-				"not_matching": falsy,
+				"matching":           truthy,
+				"not_matching":       falsy,
 				"matching_count":     len(truthy),
 				"not_matching_count": len(falsy),
 			}

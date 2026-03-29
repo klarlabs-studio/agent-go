@@ -154,12 +154,12 @@ func DryRun(opts ...DryRunOption) middleware.Middleware {
 
 			// Return default dry-run response
 			response := dryRunResponse{
-				DryRun:   true,
-				Tool:     execCtx.Tool.Name(),
-				Message:  "Tool execution skipped in dry-run mode",
-				WouldDo:  execCtx.Reason,
-				Input:    execCtx.Input,
-				Skipped:  true,
+				DryRun:  true,
+				Tool:    execCtx.Tool.Name(),
+				Message: "Tool execution skipped in dry-run mode",
+				WouldDo: execCtx.Reason,
+				Input:   execCtx.Input,
+				Skipped: true,
 				Metadata: map[string]interface{}{
 					"state":       execCtx.CurrentState,
 					"destructive": annotations.Destructive,

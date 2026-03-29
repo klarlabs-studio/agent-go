@@ -144,7 +144,7 @@ func ExampleNewCacheWithConfig() {
 	// Create cache with custom configuration
 	cacheStore := storagedynamodb.NewCacheWithConfig(client, storagedynamodb.CacheConfig{
 		TableName:        "my-custom-cache-table",
-		TTLAttributeName: "ttl", // Default
+		TTLAttributeName: "ttl",   // Default
 		KeyPrefix:        "prod:", // Optional prefix for all keys
 	})
 

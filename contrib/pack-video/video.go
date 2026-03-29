@@ -50,9 +50,9 @@ type Frame struct {
 
 // FrameOptions configures frame extraction.
 type FrameOptions struct {
-	Interval float64 `json:"interval,omitempty"`
-	MaxFrames int    `json:"max_frames,omitempty"`
-	Format    string `json:"format,omitempty"`
+	Interval  float64 `json:"interval,omitempty"`
+	MaxFrames int     `json:"max_frames,omitempty"`
+	Format    string  `json:"format,omitempty"`
 }
 
 // TranscodeOptions configures video transcoding.

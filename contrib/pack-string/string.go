@@ -257,7 +257,7 @@ func truncateTool() tool.Tool {
 			runes := []rune(params.Text)
 			if len(runes) <= params.Length {
 				result := map[string]any{
-					"truncated":    params.Text,
+					"truncated":     params.Text,
 					"was_truncated": false,
 				}
 				output, _ := json.Marshal(result)
@@ -508,12 +508,12 @@ func splitJoinTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Text         string `json:"text"`
-				Separator    string `json:"separator"`
-				JoinWith     string `json:"join_with,omitempty"`
-				Limit        int    `json:"limit,omitempty"`
-				TrimParts    bool   `json:"trim_parts,omitempty"`
-				RemoveEmpty  bool   `json:"remove_empty,omitempty"`
+				Text        string `json:"text"`
+				Separator   string `json:"separator"`
+				JoinWith    string `json:"join_with,omitempty"`
+				Limit       int    `json:"limit,omitempty"`
+				TrimParts   bool   `json:"trim_parts,omitempty"`
+				RemoveEmpty bool   `json:"remove_empty,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

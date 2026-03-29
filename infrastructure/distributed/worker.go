@@ -28,13 +28,13 @@ type Worker struct {
 	taskTimeout  time.Duration
 	lockTTL      time.Duration
 
-	mu       sync.Mutex
-	running  bool
-	cancel   context.CancelFunc
-	wg       sync.WaitGroup
-	metrics  *WorkerMetrics
-	onError  func(error)
-	onTask   func(queue.Task)
+	mu      sync.Mutex
+	running bool
+	cancel  context.CancelFunc
+	wg      sync.WaitGroup
+	metrics *WorkerMetrics
+	onError func(error)
+	onTask  func(queue.Task)
 }
 
 // WorkerConfig configures a worker.

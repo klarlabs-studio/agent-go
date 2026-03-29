@@ -10,14 +10,14 @@ import (
 )
 
 var (
-	ErrEmptyResponse     = errors.New("empty LLM response")
-	ErrNoJSON            = errors.New("no JSON object found in response")
-	ErrUnknownDecision   = errors.New("unknown decision type")
-	ErrMissingToolName   = errors.New("call_tool decision requires tool_name")
-	ErrMissingReason     = errors.New("fail decision requires reason")
-	ErrInvalidState      = errors.New("invalid state in transition decision")
-	ErrNoToolCalls       = errors.New("no tool calls in response")
-	ErrInvalidToolArgs   = errors.New("invalid tool call arguments")
+	ErrEmptyResponse   = errors.New("empty LLM response")
+	ErrNoJSON          = errors.New("no JSON object found in response")
+	ErrUnknownDecision = errors.New("unknown decision type")
+	ErrMissingToolName = errors.New("call_tool decision requires tool_name")
+	ErrMissingReason   = errors.New("fail decision requires reason")
+	ErrInvalidState    = errors.New("invalid state in transition decision")
+	ErrNoToolCalls     = errors.New("no tool calls in response")
+	ErrInvalidToolArgs = errors.New("invalid tool call arguments")
 )
 
 // decisionEnvelope is the intermediate JSON structure for parsing LLM decisions.

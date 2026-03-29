@@ -45,9 +45,9 @@ type ScriptedPlanner struct {
 	mu           sync.Mutex
 
 	// Loop support
-	loopCount    int // 0 = no looping, >0 = total iterations (including first)
-	loopIndex    int // current loop iteration (0-based)
-	loopUntil    func(PlanRequest) bool
+	loopCount int // 0 = no looping, >0 = total iterations (including first)
+	loopIndex int // current loop iteration (0-based)
+	loopUntil func(PlanRequest) bool
 }
 
 // NewScriptedPlanner creates a scripted planner with the given steps.

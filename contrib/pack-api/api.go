@@ -55,11 +55,11 @@ type AuthConfig struct {
 
 // APIResponse contains the API response.
 type APIResponse struct {
-	Status     int               `json:"status"`
-	Headers    map[string]string `json:"headers,omitempty"`
-	Body       any               `json:"body"`
-	BodyRaw    string            `json:"body_raw,omitempty"`
-	LatencyMS  int64             `json:"latency_ms"`
+	Status    int               `json:"status"`
+	Headers   map[string]string `json:"headers,omitempty"`
+	Body      any               `json:"body"`
+	BodyRaw   string            `json:"body_raw,omitempty"`
+	LatencyMS int64             `json:"latency_ms"`
 }
 
 // APISpec represents a parsed API specification.
@@ -198,9 +198,9 @@ func (p *apiPack) graphqlTool() tool.Tool {
 		WithDescription("Execute a GraphQL query or mutation").
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var in struct {
-				Endpoint  string         `json:"endpoint"`
-				Query     string         `json:"query"`
-				Variables map[string]any `json:"variables,omitempty"`
+				Endpoint  string            `json:"endpoint"`
+				Query     string            `json:"query"`
+				Variables map[string]any    `json:"variables,omitempty"`
 				Headers   map[string]string `json:"headers,omitempty"`
 			}
 			if err := json.Unmarshal(input, &in); err != nil {

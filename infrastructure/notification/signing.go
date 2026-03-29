@@ -42,8 +42,8 @@ func (s *Signer) SignedHeaders(payload []byte, secret string, timestamp time.Tim
 	timestampSignature := s.SignPayload([]byte(fmt.Sprintf("%d.%s", timestamp.Unix(), payload)), secret)
 
 	return map[string]string{
-		"X-Webhook-Signature":   signature,
-		"X-Webhook-Timestamp":   fmt.Sprintf("%d", timestamp.Unix()),
+		"X-Webhook-Signature":    signature,
+		"X-Webhook-Timestamp":    fmt.Sprintf("%d", timestamp.Unix()),
 		"X-Webhook-Signature-V2": timestampSignature,
 	}
 }

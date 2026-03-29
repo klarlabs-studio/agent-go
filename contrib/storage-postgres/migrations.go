@@ -335,4 +335,3 @@ func MigrateSchema(ctx context.Context, pool *pgxpool.Pool, schema string) error
 	migrator := NewMigrator(pool, schema)
 	return migrator.AutoMigrate(ctx)
 }
-

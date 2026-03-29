@@ -163,8 +163,8 @@ func encodeRawTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Text      string `json:"text"`
-				URLSafe   bool   `json:"url_safe,omitempty"`
+				Text    string `json:"text"`
+				URLSafe bool   `json:"url_safe,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

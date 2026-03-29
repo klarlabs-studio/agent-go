@@ -69,9 +69,9 @@ func generateTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"png":     png,
-				"size":    params.Size,
-				"length":  len(png),
+				"png":    png,
+				"size":   params.Size,
+				"length": len(png),
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

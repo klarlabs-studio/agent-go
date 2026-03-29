@@ -13,10 +13,10 @@ import (
 
 // ApprovalDelayDetector detects human approval bottlenecks.
 type ApprovalDelayDetector struct {
-	eventStore      event.Store
-	runStore        run.Store
-	delayThreshold  time.Duration // Minimum delay to consider a bottleneck
-	minOccurrences  int           // Minimum occurrences to report
+	eventStore     event.Store
+	runStore       run.Store
+	delayThreshold time.Duration // Minimum delay to consider a bottleneck
+	minOccurrences int           // Minimum occurrences to report
 }
 
 // ApprovalDelayOption configures the approval delay detector.
@@ -82,12 +82,12 @@ func (d *ApprovalDelayDetector) Detect(ctx context.Context, opts pattern.Detecti
 		state    agent.State
 	}
 	type approvalStats struct {
-		waitTimes     []time.Duration
-		runIDs        map[string]bool
-		approved      int
-		denied        int
-		pending       int
-		maxWait       time.Duration
+		waitTimes []time.Duration
+		runIDs    map[string]bool
+		approved  int
+		denied    int
+		pending   int
+		maxWait   time.Duration
 	}
 	statsByKey := make(map[approvalKey]*approvalStats)
 

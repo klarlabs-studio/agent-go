@@ -13,11 +13,11 @@ import (
 
 // CostAnomalyDetector detects unusual cost spikes and trends.
 type CostAnomalyDetector struct {
-	eventStore       event.Store
-	runStore         run.Store
+	eventStore         event.Store
+	runStore           run.Store
 	deviationThreshold float64  // Standard deviations to consider anomalous
-	minSampleSize    int        // Minimum runs needed for baseline
-	costTypes        []string   // Cost types to track
+	minSampleSize      int      // Minimum runs needed for baseline
+	costTypes          []string // Cost types to track
 }
 
 // CostAnomalyOption configures the cost anomaly detector.
@@ -49,7 +49,7 @@ func NewCostAnomalyDetector(eventStore event.Store, runStore run.Store, opts ...
 	d := &CostAnomalyDetector{
 		eventStore:         eventStore,
 		runStore:           runStore,
-		deviationThreshold: 2.0,  // 2 standard deviations
+		deviationThreshold: 2.0, // 2 standard deviations
 		minSampleSize:      5,
 		costTypes:          []string{"tool_calls", "tokens", "api_calls"},
 	}

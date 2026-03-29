@@ -40,12 +40,12 @@ type MutationTester interface {
 
 // RunOptions configures test execution.
 type RunOptions struct {
-	Pattern   string   `json:"pattern,omitempty"`
-	Tags      []string `json:"tags,omitempty"`
-	Verbose   bool     `json:"verbose,omitempty"`
-	Timeout   string   `json:"timeout,omitempty"`
-	Race      bool     `json:"race,omitempty"`
-	Parallel  int      `json:"parallel,omitempty"`
+	Pattern  string   `json:"pattern,omitempty"`
+	Tags     []string `json:"tags,omitempty"`
+	Verbose  bool     `json:"verbose,omitempty"`
+	Timeout  string   `json:"timeout,omitempty"`
+	Race     bool     `json:"race,omitempty"`
+	Parallel int      `json:"parallel,omitempty"`
 }
 
 // TestReport contains test execution results.
@@ -111,11 +111,11 @@ type BenchmarkReport struct {
 
 // BenchmarkResult represents a single benchmark result.
 type BenchmarkResult struct {
-	Name       string  `json:"name"`
-	Iterations int     `json:"iterations"`
-	NsPerOp    float64 `json:"ns_per_op"`
-	BytesPerOp int64   `json:"bytes_per_op,omitempty"`
-	AllocsPerOp int64  `json:"allocs_per_op,omitempty"`
+	Name        string  `json:"name"`
+	Iterations  int     `json:"iterations"`
+	NsPerOp     float64 `json:"ns_per_op"`
+	BytesPerOp  int64   `json:"bytes_per_op,omitempty"`
+	AllocsPerOp int64   `json:"allocs_per_op,omitempty"`
 }
 
 // GenerateOptions configures test generation.
@@ -133,19 +133,19 @@ type GeneratedTest struct {
 
 // MutationOptions configures mutation testing.
 type MutationOptions struct {
-	Pattern   string   `json:"pattern,omitempty"`
-	Mutators  []string `json:"mutators,omitempty"`
-	Timeout   string   `json:"timeout,omitempty"`
+	Pattern  string   `json:"pattern,omitempty"`
+	Mutators []string `json:"mutators,omitempty"`
+	Timeout  string   `json:"timeout,omitempty"`
 }
 
 // MutationReport contains mutation testing results.
 type MutationReport struct {
-	TotalMutants  int             `json:"total_mutants"`
-	Killed        int             `json:"killed"`
-	Survived      int             `json:"survived"`
-	Timeout       int             `json:"timeout"`
-	Score         float64         `json:"score"`
-	Mutants       []MutantResult  `json:"mutants,omitempty"`
+	TotalMutants int            `json:"total_mutants"`
+	Killed       int            `json:"killed"`
+	Survived     int            `json:"survived"`
+	Timeout      int            `json:"timeout"`
+	Score        float64        `json:"score"`
+	Mutants      []MutantResult `json:"mutants,omitempty"`
 }
 
 // MutantResult represents a single mutation test result.

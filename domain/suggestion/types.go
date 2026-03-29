@@ -30,9 +30,9 @@ const (
 type SuggestionStatus string
 
 const (
-	SuggestionStatusPending   SuggestionStatus = "pending"   // Awaiting review
-	SuggestionStatusAccepted  SuggestionStatus = "accepted"  // Converted to proposal
-	SuggestionStatusRejected  SuggestionStatus = "rejected"  // Dismissed
+	SuggestionStatusPending    SuggestionStatus = "pending"    // Awaiting review
+	SuggestionStatusAccepted   SuggestionStatus = "accepted"   // Converted to proposal
+	SuggestionStatusRejected   SuggestionStatus = "rejected"   // Dismissed
 	SuggestionStatusSuperseded SuggestionStatus = "superseded" // Replaced by newer suggestion
 )
 

@@ -650,7 +650,7 @@ func TestCalculatePreferenceConfidence_Underused(t *testing.T) {
 		maxConf   float64
 	}{
 		{"barely underused", 5, 0.23, 0.25, 0.50, 0.65},
-		{"moderately underused", 10, 0.1, 0.25, 0.85, 0.90},  // extremity=2.5, base+bonus=0.875
+		{"moderately underused", 10, 0.1, 0.25, 0.85, 0.90}, // extremity=2.5, base+bonus=0.875
 		{"heavily underused", 20, 0.05, 0.25, 0.90, 0.95},   // extremity=5.0, capped at 0.95
 	}
 

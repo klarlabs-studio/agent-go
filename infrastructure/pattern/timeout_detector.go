@@ -16,8 +16,8 @@ import (
 type TimeoutDetector struct {
 	eventStore      event.Store
 	runStore        run.Store
-	minTimeouts     int     // Minimum timeouts to report
-	minTimeoutRate  float64 // Minimum timeout rate to report
+	minTimeouts     int      // Minimum timeouts to report
+	minTimeoutRate  float64  // Minimum timeout rate to report
 	timeoutKeywords []string // Keywords in error messages indicating timeout
 }
 
@@ -94,10 +94,10 @@ func (d *TimeoutDetector) Detect(ctx context.Context, opts pattern.DetectionOpti
 
 	// Track tool call stats
 	type toolStats struct {
-		totalCalls   int
-		timeouts     int
+		totalCalls    int
+		timeouts      int
 		totalDuration time.Duration
-		runIDs       map[string]bool
+		runIDs        map[string]bool
 	}
 	toolStatsByName := make(map[string]*toolStats)
 

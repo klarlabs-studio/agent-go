@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"log"
 
-	agent "github.com/felixgeelhaar/agent-go/interfaces/api"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
+	agent "github.com/felixgeelhaar/agent-go/interfaces/api"
 )
 
 func main() {

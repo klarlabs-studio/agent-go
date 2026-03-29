@@ -97,12 +97,12 @@ func parseTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"valid":      true,
-				"uuid":       id.String(),
-				"version":    id.Version(),
-				"variant":    id.Variant().String(),
-				"urn":        id.URN(),
-				"bytes":      id[:],
+				"valid":   true,
+				"uuid":    id.String(),
+				"version": id.Version(),
+				"variant": id.Variant().String(),
+				"urn":     id.URN(),
+				"bytes":   id[:],
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

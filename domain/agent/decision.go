@@ -6,11 +6,11 @@ import "encoding/json"
 type DecisionType string
 
 const (
-	DecisionCallTool   DecisionType = "call_tool"   // Execute a tool
-	DecisionTransition DecisionType = "transition"  // Move to another state
-	DecisionAskHuman   DecisionType = "ask_human"   // Request human input
-	DecisionFinish     DecisionType = "finish"      // Complete successfully
-	DecisionFail       DecisionType = "fail"        // Terminate with failure
+	DecisionCallTool   DecisionType = "call_tool"  // Execute a tool
+	DecisionTransition DecisionType = "transition" // Move to another state
+	DecisionAskHuman   DecisionType = "ask_human"  // Request human input
+	DecisionFinish     DecisionType = "finish"     // Complete successfully
+	DecisionFail       DecisionType = "fail"       // Terminate with failure
 )
 
 // Decision represents the planner's output - exactly one of the fields is set.

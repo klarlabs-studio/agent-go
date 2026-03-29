@@ -99,13 +99,13 @@ type DashboardOptions struct {
 
 // DashboardPanel represents a panel in a dashboard.
 type DashboardPanel struct {
-	Title    string `json:"title"`
-	Type     string `json:"type"` // "chart", "metric", "table", "text"
-	Content  any    `json:"content"`
-	Row      int    `json:"row"`
-	Col      int    `json:"col"`
-	Width    int    `json:"width"`
-	Height   int    `json:"height"`
+	Title   string `json:"title"`
+	Type    string `json:"type"` // "chart", "metric", "table", "text"
+	Content any    `json:"content"`
+	Row     int    `json:"row"`
+	Col     int    `json:"col"`
+	Width   int    `json:"width"`
+	Height  int    `json:"height"`
 }
 
 // DashboardOutput contains exported dashboard data.

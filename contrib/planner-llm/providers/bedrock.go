@@ -54,10 +54,10 @@ func NewBedrockProvider(cfg BedrockConfig) *BedrockProvider {
 }
 
 type bedrockRequest struct {
-	Messages        []bedrockMessage  `json:"messages"`
-	System          []bedrockBlock    `json:"system,omitempty"`
-	InferenceConfig *bedrockInfCfg    `json:"inferenceConfig,omitempty"`
-	ToolConfig      *bedrockToolCfg   `json:"toolConfig,omitempty"`
+	Messages        []bedrockMessage `json:"messages"`
+	System          []bedrockBlock   `json:"system,omitempty"`
+	InferenceConfig *bedrockInfCfg   `json:"inferenceConfig,omitempty"`
+	ToolConfig      *bedrockToolCfg  `json:"toolConfig,omitempty"`
 }
 
 type bedrockMessage struct {
@@ -85,9 +85,9 @@ type bedrockToolSpec struct {
 }
 
 type bedrockToolSpecDef struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	InputSchema bedrockSchema   `json:"inputSchema"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	InputSchema bedrockSchema `json:"inputSchema"`
 }
 
 type bedrockSchema struct {
@@ -107,7 +107,7 @@ type bedrockResponseBlock struct {
 type bedrockResponse struct {
 	Output struct {
 		Message struct {
-			Role    string                `json:"role"`
+			Role    string                 `json:"role"`
 			Content []bedrockResponseBlock `json:"content"`
 		} `json:"message"`
 	} `json:"output"`

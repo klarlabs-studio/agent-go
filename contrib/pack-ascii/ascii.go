@@ -498,8 +498,8 @@ func chartTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Data    map[string]int `json:"data"`
-				MaxWidth int           `json:"max_width,omitempty"`
+				Data     map[string]int `json:"data"`
+				MaxWidth int            `json:"max_width,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

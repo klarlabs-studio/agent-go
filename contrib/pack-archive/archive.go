@@ -372,19 +372,19 @@ func (p *archivePack) addToZipTool() tool.Tool {
 				header := file.FileHeader
 				writer, err := zipWriter.CreateHeader(&header)
 				if err != nil {
-					_ = zipWriter.Close()        // #nosec G104 -- Best effort cleanup
-					_ = tempFile.Close()         // #nosec G104 -- Best effort cleanup
-					_ = existingReader.Close()   // #nosec G104 -- Best effort cleanup
-					_ = os.Remove(tempPath)      // #nosec G104 -- Best effort cleanup
+					_ = zipWriter.Close()      // #nosec G104 -- Best effort cleanup
+					_ = tempFile.Close()       // #nosec G104 -- Best effort cleanup
+					_ = existingReader.Close() // #nosec G104 -- Best effort cleanup
+					_ = os.Remove(tempPath)    // #nosec G104 -- Best effort cleanup
 					return tool.Result{}, fmt.Errorf("failed to create header: %w", err)
 				}
 
 				reader, err := file.Open()
 				if err != nil {
-					_ = zipWriter.Close()        // #nosec G104 -- Best effort cleanup
-					_ = tempFile.Close()         // #nosec G104 -- Best effort cleanup
-					_ = existingReader.Close()   // #nosec G104 -- Best effort cleanup
-					_ = os.Remove(tempPath)      // #nosec G104 -- Best effort cleanup
+					_ = zipWriter.Close()      // #nosec G104 -- Best effort cleanup
+					_ = tempFile.Close()       // #nosec G104 -- Best effort cleanup
+					_ = existingReader.Close() // #nosec G104 -- Best effort cleanup
+					_ = os.Remove(tempPath)    // #nosec G104 -- Best effort cleanup
 					return tool.Result{}, fmt.Errorf("failed to open file: %w", err)
 				}
 
@@ -392,10 +392,10 @@ func (p *archivePack) addToZipTool() tool.Tool {
 				_, err = io.Copy(writer, reader)
 				_ = reader.Close() // #nosec G104 -- Best effort cleanup
 				if err != nil {
-					_ = zipWriter.Close()        // #nosec G104 -- Best effort cleanup
-					_ = tempFile.Close()         // #nosec G104 -- Best effort cleanup
-					_ = existingReader.Close()   // #nosec G104 -- Best effort cleanup
-					_ = os.Remove(tempPath)      // #nosec G104 -- Best effort cleanup
+					_ = zipWriter.Close()      // #nosec G104 -- Best effort cleanup
+					_ = tempFile.Close()       // #nosec G104 -- Best effort cleanup
+					_ = existingReader.Close() // #nosec G104 -- Best effort cleanup
+					_ = os.Remove(tempPath)    // #nosec G104 -- Best effort cleanup
 					return tool.Result{}, fmt.Errorf("failed to copy file: %w", err)
 				}
 			}

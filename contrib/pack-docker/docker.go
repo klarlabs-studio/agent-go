@@ -50,15 +50,15 @@ type BuildResult struct {
 
 // RunOptions configures a container run.
 type RunOptions struct {
-	Image       string            `json:"image"`
-	Name        string            `json:"name,omitempty"`
-	Ports       map[string]string `json:"ports,omitempty"`
-	Env         map[string]string `json:"env,omitempty"`
-	Volumes     []string          `json:"volumes,omitempty"`
-	Command     []string          `json:"command,omitempty"`
-	Detach      bool              `json:"detach,omitempty"`
-	Remove      bool              `json:"remove,omitempty"`
-	Network     string            `json:"network,omitempty"`
+	Image   string            `json:"image"`
+	Name    string            `json:"name,omitempty"`
+	Ports   map[string]string `json:"ports,omitempty"`
+	Env     map[string]string `json:"env,omitempty"`
+	Volumes []string          `json:"volumes,omitempty"`
+	Command []string          `json:"command,omitempty"`
+	Detach  bool              `json:"detach,omitempty"`
+	Remove  bool              `json:"remove,omitempty"`
+	Network string            `json:"network,omitempty"`
 }
 
 // Container represents a container instance.
@@ -73,8 +73,8 @@ type Container struct {
 
 // LogOptions configures log retrieval.
 type LogOptions struct {
-	Tail   int  `json:"tail,omitempty"`
-	Follow bool `json:"follow,omitempty"`
+	Tail   int    `json:"tail,omitempty"`
+	Follow bool   `json:"follow,omitempty"`
 	Since  string `json:"since,omitempty"`
 }
 
@@ -87,8 +87,8 @@ type ExecResult struct {
 
 // ComposeOptions configures compose operations.
 type ComposeOptions struct {
-	Build   bool     `json:"build,omitempty"`
-	Detach  bool     `json:"detach,omitempty"`
+	Build    bool     `json:"build,omitempty"`
+	Detach   bool     `json:"detach,omitempty"`
 	Services []string `json:"services,omitempty"`
 }
 

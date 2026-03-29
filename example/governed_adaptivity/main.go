@@ -28,8 +28,8 @@ import (
 	infraInspector "github.com/felixgeelhaar/agent-go/infrastructure/inspector"
 	infraPattern "github.com/felixgeelhaar/agent-go/infrastructure/pattern"
 	infraProposal "github.com/felixgeelhaar/agent-go/infrastructure/proposal"
-	infraSuggestion "github.com/felixgeelhaar/agent-go/infrastructure/suggestion"
 	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	infraSuggestion "github.com/felixgeelhaar/agent-go/infrastructure/suggestion"
 )
 
 func main() {
@@ -390,7 +390,7 @@ func exportVisualization(ctx context.Context, runStore *memory.RunStore, eventSt
 		fmt.Println("  ```")
 
 		// Save exports to files (example code - permissive for readability)
-		_ = os.WriteFile("state_machine.dot", dotData, 0600)  // #nosec G306
+		_ = os.WriteFile("state_machine.dot", dotData, 0600)     // #nosec G306
 		_ = os.WriteFile("state_machine.mmd", mermaidData, 0600) // #nosec G306
 		fmt.Println("\n  Saved: state_machine.dot, state_machine.mmd")
 	}

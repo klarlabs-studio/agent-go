@@ -295,18 +295,18 @@ func volumeTool() tool.Tool {
 func areaTool() tool.Tool {
 	// Base unit: square meters
 	units := map[string]float64{
-		"mm2":       0.000001,
-		"cm2":       0.0001,
-		"m2":        1,
-		"km2":       1000000,
-		"ha":        10000,
-		"hectare":   10000,
-		"in2":       0.00064516,
-		"ft2":       0.092903,
-		"yd2":       0.836127,
-		"ac":        4046.86,
-		"acre":      4046.86,
-		"mi2":       2589988.11,
+		"mm2":     0.000001,
+		"cm2":     0.0001,
+		"m2":      1,
+		"km2":     1000000,
+		"ha":      10000,
+		"hectare": 10000,
+		"in2":     0.00064516,
+		"ft2":     0.092903,
+		"yd2":     0.836127,
+		"ac":      4046.86,
+		"acre":    4046.86,
+		"mi2":     2589988.11,
 	}
 
 	return tool.NewBuilder("convert_area").

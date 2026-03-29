@@ -18,9 +18,9 @@ type TransitionPayload struct {
 
 // Interpreter wraps the statekit interpreter with agent-specific functionality.
 type Interpreter struct {
-	interp    *statekit.Interpreter[*Context]
-	ctx       *Context
-	registry  *agent.StateRegistry
+	interp   *statekit.Interpreter[*Context]
+	ctx      *Context
+	registry *agent.StateRegistry
 }
 
 // NewInterpreter creates a new interpreter for the agent state machine.

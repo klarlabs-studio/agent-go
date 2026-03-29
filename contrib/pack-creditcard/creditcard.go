@@ -270,8 +270,8 @@ func detectTypeTool() tool.Tool {
 
 			if cardType != nil {
 				result := map[string]any{
-					"type":        cardType.Name,
-					"cvv_length":  cardType.CVVLen,
+					"type":          cardType.Name,
+					"cvv_length":    cardType.CVVLen,
 					"valid_lengths": cardType.Lengths,
 				}
 				output, _ := json.Marshal(result)
@@ -431,9 +431,9 @@ func parseTool() tool.Tool {
 			cardType := detectType(number)
 
 			result := map[string]any{
-				"number":      number,
-				"length":      len(number),
-				"luhn_valid":  luhnValid(number),
+				"number":     number,
+				"length":     len(number),
+				"luhn_valid": luhnValid(number),
 			}
 
 			if cardType != nil {
@@ -676,9 +676,9 @@ func sanitizeTool() tool.Tool {
 			sanitized := sanitizeNumber(params.Number)
 
 			result := map[string]any{
-				"original":  params.Number,
-				"sanitized": sanitized,
-				"length":    len(sanitized),
+				"original":   params.Number,
+				"sanitized":  sanitized,
+				"length":     len(sanitized),
 				"is_numeric": len(sanitized) > 0,
 			}
 			output, _ := json.Marshal(result)

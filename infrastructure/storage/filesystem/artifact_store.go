@@ -55,7 +55,7 @@ func (s *ArtifactStore) Store(ctx context.Context, content io.Reader, opts artif
 
 	size, err := io.Copy(writer, content)
 	if err != nil {
-		file.Close()              // #nosec G104 -- best-effort cleanup in error path
+		file.Close()               // #nosec G104 -- best-effort cleanup in error path
 		os.RemoveAll(artifactPath) // #nosec G104 -- best-effort cleanup in error path
 		return artifact.Ref{}, fmt.Errorf("failed to write content: %w", err)
 	}

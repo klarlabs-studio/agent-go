@@ -387,12 +387,12 @@ func passwordTool() tool.Tool {
 		Idempotent().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Length      int  `json:"length,omitempty"`
-				Uppercase   bool `json:"uppercase,omitempty"`
-				Lowercase   bool `json:"lowercase,omitempty"`
-				Digits      bool `json:"digits,omitempty"`
-				Symbols     bool `json:"symbols,omitempty"`
-				ExcludeAmb  bool `json:"exclude_ambiguous,omitempty"`
+				Length     int  `json:"length,omitempty"`
+				Uppercase  bool `json:"uppercase,omitempty"`
+				Lowercase  bool `json:"lowercase,omitempty"`
+				Digits     bool `json:"digits,omitempty"`
+				Symbols    bool `json:"symbols,omitempty"`
+				ExcludeAmb bool `json:"exclude_ambiguous,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

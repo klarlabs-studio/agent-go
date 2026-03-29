@@ -92,9 +92,9 @@ func BenchmarkStateMachine_CanTransition(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		_ = interp.CanTransition(agent.StateExplore)
-		_ = interp.CanTransition(agent.StateAct)       // invalid from intake
-		_ = interp.CanTransition(agent.StateValidate)   // invalid from intake
-		_ = interp.CanTransition(agent.StateFailed)     // always valid
+		_ = interp.CanTransition(agent.StateAct)      // invalid from intake
+		_ = interp.CanTransition(agent.StateValidate) // invalid from intake
+		_ = interp.CanTransition(agent.StateFailed)   // always valid
 	}
 }
 

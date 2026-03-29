@@ -10,8 +10,8 @@ import (
 	"os"
 	"path/filepath"
 
-	agent "github.com/felixgeelhaar/agent-go/interfaces/api"
 	"github.com/felixgeelhaar/agent-go/domain/tool"
+	agent "github.com/felixgeelhaar/agent-go/interfaces/api"
 )
 
 func main() {
@@ -38,9 +38,9 @@ func run() error {
 	readFile := agent.NewToolBuilder("read_file").
 		WithDescription("Reads contents of a file").
 		WithAnnotations(agent.Annotations{
-			ReadOnly:   true,  // Does not modify state
-			Idempotent: true,  // Same input = same output
-			Cacheable:  true,  // Results can be cached
+			ReadOnly:   true, // Does not modify state
+			Idempotent: true, // Same input = same output
+			Cacheable:  true, // Results can be cached
 			RiskLevel:  agent.RiskLow,
 		}).
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {

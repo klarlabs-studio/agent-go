@@ -45,8 +45,8 @@ type CustomTransition struct {
 // including any custom states and transitions registered at build time.
 // It is used by the visualization layer to produce DOT/Mermaid output.
 type MachineDefinition struct {
-	Config           *statekit.MachineConfig[*Context]
-	StateRegistry    *agent.StateRegistry
+	Config            *statekit.MachineConfig[*Context]
+	StateRegistry     *agent.StateRegistry
 	CustomTransitions []CustomTransition
 	// canonicalTransitions stores the default transition graph for visualization.
 	canonicalTransitions []CustomTransition
@@ -197,40 +197,40 @@ func buildCanonicalMachine() (*statekit.MachineConfig[*Context], error) {
 		WithGuard("canTransition", guardCanTransition).
 		WithGuard("budgetAvailable", guardBudgetAvailable).
 		State(stateIntake).
-			OnEntry("logEntry").
-			On("EXPLORE").Target(stateExplore).Guard("canTransition").Do("recordTransition").
-			On("FAIL").Target(stateFailed).Do("recordTransition").
-			Done().
+		OnEntry("logEntry").
+		On("EXPLORE").Target(stateExplore).Guard("canTransition").Do("recordTransition").
+		On("FAIL").Target(stateFailed).Do("recordTransition").
+		Done().
 		State(stateExplore).
-			OnEntry("logEntry").
-			On("DECIDE").Target(stateDecide).Guard("canTransition").Do("recordTransition").
-			On("FAIL").Target(stateFailed).Do("recordTransition").
-			Done().
+		OnEntry("logEntry").
+		On("DECIDE").Target(stateDecide).Guard("canTransition").Do("recordTransition").
+		On("FAIL").Target(stateFailed).Do("recordTransition").
+		Done().
 		State(stateDecide).
-			OnEntry("logEntry").
-			On("ACT").Target(stateAct).Guard("canTransition").Guard("budgetAvailable").Do("recordTransition").
-			On("DONE").Target(stateDone).Do("recordTransition").
-			On("FAIL").Target(stateFailed).Do("recordTransition").
-			Done().
+		OnEntry("logEntry").
+		On("ACT").Target(stateAct).Guard("canTransition").Guard("budgetAvailable").Do("recordTransition").
+		On("DONE").Target(stateDone).Do("recordTransition").
+		On("FAIL").Target(stateFailed).Do("recordTransition").
+		Done().
 		State(stateAct).
-			OnEntry("logEntry").
-			On("VALIDATE").Target(stateValidate).Guard("canTransition").Do("recordTransition").
-			On("FAIL").Target(stateFailed).Do("recordTransition").
-			Done().
+		OnEntry("logEntry").
+		On("VALIDATE").Target(stateValidate).Guard("canTransition").Do("recordTransition").
+		On("FAIL").Target(stateFailed).Do("recordTransition").
+		Done().
 		State(stateValidate).
-			OnEntry("logEntry").
-			On("DONE").Target(stateDone).Do("recordTransition").
-			On("EXPLORE").Target(stateExplore).Guard("canTransition").Do("recordTransition").
-			On("FAIL").Target(stateFailed).Do("recordTransition").
-			Done().
+		OnEntry("logEntry").
+		On("DONE").Target(stateDone).Do("recordTransition").
+		On("EXPLORE").Target(stateExplore).Guard("canTransition").Do("recordTransition").
+		On("FAIL").Target(stateFailed).Do("recordTransition").
+		Done().
 		State(stateDone).
-			Final().
-			OnEntry("logEntry").
-			Done().
+		Final().
+		OnEntry("logEntry").
+		Done().
 		State(stateFailed).
-			Final().
-			OnEntry("logEntry").
-			Done().
+		Final().
+		OnEntry("logEntry").
+		Done().
 		Build()
 }
 

@@ -19,19 +19,19 @@ type Scheduler struct {
 }
 
 type scheduledTask struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Cron        string    `json:"cron,omitempty"`
-	Interval    int       `json:"interval_seconds,omitempty"`
-	NextRun     time.Time `json:"next_run"`
-	LastRun     time.Time `json:"last_run,omitempty"`
-	RunCount    int       `json:"run_count"`
-	Enabled     bool      `json:"enabled"`
-	Data        any       `json:"data,omitempty"`
-	MaxRuns     int       `json:"max_runs,omitempty"`
-	ExpiresAt   time.Time `json:"expires_at,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	cancel      context.CancelFunc
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Cron      string    `json:"cron,omitempty"`
+	Interval  int       `json:"interval_seconds,omitempty"`
+	NextRun   time.Time `json:"next_run"`
+	LastRun   time.Time `json:"last_run,omitempty"`
+	RunCount  int       `json:"run_count"`
+	Enabled   bool      `json:"enabled"`
+	Data      any       `json:"data,omitempty"`
+	MaxRuns   int       `json:"max_runs,omitempty"`
+	ExpiresAt time.Time `json:"expires_at,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+	cancel    context.CancelFunc
 }
 
 func (t *scheduledTask) isExpired() bool {

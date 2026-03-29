@@ -103,9 +103,9 @@ func TestOTelMetrics_RecordsFailureMetrics(t *testing.T) {
 
 	collector := NewInMemoryMetricsCollector()
 	cfg := OTelMetricsConfig{
-		Collector:      collector,
-		MetricPrefix:   "test",
-		RecordSuccess:  true,
+		Collector:       collector,
+		MetricPrefix:    "test",
+		RecordSuccess:   true,
 		IncludeToolName: true,
 	}
 
@@ -374,9 +374,9 @@ func TestOTelMetrics_EmptyMetricPrefix(t *testing.T) {
 
 	collector := NewInMemoryMetricsCollector()
 	cfg := OTelMetricsConfig{
-		Collector:      collector,
-		MetricPrefix:   "", // Empty prefix
-		RecordSuccess:  true,
+		Collector:       collector,
+		MetricPrefix:    "", // Empty prefix
+		RecordSuccess:   true,
 		IncludeToolName: true,
 	}
 

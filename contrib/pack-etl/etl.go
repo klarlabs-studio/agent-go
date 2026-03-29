@@ -96,7 +96,7 @@ type TransformResult struct {
 // LoadOptions configures loading behavior.
 type LoadOptions struct {
 	BatchSize int    `json:"batch_size,omitempty"`
-	Mode      string `json:"mode,omitempty"` // "insert", "upsert", "replace", "append"
+	Mode      string `json:"mode,omitempty"`     // "insert", "upsert", "replace", "append"
 	OnError   string `json:"on_error,omitempty"` // "fail", "skip", "log"
 }
 
@@ -146,21 +146,21 @@ type Pipeline struct {
 
 // PipelineResult contains pipeline execution output.
 type PipelineResult struct {
-	Name       string          `json:"name"`
-	Extracted  int             `json:"extracted"`
-	Transformed int            `json:"transformed"`
-	Loaded     int             `json:"loaded"`
-	Failed     int             `json:"failed"`
-	Validation *ValidationResult `json:"validation,omitempty"`
+	Name        string            `json:"name"`
+	Extracted   int               `json:"extracted"`
+	Transformed int               `json:"transformed"`
+	Loaded      int               `json:"loaded"`
+	Failed      int               `json:"failed"`
+	Validation  *ValidationResult `json:"validation,omitempty"`
 }
 
 // Config holds ETL pack configuration.
 type Config struct {
-	Extractor  Extractor
+	Extractor   Extractor
 	Transformer Transformer
-	Loader     Loader
-	Validator  SchemaValidator  // optional
-	Runner     PipelineRunner   // optional
+	Loader      Loader
+	Validator   SchemaValidator // optional
+	Runner      PipelineRunner  // optional
 }
 
 // Pack returns the ETL pipeline tool pack.
@@ -192,11 +192,11 @@ func (p *etlPack) extractTool() tool.Tool {
 		ReadOnly().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var in struct {
-				Source    DataSource     `json:"source"`
-				BatchSize int           `json:"batch_size,omitempty"`
-				Filter   map[string]string `json:"filter,omitempty"`
-				Limit    int            `json:"limit,omitempty"`
-				Offset   int            `json:"offset,omitempty"`
+				Source    DataSource        `json:"source"`
+				BatchSize int               `json:"batch_size,omitempty"`
+				Filter    map[string]string `json:"filter,omitempty"`
+				Limit     int               `json:"limit,omitempty"`
+				Offset    int               `json:"offset,omitempty"`
 			}
 			if err := json.Unmarshal(input, &in); err != nil {
 				return tool.Result{}, err
@@ -248,11 +248,11 @@ func (p *etlPack) loadTool() tool.Tool {
 		WithDescription("Load data into a target").
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var in struct {
-				Target    DataTarget  `json:"target"`
-				Records   []Record    `json:"records"`
-				BatchSize int         `json:"batch_size,omitempty"`
-				Mode      string      `json:"mode,omitempty"`
-				OnError   string      `json:"on_error,omitempty"`
+				Target    DataTarget `json:"target"`
+				Records   []Record   `json:"records"`
+				BatchSize int        `json:"batch_size,omitempty"`
+				Mode      string     `json:"mode,omitempty"`
+				OnError   string     `json:"on_error,omitempty"`
 			}
 			if err := json.Unmarshal(input, &in); err != nil {
 				return tool.Result{}, err

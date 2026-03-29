@@ -77,9 +77,9 @@ func (p *dbPack) dbQuery() tool.Tool {
 		ReadOnly().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Query  string `json:"query"`
-				Args   []any  `json:"args,omitempty"`
-				Limit  int    `json:"limit,omitempty"`
+				Query string `json:"query"`
+				Args  []any  `json:"args,omitempty"`
+				Limit int    `json:"limit,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, fmt.Errorf("invalid input: %w", err)
@@ -136,9 +136,9 @@ func (p *dbPack) dbQuery() tool.Tool {
 			}
 
 			result := map[string]any{
-				"columns":  columns,
-				"rows":     results,
-				"count":    len(results),
+				"columns":   columns,
+				"rows":      results,
+				"count":     len(results),
 				"truncated": count >= limit && limit < p.cfg.MaxRows,
 			}
 			output, _ := json.Marshal(result)
@@ -272,9 +272,9 @@ func (p *dbPack) dbSchema() tool.Tool {
 			}
 
 			result := map[string]any{
-				"driver":  p.cfg.Driver,
-				"tables":  schema,
-				"count":   len(schema),
+				"driver": p.cfg.Driver,
+				"tables": schema,
+				"count":  len(schema),
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

@@ -94,11 +94,11 @@ type ExtractOptions struct {
 
 // APIDoc contains extracted API documentation.
 type APIDoc struct {
-	Title      string     `json:"title"`
-	Version    string     `json:"version,omitempty"`
-	Endpoints  []Endpoint `json:"endpoints,omitempty"`
-	Types      []TypeDoc  `json:"types,omitempty"`
-	Content    string     `json:"content,omitempty"`
+	Title     string     `json:"title"`
+	Version   string     `json:"version,omitempty"`
+	Endpoints []Endpoint `json:"endpoints,omitempty"`
+	Types     []TypeDoc  `json:"types,omitempty"`
+	Content   string     `json:"content,omitempty"`
 }
 
 // Endpoint represents a documented API endpoint.

@@ -44,7 +44,7 @@ type Executor struct {
 	timeout time.Duration
 
 	// hooks for circuit breaker lifecycle events.
-	cbHooks  *CircuitBreakerHooks
+	cbHooks     *CircuitBreakerHooks
 	lastCBState atomic.Value // stores circuitbreaker.State
 
 	// rate limiter set (nil when rate limiting is disabled).

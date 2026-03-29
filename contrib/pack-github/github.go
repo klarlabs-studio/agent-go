@@ -287,7 +287,7 @@ func (p *githubPack) listIssuesTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var in struct {
-				Repo    string   `json:"repo"` // owner/repo
+				Repo    string   `json:"repo"`  // owner/repo
 				State   string   `json:"state"` // open, closed, all
 				Labels  []string `json:"labels"`
 				PerPage int      `json:"per_page"`
@@ -508,7 +508,7 @@ func (p *githubPack) listPRsTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var in struct {
-				Repo    string `json:"repo"` // owner/repo
+				Repo    string `json:"repo"`  // owner/repo
 				State   string `json:"state"` // open, closed, all
 				PerPage int    `json:"per_page"`
 			}
@@ -698,9 +698,9 @@ func (p *githubPack) triggerWorkflowTool() tool.Tool {
 		WithDescription("Trigger a workflow dispatch event").
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var in struct {
-				Repo       string                 `json:"repo"` // owner/repo
+				Repo       string                 `json:"repo"`        // owner/repo
 				WorkflowID string                 `json:"workflow_id"` // filename or ID
-				Ref        string                 `json:"ref"` // branch or tag
+				Ref        string                 `json:"ref"`         // branch or tag
 				Inputs     map[string]interface{} `json:"inputs"`
 			}
 			if err := json.Unmarshal(input, &in); err != nil {

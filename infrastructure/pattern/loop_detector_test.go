@@ -614,11 +614,11 @@ func TestLoopDetector_Detect_ShortSequenceTooShort(t *testing.T) {
 
 func TestFindLoops(t *testing.T) {
 	tests := []struct {
-		name           string
-		states         []agent.State
-		loopLen        int
-		expectedLoops  int
-		expectedIters  int
+		name          string
+		states        []agent.State
+		loopLen       int
+		expectedLoops int
+		expectedIters int
 	}{
 		{
 			name: "simple 2-state loop",
@@ -766,10 +766,10 @@ func TestExtractStateTransitions(t *testing.T) {
 
 func TestCalculateLoopConfidence(t *testing.T) {
 	tests := []struct {
-		name         string
-		occurrences  []loopOccurrence
-		minExpected  float64
-		maxExpected  float64
+		name        string
+		occurrences []loopOccurrence
+		minExpected float64
+		maxExpected float64
 	}{
 		{
 			name: "single occurrence",

@@ -44,11 +44,11 @@ func buildQueryTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Name       string            `json:"name,omitempty"`
-				Fields     []string          `json:"fields"`
-				Arguments  map[string]any    `json:"arguments,omitempty"`
-				Variables  map[string]string `json:"variables,omitempty"` // name -> type
-				Fragments  []string          `json:"fragments,omitempty"`
+				Name      string            `json:"name,omitempty"`
+				Fields    []string          `json:"fields"`
+				Arguments map[string]any    `json:"arguments,omitempty"`
+				Variables map[string]string `json:"variables,omitempty"` // name -> type
+				Fragments []string          `json:"fragments,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -190,10 +190,10 @@ func buildMutationTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Name       string            `json:"name"`
-				Input      map[string]any    `json:"input"`
-				Fields     []string          `json:"return_fields,omitempty"`
-				Variables  map[string]string `json:"variables,omitempty"`
+				Name      string            `json:"name"`
+				Input     map[string]any    `json:"input"`
+				Fields    []string          `json:"return_fields,omitempty"`
+				Variables map[string]string `json:"variables,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

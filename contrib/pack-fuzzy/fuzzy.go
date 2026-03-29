@@ -467,11 +467,11 @@ func fuzzyMatchTool() tool.Tool {
 			matches := avgSim >= threshold
 
 			result := map[string]any{
-				"matches":    matches,
-				"score":      avgSim,
+				"matches":     matches,
+				"score":       avgSim,
 				"levenshtein": levSim,
-				"jaro":       jaro,
-				"threshold":  threshold,
+				"jaro":        jaro,
+				"threshold":   threshold,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

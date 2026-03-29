@@ -363,13 +363,13 @@ func contrastRatioTool() tool.Tool {
 			ratio := (math.Max(l1, l2) + 0.05) / (math.Min(l1, l2) + 0.05)
 
 			result := map[string]any{
-				"color1":    normalizeHex(params.Hex1),
-				"color2":    normalizeHex(params.Hex2),
-				"ratio":     math.Round(ratio*100) / 100,
-				"aa_normal": ratio >= 4.5,
-				"aa_large":  ratio >= 3,
+				"color1":     normalizeHex(params.Hex1),
+				"color2":     normalizeHex(params.Hex2),
+				"ratio":      math.Round(ratio*100) / 100,
+				"aa_normal":  ratio >= 4.5,
+				"aa_large":   ratio >= 3,
 				"aaa_normal": ratio >= 7,
-				"aaa_large": ratio >= 4.5,
+				"aaa_large":  ratio >= 4.5,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

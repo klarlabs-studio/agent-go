@@ -26,13 +26,13 @@ type NetworkUtil interface {
 
 // PingResult contains ping results.
 type PingResult struct {
-	Host       string  `json:"host"`
-	Packets    int     `json:"packets_sent"`
-	Received   int     `json:"packets_received"`
-	Loss       float64 `json:"packet_loss_pct"`
-	MinMS      float64 `json:"min_ms"`
-	AvgMS      float64 `json:"avg_ms"`
-	MaxMS      float64 `json:"max_ms"`
+	Host     string  `json:"host"`
+	Packets  int     `json:"packets_sent"`
+	Received int     `json:"packets_received"`
+	Loss     float64 `json:"packet_loss_pct"`
+	MinMS    float64 `json:"min_ms"`
+	AvgMS    float64 `json:"avg_ms"`
+	MaxMS    float64 `json:"max_ms"`
 }
 
 // TracerouteResult contains traceroute results.
@@ -83,8 +83,8 @@ type HTTPCheckResult struct {
 	Status     int               `json:"status"`
 	LatencyMS  int64             `json:"latency_ms"`
 	Headers    map[string]string `json:"headers,omitempty"`
-	TLSVersion string           `json:"tls_version,omitempty"`
-	TLSExpiry  string           `json:"tls_expiry,omitempty"`
+	TLSVersion string            `json:"tls_version,omitempty"`
+	TLSExpiry  string            `json:"tls_expiry,omitempty"`
 }
 
 // Config holds network pack configuration.

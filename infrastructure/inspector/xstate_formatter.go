@@ -55,21 +55,21 @@ func NewXStateFormatter(opts ...XStateFormatterOption) *XStateFormatter {
 
 // XStateMachine represents an XState machine definition.
 type XStateMachine struct {
-	ID       string                 `json:"id"`
-	Version  string                 `json:"version,omitempty"`
-	Initial  string                 `json:"initial"`
-	Context  map[string]any         `json:"context,omitempty"`
-	States   map[string]XStateState `json:"states"`
+	ID      string                 `json:"id"`
+	Version string                 `json:"version,omitempty"`
+	Initial string                 `json:"initial"`
+	Context map[string]any         `json:"context,omitempty"`
+	States  map[string]XStateState `json:"states"`
 }
 
 // XStateState represents a state in XState format.
 type XStateState struct {
-	Type        string                       `json:"type,omitempty"`
-	Description string                       `json:"description,omitempty"`
-	Entry       []string                     `json:"entry,omitempty"`
-	Exit        []string                     `json:"exit,omitempty"`
-	On          map[string]XStateTransition  `json:"on,omitempty"`
-	Meta        map[string]any               `json:"meta,omitempty"`
+	Type        string                      `json:"type,omitempty"`
+	Description string                      `json:"description,omitempty"`
+	Entry       []string                    `json:"entry,omitempty"`
+	Exit        []string                    `json:"exit,omitempty"`
+	On          map[string]XStateTransition `json:"on,omitempty"`
+	Meta        map[string]any              `json:"meta,omitempty"`
 }
 
 // XStateTransition represents a transition in XState format.
@@ -96,11 +96,11 @@ func (f *XStateFormatter) Format(data any) ([]byte, error) {
 
 func (f *XStateFormatter) buildMachine(data *inspector.StateMachineExport) XStateMachine {
 	machine := XStateMachine{
-		ID:       f.machineID,
-		Version:  f.version,
-		Initial:  string(data.Initial),
-		States:   make(map[string]XStateState),
-		Context:  map[string]any{},
+		ID:      f.machineID,
+		Version: f.version,
+		Initial: string(data.Initial),
+		States:  make(map[string]XStateState),
+		Context: map[string]any{},
 	}
 
 	// Build state definitions

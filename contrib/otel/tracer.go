@@ -57,9 +57,9 @@ import (
 
 // Common errors for OpenTelemetry operations.
 var (
-	ErrShutdown         = errors.New("tracer provider shutdown")
-	ErrInvalidEndpoint  = errors.New("invalid endpoint")
-	ErrExporterFailed   = errors.New("exporter initialization failed")
+	ErrShutdown        = errors.New("tracer provider shutdown")
+	ErrInvalidEndpoint = errors.New("invalid endpoint")
+	ErrExporterFailed  = errors.New("exporter initialization failed")
 )
 
 // TracerConfig configures the OpenTelemetry tracer provider.
@@ -624,32 +624,32 @@ func (g *Gauge) Record(ctx context.Context, value float64, attrs ...telemetry.At
 // Predefined span and metric names for agent operations.
 const (
 	// Span names
-	SpanRunStart      = "agent.run.start"
-	SpanRunComplete   = "agent.run.complete"
+	SpanRunStart        = "agent.run.start"
+	SpanRunComplete     = "agent.run.complete"
 	SpanStateTransition = "agent.state.transition"
-	SpanToolExecute   = "agent.tool.execute"
-	SpanPlannerDecide = "agent.planner.decide"
-	SpanApprovalWait  = "agent.approval.wait"
+	SpanToolExecute     = "agent.tool.execute"
+	SpanPlannerDecide   = "agent.planner.decide"
+	SpanApprovalWait    = "agent.approval.wait"
 
 	// Metric names
-	MetricRunDuration   = "agent.run.duration"
-	MetricRunCount      = "agent.run.count"
-	MetricToolCalls     = "agent.tool.calls"
-	MetricToolDuration  = "agent.tool.duration"
-	MetricToolErrors    = "agent.tool.errors"
-	MetricStateChanges  = "agent.state.changes"
-	MetricApprovalWait  = "agent.approval.wait_time"
+	MetricRunDuration  = "agent.run.duration"
+	MetricRunCount     = "agent.run.count"
+	MetricToolCalls    = "agent.tool.calls"
+	MetricToolDuration = "agent.tool.duration"
+	MetricToolErrors   = "agent.tool.errors"
+	MetricStateChanges = "agent.state.changes"
+	MetricApprovalWait = "agent.approval.wait_time"
 )
 
 // Attribute key constants for consistent labeling.
 const (
-	AttrRunID     = "agent.run.id"
-	AttrGoal      = "agent.run.goal"
-	AttrState     = "agent.state"
-	AttrToolName  = "agent.tool.name"
-	AttrDecision  = "agent.decision.type"
-	AttrError     = "agent.error"
-	AttrApproved  = "agent.approval.approved"
+	AttrRunID    = "agent.run.id"
+	AttrGoal     = "agent.run.goal"
+	AttrState    = "agent.state"
+	AttrToolName = "agent.tool.name"
+	AttrDecision = "agent.decision.type"
+	AttrError    = "agent.error"
+	AttrApproved = "agent.approval.approved"
 )
 
 // Ensure interfaces are satisfied.

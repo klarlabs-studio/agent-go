@@ -446,10 +446,10 @@ func (p *templatePack) replaceTool() tool.Tool {
 		Idempotent().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Text    string `json:"text"`
-				Old     string `json:"old"`
-				New     string `json:"new"`
-				Count   int    `json:"count,omitempty"` // Number of replacements, -1 for all
+				Text  string `json:"text"`
+				Old   string `json:"old"`
+				New   string `json:"new"`
+				Count int    `json:"count,omitempty"` // Number of replacements, -1 for all
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, fmt.Errorf("invalid input: %w", err)
@@ -594,10 +594,10 @@ func (p *templatePack) trimTool() tool.Tool {
 		Idempotent().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Text   string `json:"text"`
-				Chars  string `json:"chars,omitempty"`
-				Left   bool   `json:"left,omitempty"`
-				Right  bool   `json:"right,omitempty"`
+				Text  string `json:"text"`
+				Chars string `json:"chars,omitempty"`
+				Left  bool   `json:"left,omitempty"`
+				Right bool   `json:"right,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, fmt.Errorf("invalid input: %w", err)

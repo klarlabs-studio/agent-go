@@ -21,18 +21,18 @@ type RetryState struct {
 }
 
 type retryContext struct {
-	ID           string    `json:"id"`
-	MaxAttempts  int       `json:"max_attempts"`
-	Attempts     int       `json:"attempts"`
-	LastAttempt  time.Time `json:"last_attempt,omitempty"`
-	NextAttempt  time.Time `json:"next_attempt,omitempty"`
-	BaseDelay    int       `json:"base_delay_ms"`
-	MaxDelay     int       `json:"max_delay_ms"`
-	Multiplier   float64   `json:"multiplier"`
-	Jitter       float64   `json:"jitter"`
-	Success      bool      `json:"success"`
-	LastError    string    `json:"last_error,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID          string    `json:"id"`
+	MaxAttempts int       `json:"max_attempts"`
+	Attempts    int       `json:"attempts"`
+	LastAttempt time.Time `json:"last_attempt,omitempty"`
+	NextAttempt time.Time `json:"next_attempt,omitempty"`
+	BaseDelay   int       `json:"base_delay_ms"`
+	MaxDelay    int       `json:"max_delay_ms"`
+	Multiplier  float64   `json:"multiplier"`
+	Jitter      float64   `json:"jitter"`
+	Success     bool      `json:"success"`
+	LastError   string    `json:"last_error,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 var state = &RetryState{
@@ -393,9 +393,9 @@ func nextDelayTool() tool.Tool {
 			delay := calculateDelay(rc.BaseDelay, rc.Attempts+1, rc.Multiplier, rc.MaxDelay, rc.Jitter)
 
 			result := map[string]any{
-				"id":         params.ID,
-				"delay_ms":   delay,
-				"delay_sec":  float64(delay) / 1000,
+				"id":          params.ID,
+				"delay_ms":    delay,
+				"delay_sec":   float64(delay) / 1000,
 				"for_attempt": rc.Attempts + 1,
 			}
 			output, _ := json.Marshal(result)
@@ -534,9 +534,9 @@ func exponentialTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"delays":      delays,
-				"total_ms":    totalDelay,
-				"total_sec":   float64(totalDelay) / 1000,
+				"delays":       delays,
+				"total_ms":     totalDelay,
+				"total_sec":    float64(totalDelay) / 1000,
 				"max_attempts": params.MaxAttempts,
 			}
 			output, _ := json.Marshal(result)

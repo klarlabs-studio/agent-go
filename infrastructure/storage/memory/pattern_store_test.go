@@ -236,8 +236,8 @@ func TestPatternStore_List(t *testing.T) {
 		now := time.Now()
 		// FromTime filters: FirstSeen >= FromTime
 		// ToTime filters: LastSeen <= ToTime
-		store.Save(ctx, &pattern.Pattern{ID: "p1", FirstSeen: now.Add(-2 * time.Hour), LastSeen: now.Add(-90 * time.Minute)}) // FirstSeen before FromTime - filtered out
-		store.Save(ctx, &pattern.Pattern{ID: "p2", FirstSeen: now.Add(-30 * time.Minute), LastSeen: now})                     // Matches: FirstSeen >= FromTime, LastSeen <= ToTime
+		store.Save(ctx, &pattern.Pattern{ID: "p1", FirstSeen: now.Add(-2 * time.Hour), LastSeen: now.Add(-90 * time.Minute)})    // FirstSeen before FromTime - filtered out
+		store.Save(ctx, &pattern.Pattern{ID: "p2", FirstSeen: now.Add(-30 * time.Minute), LastSeen: now})                        // Matches: FirstSeen >= FromTime, LastSeen <= ToTime
 		store.Save(ctx, &pattern.Pattern{ID: "p3", FirstSeen: now.Add(-45 * time.Minute), LastSeen: now.Add(-15 * time.Minute)}) // Matches both
 
 		results, err := store.List(ctx, pattern.ListFilter{

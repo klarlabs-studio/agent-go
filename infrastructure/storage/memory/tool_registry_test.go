@@ -16,11 +16,11 @@ type mockTool struct {
 	annotations tool.Annotations
 }
 
-func (m *mockTool) Name() string                     { return m.name }
-func (m *mockTool) Description() string              { return m.description }
-func (m *mockTool) InputSchema() tool.Schema         { return tool.Schema{} }
-func (m *mockTool) OutputSchema() tool.Schema        { return tool.Schema{} }
-func (m *mockTool) Annotations() tool.Annotations    { return m.annotations }
+func (m *mockTool) Name() string                  { return m.name }
+func (m *mockTool) Description() string           { return m.description }
+func (m *mockTool) InputSchema() tool.Schema      { return tool.Schema{} }
+func (m *mockTool) OutputSchema() tool.Schema     { return tool.Schema{} }
+func (m *mockTool) Annotations() tool.Annotations { return m.annotations }
 func (m *mockTool) Execute(_ context.Context, _ json.RawMessage) (tool.Result, error) {
 	return tool.Result{}, nil
 }

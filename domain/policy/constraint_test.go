@@ -147,7 +147,6 @@ func TestToolEligibility_AllowedTools(t *testing.T) {
 	})
 }
 
-
 func TestToolEligibility_Wildcard(t *testing.T) {
 	t.Parallel()
 
@@ -423,4 +422,3 @@ func TestDefaultTransitions_EveryStateReachesFailed(t *testing.T) {
 		}
 	}
 }
-

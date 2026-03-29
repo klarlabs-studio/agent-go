@@ -462,11 +462,11 @@ func numericTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Text      string   `json:"text"`
-				AllowNeg  bool     `json:"allow_negative,omitempty"`
-				AllowDec  bool     `json:"allow_decimal,omitempty"`
-				Min       *float64 `json:"min,omitempty"`
-				Max       *float64 `json:"max,omitempty"`
+				Text     string   `json:"text"`
+				AllowNeg bool     `json:"allow_negative,omitempty"`
+				AllowDec bool     `json:"allow_decimal,omitempty"`
+				Min      *float64 `json:"min,omitempty"`
+				Max      *float64 `json:"max,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

@@ -23,21 +23,21 @@ type MetricStore struct {
 }
 
 type counter struct {
-	Value     int64     `json:"value"`
+	Value     int64             `json:"value"`
 	Labels    map[string]string `json:"labels,omitempty"`
-	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
 }
 
 type gauge struct {
-	Value     float64   `json:"value"`
+	Value     float64           `json:"value"`
 	Labels    map[string]string `json:"labels,omitempty"`
-	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
 }
 
 type histogram struct {
-	Values    []float64 `json:"values"`
+	Values    []float64         `json:"values"`
 	Labels    map[string]string `json:"labels,omitempty"`
-	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
 }
 
 var store = &MetricStore{
@@ -533,10 +533,10 @@ func summaryTool() tool.Tool {
 			store.mu.RUnlock()
 
 			result := map[string]any{
-				"counters":          numCounters,
-				"gauges":            numGauges,
-				"histograms":        numHistos,
-				"total_metrics":     numCounters + numGauges + numHistos,
+				"counters":           numCounters,
+				"gauges":             numGauges,
+				"histograms":         numHistos,
+				"total_metrics":      numCounters + numGauges + numHistos,
 				"total_histo_values": totalHistoValues,
 			}
 			output, _ := json.Marshal(result)

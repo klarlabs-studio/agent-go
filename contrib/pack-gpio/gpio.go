@@ -26,7 +26,7 @@ type GPIOController interface {
 
 // PinConfig configures a GPIO pin.
 type PinConfig struct {
-	Direction string `json:"direction"` // "input", "output"
+	Direction string `json:"direction"`      // "input", "output"
 	Pull      string `json:"pull,omitempty"` // "up", "down", "none"
 	Edge      string `json:"edge,omitempty"` // "rising", "falling", "both", "none"
 }
@@ -41,7 +41,7 @@ type PinState struct {
 // PWMOptions configures PWM output.
 type PWMOptions struct {
 	Frequency int     `json:"frequency_hz"`
-	DutyCycle float64 `json:"duty_cycle"` // 0.0 to 1.0
+	DutyCycle float64 `json:"duty_cycle"`            // 0.0 to 1.0
 	Duration  int     `json:"duration_ms,omitempty"` // 0 = indefinite
 }
 

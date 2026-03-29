@@ -56,14 +56,14 @@ type RunExport struct {
 
 // RunMetadata contains run metadata for export.
 type RunMetadata struct {
-	ID        string           `json:"id"`
-	Goal      string           `json:"goal"`
-	Status    agent.RunStatus  `json:"status"`
-	State     agent.State      `json:"state"`
-	StartTime time.Time        `json:"start_time"`
-	EndTime   *time.Time       `json:"end_time,omitempty"`
-	Result    string           `json:"result,omitempty"`
-	Error     string           `json:"error,omitempty"`
+	ID        string          `json:"id"`
+	Goal      string          `json:"goal"`
+	Status    agent.RunStatus `json:"status"`
+	State     agent.State     `json:"state"`
+	StartTime time.Time       `json:"start_time"`
+	EndTime   *time.Time      `json:"end_time,omitempty"`
+	Result    string          `json:"result,omitempty"`
+	Error     string          `json:"error,omitempty"`
 }
 
 // TimelineEntry represents a single event in the timeline.
@@ -217,9 +217,9 @@ type MetricsExport struct {
 
 	// Summary contains aggregate statistics.
 	Summary struct {
-		TotalRuns     int64         `json:"total_runs"`
-		CompletedRuns int64         `json:"completed_runs"`
-		FailedRuns    int64         `json:"failed_runs"`
+		TotalRuns       int64         `json:"total_runs"`
+		CompletedRuns   int64         `json:"completed_runs"`
+		FailedRuns      int64         `json:"failed_runs"`
 		AverageDuration time.Duration `json:"average_duration"`
 	} `json:"summary"`
 
@@ -243,8 +243,8 @@ type ToolMetricsExport struct {
 
 // StateMetricsExport contains metrics for a single state.
 type StateMetricsExport struct {
-	State           agent.State   `json:"state"`
-	EntryCount      int64         `json:"entry_count"`
-	AverageTime     time.Duration `json:"average_time"`
-	TotalTime       time.Duration `json:"total_time"`
+	State       agent.State   `json:"state"`
+	EntryCount  int64         `json:"entry_count"`
+	AverageTime time.Duration `json:"average_time"`
+	TotalTime   time.Duration `json:"total_time"`
 }

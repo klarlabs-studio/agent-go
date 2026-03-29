@@ -130,10 +130,10 @@ type Coordinator struct {
 
 // WorkerInfo tracks worker status.
 type WorkerInfo struct {
-	ID           string    `json:"id"`
-	Address      string    `json:"address,omitempty"`
-	Status       string    `json:"status"` // "idle", "busy", "dead"
-	CurrentTask  string    `json:"current_task,omitempty"`
+	ID            string    `json:"id"`
+	Address       string    `json:"address,omitempty"`
+	Status        string    `json:"status"` // "idle", "busy", "dead"
+	CurrentTask   string    `json:"current_task,omitempty"`
 	LastHeartbeat time.Time `json:"last_heartbeat"`
 	TasksComplete int64     `json:"tasks_complete"`
 	TasksFailed   int64     `json:"tasks_failed"`

@@ -247,9 +247,9 @@ func querySelectorTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				HTML    string `json:"html"`
-				Tag     string `json:"tag"`
-				Limit   int    `json:"limit,omitempty"`
+				HTML  string `json:"html"`
+				Tag   string `json:"tag"`
+				Limit int    `json:"limit,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

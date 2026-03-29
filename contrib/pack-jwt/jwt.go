@@ -153,9 +153,9 @@ func validateTool() tool.Tool {
 			parts := strings.Split(params.Token, ".")
 			if len(parts) != 3 {
 				result := map[string]any{
-					"valid":  false,
-					"error":  "Invalid JWT format: expected 3 parts",
-					"parts":  len(parts),
+					"valid": false,
+					"error": "Invalid JWT format: expected 3 parts",
+					"parts": len(parts),
 				}
 				output, _ := json.Marshal(result)
 				return tool.Result{Output: output}, nil
@@ -346,19 +346,19 @@ func inspectTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"algorithm":       header["alg"],
-				"type":            header["typ"],
-				"issuer":          payload["iss"],
-				"subject":         payload["sub"],
-				"audience":        payload["aud"],
-				"issued_at":       issuedAt,
-				"expires_at":      expiresAt,
-				"not_before":      notBefore,
-				"time_to_expiry":  timeToExpiry,
-				"token_length":    len(params.Token),
-				"header_size":     len(parts[0]),
-				"payload_size":    len(parts[1]),
-				"signature_size":  len(parts[2]),
+				"algorithm":      header["alg"],
+				"type":           header["typ"],
+				"issuer":         payload["iss"],
+				"subject":        payload["sub"],
+				"audience":       payload["aud"],
+				"issued_at":      issuedAt,
+				"expires_at":     expiresAt,
+				"not_before":     notBefore,
+				"time_to_expiry": timeToExpiry,
+				"token_length":   len(params.Token),
+				"header_size":    len(parts[0]),
+				"payload_size":   len(parts[1]),
+				"signature_size": len(parts[2]),
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
@@ -428,11 +428,11 @@ func buildClaimsTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Issuer    string   `json:"issuer,omitempty"`
-				Subject   string   `json:"subject,omitempty"`
-				Audience  []string `json:"audience,omitempty"`
-				ExpiresIn int      `json:"expires_in_seconds,omitempty"`
-				NotBefore int      `json:"not_before_seconds,omitempty"`
+				Issuer    string         `json:"issuer,omitempty"`
+				Subject   string         `json:"subject,omitempty"`
+				Audience  []string       `json:"audience,omitempty"`
+				ExpiresIn int            `json:"expires_in_seconds,omitempty"`
+				NotBefore int            `json:"not_before_seconds,omitempty"`
 				Custom    map[string]any `json:"custom,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {

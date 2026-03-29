@@ -61,13 +61,13 @@ func generateTool() tool.Tool {
 		ReadOnly().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Length         int  `json:"length,omitempty"`
-				IncludeUpper   bool `json:"include_upper,omitempty"`
-				IncludeLower   bool `json:"include_lower,omitempty"`
-				IncludeDigits  bool `json:"include_digits,omitempty"`
-				IncludeSymbols bool `json:"include_symbols,omitempty"`
+				Length           int  `json:"length,omitempty"`
+				IncludeUpper     bool `json:"include_upper,omitempty"`
+				IncludeLower     bool `json:"include_lower,omitempty"`
+				IncludeDigits    bool `json:"include_digits,omitempty"`
+				IncludeSymbols   bool `json:"include_symbols,omitempty"`
 				ExcludeAmbiguous bool `json:"exclude_ambiguous,omitempty"`
-				Count          int  `json:"count,omitempty"`
+				Count            int  `json:"count,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -255,13 +255,13 @@ func strengthTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"score":           score,
-				"strength":        strength,
-				"length":          length,
-				"has_lowercase":   hasLower,
-				"has_uppercase":   hasUpper,
-				"has_digits":      hasDigit,
-				"has_symbols":     hasSymbol,
+				"score":             score,
+				"strength":          strength,
+				"length":            length,
+				"has_lowercase":     hasLower,
+				"has_uppercase":     hasUpper,
+				"has_digits":        hasDigit,
+				"has_symbols":       hasSymbol,
 				"character_classes": charClasses,
 			}
 			output, _ := json.Marshal(result)
@@ -349,7 +349,7 @@ func validateTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"valid":            valid,
+				"valid":             valid,
 				"character_classes": charClasses,
 			}
 			if len(errors) > 0 {
@@ -441,9 +441,9 @@ func passphraseTool() tool.Tool {
 		ReadOnly().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				WordCount int    `json:"word_count,omitempty"`
-				Separator string `json:"separator,omitempty"`
-				Capitalize bool  `json:"capitalize,omitempty"`
+				WordCount  int    `json:"word_count,omitempty"`
+				Separator  string `json:"separator,omitempty"`
+				Capitalize bool   `json:"capitalize,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -589,8 +589,8 @@ func suggestTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"suggestions":     suggestions,
-				"suggestion_count": len(suggestions),
+				"suggestions":       suggestions,
+				"suggestion_count":  len(suggestions),
 				"needs_improvement": len(suggestions) > 0,
 			}
 			output, _ := json.Marshal(result)
@@ -693,18 +693,18 @@ func requirementsTool() tool.Tool {
 					"min_classes":    4,
 				},
 				"enterprise": {
-					"min_length":      14,
-					"max_length":      128,
-					"require_upper":   true,
-					"require_lower":   true,
-					"require_digit":   true,
-					"require_symbol":  true,
-					"min_classes":     4,
-					"no_username":     true,
-					"no_dictionary":   true,
-					"no_common":       true,
-					"history_count":   12,
-					"max_age_days":    90,
+					"min_length":     14,
+					"max_length":     128,
+					"require_upper":  true,
+					"require_lower":  true,
+					"require_digit":  true,
+					"require_symbol": true,
+					"min_classes":    4,
+					"no_username":    true,
+					"no_dictionary":  true,
+					"no_common":      true,
+					"history_count":  12,
+					"max_age_days":   90,
 				},
 			}
 
@@ -718,7 +718,7 @@ func requirementsTool() tool.Tool {
 					return tool.Result{Output: output}, nil
 				}
 				result := map[string]any{
-					"error":            "unknown preset",
+					"error":             "unknown preset",
 					"available_presets": []string{"basic", "moderate", "strong", "enterprise"},
 				}
 				output, _ := json.Marshal(result)
@@ -743,10 +743,10 @@ func hashInfoTool() tool.Tool {
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			algorithms := map[string]map[string]any{
 				"bcrypt": {
-					"recommended": true,
-					"cost_factor": "10-12 recommended",
+					"recommended":   true,
+					"cost_factor":   "10-12 recommended",
 					"output_length": 60,
-					"notes": "Widely used, built-in salt, adjustable cost",
+					"notes":         "Widely used, built-in salt, adjustable cost",
 				},
 				"argon2id": {
 					"recommended": true,
@@ -754,27 +754,27 @@ func hashInfoTool() tool.Tool {
 					"notes":       "Winner of Password Hashing Competition, recommended for new systems",
 				},
 				"scrypt": {
-					"recommended":   true,
-					"parameters":    "N, r, p (CPU/memory cost)",
-					"notes":         "Memory-hard, good alternative to bcrypt",
+					"recommended": true,
+					"parameters":  "N, r, p (CPU/memory cost)",
+					"notes":       "Memory-hard, good alternative to bcrypt",
 				},
 				"pbkdf2": {
-					"recommended":   "acceptable",
-					"iterations":    "minimum 100,000",
-					"notes":         "NIST approved, widely supported",
+					"recommended": "acceptable",
+					"iterations":  "minimum 100,000",
+					"notes":       "NIST approved, widely supported",
 				},
 				"sha256": {
-					"recommended":   false,
-					"notes":         "Too fast for passwords, use only with proper KDF",
+					"recommended": false,
+					"notes":       "Too fast for passwords, use only with proper KDF",
 				},
 				"md5": {
-					"recommended":   false,
-					"notes":         "NEVER use for passwords - broken and too fast",
+					"recommended": false,
+					"notes":       "NEVER use for passwords - broken and too fast",
 				},
 			}
 
 			result := map[string]any{
-				"algorithms": algorithms,
+				"algorithms":     algorithms,
 				"recommendation": "Use bcrypt or argon2id for new applications",
 			}
 			output, _ := json.Marshal(result)

@@ -42,10 +42,10 @@ type MetricQuery struct {
 
 // MetricResult contains metrics query results.
 type MetricResult struct {
-	Metric     string        `json:"metric"`
-	DataPoints []DataPoint   `json:"data_points"`
-	Total      float64       `json:"total"`
-	Average    float64       `json:"average"`
+	Metric     string      `json:"metric"`
+	DataPoints []DataPoint `json:"data_points"`
+	Total      float64     `json:"total"`
+	Average    float64     `json:"average"`
 }
 
 // DataPoint represents a single metric data point.
@@ -57,7 +57,7 @@ type DataPoint struct {
 
 // Segment defines a user segment.
 type Segment struct {
-	Name       string          `json:"name"`
+	Name       string             `json:"name"`
 	Conditions []SegmentCondition `json:"conditions"`
 }
 
@@ -86,9 +86,9 @@ type FunnelQuery struct {
 
 // FunnelResult contains funnel analysis output.
 type FunnelResult struct {
-	Name          string       `json:"name"`
-	Steps         []FunnelStep `json:"steps"`
-	OverallRate   float64      `json:"overall_conversion_rate"`
+	Name        string       `json:"name"`
+	Steps       []FunnelStep `json:"steps"`
+	OverallRate float64      `json:"overall_conversion_rate"`
 }
 
 // FunnelStep represents a step in the funnel.

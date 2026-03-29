@@ -386,12 +386,12 @@ func memoryUsageTool() tool.Tool {
 			memPercent, _ := p.MemoryPercentWithContext(ctx)
 
 			result := map[string]any{
-				"pid":         pid,
-				"rss":         memInfo.RSS,
-				"vms":         memInfo.VMS,
-				"rss_mb":      float64(memInfo.RSS) / 1024 / 1024,
-				"vms_mb":      float64(memInfo.VMS) / 1024 / 1024,
-				"percent":     memPercent,
+				"pid":     pid,
+				"rss":     memInfo.RSS,
+				"vms":     memInfo.VMS,
+				"rss_mb":  float64(memInfo.RSS) / 1024 / 1024,
+				"vms_mb":  float64(memInfo.VMS) / 1024 / 1024,
+				"percent": memPercent,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

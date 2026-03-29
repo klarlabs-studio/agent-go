@@ -55,11 +55,11 @@ type ToolPackRequest struct {
 
 // InlineToolDef represents an inline tool definition.
 type InlineToolDef struct {
-	Name        string
-	Description string
-	Annotations tool.Annotations
-	Handler     domainconfig.ToolHandlerConfig
-	InputSchema map[string]any
+	Name         string
+	Description  string
+	Annotations  tool.Annotations
+	Handler      domainconfig.ToolHandlerConfig
+	InputSchema  map[string]any
 	OutputSchema map[string]any
 }
 

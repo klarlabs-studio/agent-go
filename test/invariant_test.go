@@ -1519,8 +1519,8 @@ func TestInvariant_LedgerCompleteness(t *testing.T) {
 		l.RecordTransition(agent.StateIntake, agent.StateExplore, "transition 1")
 		l.RecordTransition(agent.StateExplore, agent.StateDecide, "transition 2")
 		l.RecordDecision(agent.StateDecide, agent.Decision{
-			Type:       agent.DecisionCallTool,
-			CallTool:   &agent.CallToolDecision{ToolName: "test_tool"},
+			Type:     agent.DecisionCallTool,
+			CallTool: &agent.CallToolDecision{ToolName: "test_tool"},
 		})
 		l.RecordToolCall(agent.StateExplore, "tool1", json.RawMessage(`{}`))
 		l.RecordToolCall(agent.StateExplore, "tool2", json.RawMessage(`{}`))
@@ -1592,8 +1592,8 @@ func TestInvariant_LedgerCompleteness(t *testing.T) {
 		l.RecordRunStarted("goal")
 		l.RecordTransition(agent.StateIntake, agent.StateExplore, "reason")
 		l.RecordDecision(agent.StateExplore, agent.Decision{
-			Type:       agent.DecisionCallTool,
-			CallTool:   &agent.CallToolDecision{ToolName: "test"},
+			Type:     agent.DecisionCallTool,
+			CallTool: &agent.CallToolDecision{ToolName: "test"},
 		})
 		l.RecordToolCall(agent.StateExplore, "tool", json.RawMessage(`{"input": 1}`))
 		l.RecordToolResult(agent.StateExplore, "tool", json.RawMessage(`{"output": 2}`), 50*time.Millisecond, false)
@@ -1692,4 +1692,3 @@ func TestInvariant_LedgerCompleteness(t *testing.T) {
 		}
 	})
 }
-

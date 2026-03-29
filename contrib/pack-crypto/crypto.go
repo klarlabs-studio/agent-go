@@ -6,7 +6,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hmac"
-	"crypto/md5"  // #nosec G501 -- MD5 is used for checksum/fingerprinting purposes, not for security
+	"crypto/md5" // #nosec G501 -- MD5 is used for checksum/fingerprinting purposes, not for security
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1" // #nosec G505 -- SHA1 is used for checksum/fingerprinting purposes, not for security
@@ -649,7 +649,7 @@ func (p *cryptoPack) rsaDecryptTool() tool.Tool {
 		WithDescription("Decrypt data using RSA private key (OAEP)").
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Ciphertext string `json:"ciphertext"` // base64-encoded
+				Ciphertext string `json:"ciphertext"`  // base64-encoded
 				PrivateKey string `json:"private_key"` // PEM-encoded
 			}
 			if err := json.Unmarshal(input, &params); err != nil {

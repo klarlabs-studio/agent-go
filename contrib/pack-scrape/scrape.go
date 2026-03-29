@@ -49,10 +49,10 @@ type ExtractionSchema struct {
 
 // FieldSelector defines how to extract a specific field.
 type FieldSelector struct {
-	Name     string `json:"name"`
-	Selector string `json:"selector"` // CSS selector
+	Name      string `json:"name"`
+	Selector  string `json:"selector"`            // CSS selector
 	Attribute string `json:"attribute,omitempty"` // e.g., "href", "src"; empty means text content
-	Multiple bool   `json:"multiple,omitempty"` // extract all matching elements
+	Multiple  bool   `json:"multiple,omitempty"`  // extract all matching elements
 }
 
 // ExtractionResult contains extracted structured data.
@@ -65,11 +65,11 @@ type ExtractionResult struct {
 
 // PaginationOptions configures pagination following.
 type PaginationOptions struct {
-	NextSelector string          `json:"next_selector"` // CSS selector for next page link
-	ItemSelector string          `json:"item_selector"` // CSS selector for items
+	NextSelector string           `json:"next_selector"` // CSS selector for next page link
+	ItemSelector string           `json:"item_selector"` // CSS selector for items
 	Schema       ExtractionSchema `json:"schema"`
-	MaxPages     int             `json:"max_pages,omitempty"`
-	Delay        int             `json:"delay_ms,omitempty"`
+	MaxPages     int              `json:"max_pages,omitempty"`
+	Delay        int              `json:"delay_ms,omitempty"`
 }
 
 // PaginationResult contains paginated extraction results.
@@ -82,32 +82,32 @@ type PaginationResult struct {
 
 // LinkOptions configures link extraction.
 type LinkOptions struct {
-	Selector   string   `json:"selector,omitempty"`
-	MatchHost  bool     `json:"match_host,omitempty"`
-	Patterns   []string `json:"patterns,omitempty"`
+	Selector  string   `json:"selector,omitempty"`
+	MatchHost bool     `json:"match_host,omitempty"`
+	Patterns  []string `json:"patterns,omitempty"`
 }
 
 // Link represents an extracted hyperlink.
 type Link struct {
-	URL    string `json:"url"`
-	Text   string `json:"text,omitempty"`
-	Rel    string `json:"rel,omitempty"`
+	URL  string `json:"url"`
+	Text string `json:"text,omitempty"`
+	Rel  string `json:"rel,omitempty"`
 }
 
 // TextResult contains extracted text content.
 type TextResult struct {
-	URL     string `json:"url"`
-	Title   string `json:"title,omitempty"`
-	Text    string `json:"text"`
-	WordCount int  `json:"word_count"`
+	URL       string `json:"url"`
+	Title     string `json:"title,omitempty"`
+	Text      string `json:"text"`
+	WordCount int    `json:"word_count"`
 }
 
 // Credentials holds authentication credentials.
 type Credentials struct {
-	Type     string         `json:"type"` // "basic", "form", "oauth", "cookie"
-	Username string         `json:"username,omitempty"`
-	Password string         `json:"password,omitempty"`
-	Token    string         `json:"token,omitempty"`
+	Type     string            `json:"type"` // "basic", "form", "oauth", "cookie"
+	Username string            `json:"username,omitempty"`
+	Password string            `json:"password,omitempty"`
+	Token    string            `json:"token,omitempty"`
 	Fields   map[string]string `json:"fields,omitempty"`
 }
 
@@ -375,12 +375,12 @@ func (p *scrapePack) authenticateTool() tool.Tool {
 		WithDescription("Authenticate with a website for scraping protected content").
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var in struct {
-				URL         string            `json:"url"`
-				Type        string            `json:"type"`
-				Username    string            `json:"username,omitempty"`
-				Password    string            `json:"password,omitempty"`
-				Token       string            `json:"token,omitempty"`
-				Fields      map[string]string `json:"fields,omitempty"`
+				URL      string            `json:"url"`
+				Type     string            `json:"type"`
+				Username string            `json:"username,omitempty"`
+				Password string            `json:"password,omitempty"`
+				Token    string            `json:"token,omitempty"`
+				Fields   map[string]string `json:"fields,omitempty"`
 			}
 			if err := json.Unmarshal(input, &in); err != nil {
 				return tool.Result{}, err

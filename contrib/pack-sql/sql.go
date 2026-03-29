@@ -338,10 +338,10 @@ func (p *sqlPack) describeTableTool() tool.Tool {
 						return tool.Result{}, err
 					}
 					columns = append(columns, map[string]any{
-						"name":       name,
-						"type":       dtype,
-						"nullable":   notnull == 0,
-						"default":    dflt.String,
+						"name":        name,
+						"type":        dtype,
+						"nullable":    notnull == 0,
+						"default":     dflt.String,
 						"primary_key": pk == 1,
 					})
 				}

@@ -19,12 +19,12 @@ type CacheStore struct {
 }
 
 type cacheItem struct {
-	Value     any       `json:"value"`
-	ExpiresAt time.Time `json:"expires_at,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
-	AccessedAt time.Time `json:"accessed_at"`
-	AccessCount int      `json:"access_count"`
-	TTL        time.Duration `json:"-"`
+	Value       any           `json:"value"`
+	ExpiresAt   time.Time     `json:"expires_at,omitempty"`
+	CreatedAt   time.Time     `json:"created_at"`
+	AccessedAt  time.Time     `json:"accessed_at"`
+	AccessCount int           `json:"access_count"`
+	TTL         time.Duration `json:"-"`
 }
 
 func (i *cacheItem) isExpired() bool {
@@ -76,9 +76,9 @@ func setTool() tool.Tool {
 
 			now := time.Now()
 			item := &cacheItem{
-				Value:      params.Value,
-				CreatedAt:  now,
-				AccessedAt: now,
+				Value:       params.Value,
+				CreatedAt:   now,
+				AccessedAt:  now,
 				AccessCount: 0,
 			}
 
@@ -395,11 +395,11 @@ func statsTool() tool.Tool {
 			store.mu.RUnlock()
 
 			result := map[string]any{
-				"total_keys":    total,
-				"active_keys":   total - expired,
-				"expired_keys":  expired,
-				"with_ttl":      withTTL,
-				"permanent":     permanent,
+				"total_keys":     total,
+				"active_keys":    total - expired,
+				"expired_keys":   expired,
+				"with_ttl":       withTTL,
+				"permanent":      permanent,
 				"total_accesses": totalAccess,
 			}
 			output, _ := json.Marshal(result)
@@ -544,8 +544,8 @@ func msetTool() tool.Tool {
 			store.mu.Unlock()
 
 			result := map[string]any{
-				"set":   len(params.Items),
-				"ttl":   params.TTL,
+				"set": len(params.Items),
+				"ttl": params.TTL,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

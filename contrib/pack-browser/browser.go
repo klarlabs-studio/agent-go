@@ -1134,7 +1134,7 @@ func (p *browserPack) goBackTool() tool.Tool {
 			}
 
 			result := map[string]interface{}{
-				"url":      url,
+				"url":       url,
 				"navigated": true,
 			}
 			output, _ := json.Marshal(result)
@@ -1167,7 +1167,7 @@ func (p *browserPack) goForwardTool() tool.Tool {
 			}
 
 			result := map[string]interface{}{
-				"url":      url,
+				"url":       url,
 				"navigated": true,
 			}
 			output, _ := json.Marshal(result)
@@ -1216,10 +1216,10 @@ func (p *browserPack) setViewportTool() tool.Tool {
 		WithDescription("Set the browser viewport size").
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Width      int     `json:"width"`
-				Height     int     `json:"height"`
+				Width       int     `json:"width"`
+				Height      int     `json:"height"`
 				DeviceScale float64 `json:"device_scale,omitempty"`
-				Mobile     bool    `json:"mobile,omitempty"`
+				Mobile      bool    `json:"mobile,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, fmt.Errorf("invalid input: %w", err)
@@ -1276,12 +1276,12 @@ func (p *browserPack) pdfTool() tool.Tool {
 		ReadOnly().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				URL         string  `json:"url,omitempty"`
-				Landscape   bool    `json:"landscape,omitempty"`
-				PrintBackground bool `json:"print_background,omitempty"`
-				Scale       float64 `json:"scale,omitempty"`
-				PaperWidth  float64 `json:"paper_width,omitempty"`  // inches
-				PaperHeight float64 `json:"paper_height,omitempty"` // inches
+				URL             string  `json:"url,omitempty"`
+				Landscape       bool    `json:"landscape,omitempty"`
+				PrintBackground bool    `json:"print_background,omitempty"`
+				Scale           float64 `json:"scale,omitempty"`
+				PaperWidth      float64 `json:"paper_width,omitempty"`  // inches
+				PaperHeight     float64 `json:"paper_height,omitempty"` // inches
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, fmt.Errorf("invalid input: %w", err)

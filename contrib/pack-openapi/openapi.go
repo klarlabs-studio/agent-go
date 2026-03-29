@@ -747,12 +747,12 @@ func diffTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"added":        added,
-				"removed":      removed,
-				"modified":     modified,
+				"added":         added,
+				"removed":       removed,
+				"modified":      modified,
 				"added_count":   len(added),
 				"removed_count": len(removed),
-				"breaking":     len(removed) > 0,
+				"breaking":      len(removed) > 0,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

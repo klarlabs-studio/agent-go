@@ -3,8 +3,8 @@ package api
 
 import (
 	"github.com/felixgeelhaar/agent-go/domain/suggestion"
-	infraSuggestion "github.com/felixgeelhaar/agent-go/infrastructure/suggestion"
 	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	infraSuggestion "github.com/felixgeelhaar/agent-go/infrastructure/suggestion"
 )
 
 // Re-export suggestion types for convenience.

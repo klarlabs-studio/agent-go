@@ -1563,7 +1563,7 @@ func TestValidator_AllErrorsReturned(t *testing.T) {
 	config := &AgentConfig{
 		// Missing name and version
 		Agent: AgentSettings{
-			MaxSteps:     -1,             // Invalid
+			MaxSteps:     -1,              // Invalid
 			InitialState: "invalid_state", // Invalid
 		},
 		Tools: ToolsConfig{

@@ -49,10 +49,10 @@ func renderHTMLTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Markdown   string `json:"markdown"`
-				GFM        bool   `json:"gfm,omitempty"`
-				Unsafe     bool   `json:"unsafe,omitempty"`
-				Hardwraps  bool   `json:"hardwraps,omitempty"`
+				Markdown  string `json:"markdown"`
+				GFM       bool   `json:"gfm,omitempty"`
+				Unsafe    bool   `json:"unsafe,omitempty"`
+				Hardwraps bool   `json:"hardwraps,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

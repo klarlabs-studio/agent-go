@@ -95,12 +95,12 @@ func cpuInfoTool() tool.Tool {
 			var cpus []map[string]any
 			for _, c := range info {
 				cpus = append(cpus, map[string]any{
-					"model":     c.ModelName,
-					"vendor":    c.VendorID,
-					"family":    c.Family,
-					"cores":     c.Cores,
-					"mhz":       c.Mhz,
-					"cache_kb":  c.CacheSize,
+					"model":    c.ModelName,
+					"vendor":   c.VendorID,
+					"family":   c.Family,
+					"cores":    c.Cores,
+					"mhz":      c.Mhz,
+					"cache_kb": c.CacheSize,
 				})
 			}
 
@@ -170,14 +170,14 @@ func memoryInfoTool() tool.Tool {
 			swap, _ := mem.SwapMemoryWithContext(ctx)
 
 			result := map[string]any{
-				"total":         vmem.Total,
-				"available":     vmem.Available,
-				"used":          vmem.Used,
-				"free":          vmem.Free,
-				"percent":       vmem.UsedPercent,
-				"total_gb":      float64(vmem.Total) / 1024 / 1024 / 1024,
-				"available_gb":  float64(vmem.Available) / 1024 / 1024 / 1024,
-				"used_gb":       float64(vmem.Used) / 1024 / 1024 / 1024,
+				"total":        vmem.Total,
+				"available":    vmem.Available,
+				"used":         vmem.Used,
+				"free":         vmem.Free,
+				"percent":      vmem.UsedPercent,
+				"total_gb":     float64(vmem.Total) / 1024 / 1024 / 1024,
+				"available_gb": float64(vmem.Available) / 1024 / 1024 / 1024,
+				"used_gb":      float64(vmem.Used) / 1024 / 1024 / 1024,
 			}
 
 			if swap != nil {
@@ -295,11 +295,11 @@ func networkInfoTool() tool.Tool {
 				}
 
 				ifaces = append(ifaces, map[string]any{
-					"name":       iface.Name,
-					"mtu":        iface.MTU,
-					"mac":        iface.HardwareAddr,
-					"flags":      iface.Flags,
-					"addresses":  addrs,
+					"name":      iface.Name,
+					"mtu":       iface.MTU,
+					"mac":       iface.HardwareAddr,
+					"flags":     iface.Flags,
+					"addresses": addrs,
 				})
 			}
 
@@ -334,15 +334,15 @@ func networkIOTool() tool.Tool {
 			var stats []map[string]any
 			for _, c := range counters {
 				stats = append(stats, map[string]any{
-					"name":        c.Name,
-					"bytes_sent":  c.BytesSent,
-					"bytes_recv":  c.BytesRecv,
+					"name":         c.Name,
+					"bytes_sent":   c.BytesSent,
+					"bytes_recv":   c.BytesRecv,
 					"packets_sent": c.PacketsSent,
 					"packets_recv": c.PacketsRecv,
-					"errin":       c.Errin,
-					"errout":      c.Errout,
-					"dropin":      c.Dropin,
-					"dropout":     c.Dropout,
+					"errin":        c.Errin,
+					"errout":       c.Errout,
+					"dropin":       c.Dropin,
+					"dropout":      c.Dropout,
 				})
 			}
 
@@ -447,15 +447,15 @@ func runtimeInfoTool() tool.Tool {
 			runtime.ReadMemStats(&m)
 
 			result := map[string]any{
-				"go_version":    runtime.Version(),
-				"go_os":         runtime.GOOS,
-				"go_arch":       runtime.GOARCH,
-				"num_cpu":       runtime.NumCPU(),
-				"num_goroutine": runtime.NumGoroutine(),
-				"alloc_mb":      float64(m.Alloc) / 1024 / 1024,
+				"go_version":     runtime.Version(),
+				"go_os":          runtime.GOOS,
+				"go_arch":        runtime.GOARCH,
+				"num_cpu":        runtime.NumCPU(),
+				"num_goroutine":  runtime.NumGoroutine(),
+				"alloc_mb":       float64(m.Alloc) / 1024 / 1024,
 				"total_alloc_mb": float64(m.TotalAlloc) / 1024 / 1024,
-				"sys_mb":        float64(m.Sys) / 1024 / 1024,
-				"num_gc":        m.NumGC,
+				"sys_mb":         float64(m.Sys) / 1024 / 1024,
+				"num_gc":         m.NumGC,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

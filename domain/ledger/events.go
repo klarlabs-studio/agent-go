@@ -15,10 +15,10 @@ type Event interface {
 
 // BaseEvent provides common event fields.
 type BaseEvent struct {
-	Type      string      `json:"type"`
-	Time      time.Time   `json:"timestamp"`
-	Run       string      `json:"run_id"`
-	State     agent.State `json:"state,omitempty"`
+	Type  string      `json:"type"`
+	Time  time.Time   `json:"timestamp"`
+	Run   string      `json:"run_id"`
+	State agent.State `json:"state,omitempty"`
 }
 
 // EventType returns the event type.

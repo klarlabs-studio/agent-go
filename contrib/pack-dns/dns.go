@@ -496,11 +496,11 @@ func checkAvailabilityTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"host":         params.Host,
-				"available":    available,
-				"response_ms":  duration.Milliseconds(),
-				"num_ips":      len(addrs),
-				"error":        errorMsg,
+				"host":        params.Host,
+				"available":   available,
+				"response_ms": duration.Milliseconds(),
+				"num_ips":     len(addrs),
+				"error":       errorMsg,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

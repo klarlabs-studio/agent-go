@@ -417,9 +417,9 @@ func encodeTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Hash   string `json:"hash"`
-				From   string `json:"from"`   // hex, base64
-				To     string `json:"to"`     // hex, base64
+				Hash string `json:"hash"`
+				From string `json:"from"` // hex, base64
+				To   string `json:"to"`   // hex, base64
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

@@ -84,20 +84,20 @@ type DeployOptions struct {
 
 // DeploymentInfo describes a model deployment.
 type DeploymentInfo struct {
-	ID          string `json:"id"`
-	ModelID     string `json:"model_id"`
-	Status      string `json:"status"`
-	Endpoint    string `json:"endpoint,omitempty"`
-	Replicas    int    `json:"replicas,omitempty"`
-	CreatedAt   string `json:"created_at,omitempty"`
+	ID        string `json:"id"`
+	ModelID   string `json:"model_id"`
+	Status    string `json:"status"`
+	Endpoint  string `json:"endpoint,omitempty"`
+	Replicas  int    `json:"replicas,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
 }
 
 // EvalResult contains model evaluation results.
 type EvalResult struct {
-	ModelID    string             `json:"model_id"`
-	Metrics    map[string]float64 `json:"metrics"`
-	Samples    int                `json:"samples"`
-	Duration   string             `json:"duration,omitempty"`
+	ModelID  string             `json:"model_id"`
+	Metrics  map[string]float64 `json:"metrics"`
+	Samples  int                `json:"samples"`
+	Duration string             `json:"duration,omitempty"`
 }
 
 // Config holds model pack configuration.

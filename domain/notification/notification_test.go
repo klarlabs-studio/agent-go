@@ -55,9 +55,9 @@ func TestNewEvent_CreatesEventsWithCorrectTypeTimestampAndPayload(t *testing.T) 
 			wantPayload: `{"error":"budget exhausted","state":"explore","duration_ms":2500000000}`,
 		},
 		{
-			name:      "run.paused",
-			eventType: EventRunPaused,
-			payload:   struct{}{}, // Empty payload
+			name:        "run.paused",
+			eventType:   EventRunPaused,
+			payload:     struct{}{}, // Empty payload
 			wantPayload: `{}`,
 		},
 		{
@@ -461,10 +461,10 @@ func TestDecodePayload_Roundtrips(t *testing.T) {
 // TestDecodePayload_EdgeCases tests edge cases for DecodePayload.
 func TestDecodePayload_EdgeCases(t *testing.T) {
 	tests := []struct {
-		name      string
-		event     *Event
+		name       string
+		event      *Event
 		decodeInto any
-		wantErr   bool
+		wantErr    bool
 	}{
 		{
 			name: "nil payload returns no error",
@@ -684,15 +684,15 @@ func TestFilterByType(t *testing.T) {
 // TestFilterByRunID tests that FilterByRunID creates a filter that only allows events for specific run IDs.
 func TestFilterByRunID(t *testing.T) {
 	tests := []struct {
-		name         string
+		name          string
 		allowedRunIDs []string
-		testRunIDs   []struct {
+		testRunIDs    []struct {
 			runID string
 			want  bool
 		}
 	}{
 		{
-			name:         "single run ID",
+			name:          "single run ID",
 			allowedRunIDs: []string{"run-123"},
 			testRunIDs: []struct {
 				runID string
@@ -705,7 +705,7 @@ func TestFilterByRunID(t *testing.T) {
 			},
 		},
 		{
-			name:         "multiple run IDs",
+			name:          "multiple run IDs",
 			allowedRunIDs: []string{"run-123", "run-456", "run-789"},
 			testRunIDs: []struct {
 				runID string
@@ -719,7 +719,7 @@ func TestFilterByRunID(t *testing.T) {
 			},
 		},
 		{
-			name:         "empty run ID in allowed list",
+			name:          "empty run ID in allowed list",
 			allowedRunIDs: []string{"run-123", ""},
 			testRunIDs: []struct {
 				runID string
@@ -731,7 +731,7 @@ func TestFilterByRunID(t *testing.T) {
 			},
 		},
 		{
-			name:         "empty filter (allows nothing)",
+			name:          "empty filter (allows nothing)",
 			allowedRunIDs: []string{},
 			testRunIDs: []struct {
 				runID string

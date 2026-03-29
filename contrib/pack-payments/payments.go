@@ -30,11 +30,11 @@ type ReconciliationEngine interface {
 
 // Invoice describes an invoice to create.
 type Invoice struct {
-	CustomerID  string        `json:"customer_id"`
-	Items       []InvoiceItem `json:"items"`
-	Currency    string        `json:"currency,omitempty"`
-	DueDate     string        `json:"due_date,omitempty"`
-	Description string        `json:"description,omitempty"`
+	CustomerID  string            `json:"customer_id"`
+	Items       []InvoiceItem     `json:"items"`
+	Currency    string            `json:"currency,omitempty"`
+	DueDate     string            `json:"due_date,omitempty"`
+	Description string            `json:"description,omitempty"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
@@ -48,12 +48,12 @@ type InvoiceItem struct {
 
 // InvoiceResult contains invoice creation output.
 type InvoiceResult struct {
-	ID         string `json:"id"`
-	Status     string `json:"status"`
-	Total      int64  `json:"total"`
-	Currency   string `json:"currency"`
-	URL        string `json:"url,omitempty"`
-	CreatedAt  string `json:"created_at"`
+	ID        string `json:"id"`
+	Status    string `json:"status"`
+	Total     int64  `json:"total"`
+	Currency  string `json:"currency"`
+	URL       string `json:"url,omitempty"`
+	CreatedAt string `json:"created_at"`
 }
 
 // Payment describes a payment to process.
@@ -93,12 +93,12 @@ type RefundResult struct {
 
 // ListOptions configures transaction listing.
 type ListOptions struct {
-	Limit      int               `json:"limit,omitempty"`
-	Offset     int               `json:"offset,omitempty"`
-	StartDate  string            `json:"start_date,omitempty"`
-	EndDate    string            `json:"end_date,omitempty"`
-	Status     string            `json:"status,omitempty"`
-	CustomerID string            `json:"customer_id,omitempty"`
+	Limit      int    `json:"limit,omitempty"`
+	Offset     int    `json:"offset,omitempty"`
+	StartDate  string `json:"start_date,omitempty"`
+	EndDate    string `json:"end_date,omitempty"`
+	Status     string `json:"status,omitempty"`
+	CustomerID string `json:"customer_id,omitempty"`
 }
 
 // TransactionList contains a list of transactions.
@@ -129,8 +129,8 @@ type ReconcileOptions struct {
 
 // ReconcileResult contains reconciliation output.
 type ReconcileResult struct {
-	Matched    int              `json:"matched"`
-	Unmatched  int              `json:"unmatched"`
+	Matched       int           `json:"matched"`
+	Unmatched     int           `json:"unmatched"`
 	Discrepancies []Discrepancy `json:"discrepancies,omitempty"`
 }
 

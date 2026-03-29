@@ -13,11 +13,11 @@ import (
 
 // LoopDetector detects state cycles and repeated transitions.
 type LoopDetector struct {
-	eventStore      event.Store
-	runStore        run.Store
-	minLoopLength   int
-	minOccurrences  int
-	maxLoopLength   int
+	eventStore     event.Store
+	runStore       run.Store
+	minLoopLength  int
+	minOccurrences int
+	maxLoopLength  int
 }
 
 // LoopOption configures the loop detector.

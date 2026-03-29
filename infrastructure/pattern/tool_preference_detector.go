@@ -13,9 +13,9 @@ import (
 
 // ToolPreferenceDetector detects over/under-used tools.
 type ToolPreferenceDetector struct {
-	eventStore      event.Store
-	runStore        run.Store
-	toolRegistry    tool.Registry
+	eventStore        event.Store
+	runStore          run.Store
+	toolRegistry      tool.Registry
 	overuseThreshold  float64 // Usage ratio above this is "overused"
 	underuseThreshold float64 // Usage ratio below this is "underused"
 	minCalls          int     // Minimum calls to consider
@@ -93,11 +93,11 @@ func (d *ToolPreferenceDetector) Detect(ctx context.Context, opts pattern.Detect
 
 	// Track tool usage stats
 	type toolUsageStats struct {
-		calls    int
+		calls     int
 		successes int
-		failures int
-		runIDs   map[string]bool
-		states   map[agent.State]int // state -> call count
+		failures  int
+		runIDs    map[string]bool
+		states    map[agent.State]int // state -> call count
 	}
 	usageByTool := make(map[string]*toolUsageStats)
 

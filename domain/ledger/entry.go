@@ -12,20 +12,20 @@ import (
 type EntryType string
 
 const (
-	EntryRunStarted      EntryType = "run_started"
-	EntryRunCompleted    EntryType = "run_completed"
-	EntryRunFailed       EntryType = "run_failed"
-	EntryStateTransition EntryType = "state_transition"
-	EntryDecision        EntryType = "decision"
-	EntryToolCall        EntryType = "tool_call"
-	EntryToolResult      EntryType = "tool_result"
-	EntryToolError       EntryType = "tool_error"
-	EntryApprovalRequest EntryType = "approval_request"
-	EntryApprovalResult  EntryType = "approval_result"
+	EntryRunStarted         EntryType = "run_started"
+	EntryRunCompleted       EntryType = "run_completed"
+	EntryRunFailed          EntryType = "run_failed"
+	EntryStateTransition    EntryType = "state_transition"
+	EntryDecision           EntryType = "decision"
+	EntryToolCall           EntryType = "tool_call"
+	EntryToolResult         EntryType = "tool_result"
+	EntryToolError          EntryType = "tool_error"
+	EntryApprovalRequest    EntryType = "approval_request"
+	EntryApprovalResult     EntryType = "approval_result"
 	EntryHumanInputRequest  EntryType = "human_input_request"
 	EntryHumanInputResponse EntryType = "human_input_response"
-	EntryBudgetConsumed  EntryType = "budget_consumed"
-	EntryBudgetExhausted EntryType = "budget_exhausted"
+	EntryBudgetConsumed     EntryType = "budget_consumed"
+	EntryBudgetExhausted    EntryType = "budget_exhausted"
 )
 
 // Entry represents a single record in the ledger.

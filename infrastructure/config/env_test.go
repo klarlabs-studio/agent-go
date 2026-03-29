@@ -10,9 +10,9 @@ func TestEnvExpander_SimpleExpansion(t *testing.T) {
 	defer os.Unsetenv("TEST_VAR")
 
 	tests := []struct {
-		name   string
-		input  string
-		want   string
+		name  string
+		input string
+		want  string
 	}{
 		{
 			name:  "bracket syntax",

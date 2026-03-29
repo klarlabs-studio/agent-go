@@ -48,30 +48,30 @@ type PlanOptions struct {
 
 // PlanResult contains the execution plan.
 type PlanResult struct {
-	HasChanges bool             `json:"has_changes"`
-	Add        int              `json:"add"`
-	Change     int              `json:"change"`
-	Destroy    int              `json:"destroy"`
-	Resources  []PlannedChange  `json:"resources,omitempty"`
-	PlanFile   string           `json:"plan_file,omitempty"`
-	Summary    string           `json:"summary"`
+	HasChanges bool            `json:"has_changes"`
+	Add        int             `json:"add"`
+	Change     int             `json:"change"`
+	Destroy    int             `json:"destroy"`
+	Resources  []PlannedChange `json:"resources,omitempty"`
+	PlanFile   string          `json:"plan_file,omitempty"`
+	Summary    string          `json:"summary"`
 }
 
 // PlannedChange represents a single planned resource change.
 type PlannedChange struct {
-	Address    string         `json:"address"`
-	Type       string         `json:"type"`
-	Action     string         `json:"action"` // "create", "update", "delete", "replace"
-	Before     map[string]any `json:"before,omitempty"`
-	After      map[string]any `json:"after,omitempty"`
+	Address string         `json:"address"`
+	Type    string         `json:"type"`
+	Action  string         `json:"action"` // "create", "update", "delete", "replace"
+	Before  map[string]any `json:"before,omitempty"`
+	After   map[string]any `json:"after,omitempty"`
 }
 
 // ApplyOptions configures apply execution.
 type ApplyOptions struct {
-	PlanFile  string            `json:"plan_file,omitempty"`
-	Targets   []string          `json:"targets,omitempty"`
-	Variables map[string]string `json:"variables,omitempty"`
-	AutoApprove bool           `json:"auto_approve,omitempty"`
+	PlanFile    string            `json:"plan_file,omitempty"`
+	Targets     []string          `json:"targets,omitempty"`
+	Variables   map[string]string `json:"variables,omitempty"`
+	AutoApprove bool              `json:"auto_approve,omitempty"`
 }
 
 // ApplyResult contains apply execution results.
@@ -96,7 +96,7 @@ type AppliedChange struct {
 type DestroyOptions struct {
 	Targets     []string          `json:"targets,omitempty"`
 	Variables   map[string]string `json:"variables,omitempty"`
-	AutoApprove bool             `json:"auto_approve,omitempty"`
+	AutoApprove bool              `json:"auto_approve,omitempty"`
 }
 
 // StateResource represents a resource in the state.
@@ -204,7 +204,7 @@ func (p *terraformPack) applyTool() tool.Tool {
 				PlanFile    string            `json:"plan_file,omitempty"`
 				Targets     []string          `json:"targets,omitempty"`
 				Variables   map[string]string `json:"variables,omitempty"`
-				AutoApprove bool             `json:"auto_approve,omitempty"`
+				AutoApprove bool              `json:"auto_approve,omitempty"`
 			}
 			if err := json.Unmarshal(input, &in); err != nil {
 				return tool.Result{}, err
@@ -234,7 +234,7 @@ func (p *terraformPack) destroyTool() tool.Tool {
 			var in struct {
 				Targets     []string          `json:"targets,omitempty"`
 				Variables   map[string]string `json:"variables,omitempty"`
-				AutoApprove bool             `json:"auto_approve,omitempty"`
+				AutoApprove bool              `json:"auto_approve,omitempty"`
 			}
 			if err := json.Unmarshal(input, &in); err != nil {
 				return tool.Result{}, err

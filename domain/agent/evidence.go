@@ -17,7 +17,7 @@ const (
 // Evidence represents an observation or result accumulated during a run.
 type Evidence struct {
 	Type      EvidenceType    `json:"type"`
-	Source    string          `json:"source"`    // Tool name or "system"
+	Source    string          `json:"source"` // Tool name or "system"
 	Content   json.RawMessage `json:"content"`
 	Timestamp time.Time       `json:"timestamp"`
 }

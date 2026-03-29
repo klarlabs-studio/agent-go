@@ -623,21 +623,21 @@ func commonExprTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			common := map[string]string{
-				"every_minute":      "* * * * *",
-				"every_5_minutes":   "*/5 * * * *",
-				"every_10_minutes":  "*/10 * * * *",
-				"every_15_minutes":  "*/15 * * * *",
-				"every_30_minutes":  "*/30 * * * *",
-				"every_hour":        "0 * * * *",
-				"every_2_hours":     "0 */2 * * *",
+				"every_minute":       "* * * * *",
+				"every_5_minutes":    "*/5 * * * *",
+				"every_10_minutes":   "*/10 * * * *",
+				"every_15_minutes":   "*/15 * * * *",
+				"every_30_minutes":   "*/30 * * * *",
+				"every_hour":         "0 * * * *",
+				"every_2_hours":      "0 */2 * * *",
 				"every_day_midnight": "0 0 * * *",
-				"every_day_noon":    "0 12 * * *",
-				"every_monday":      "0 0 * * 1",
-				"every_weekday":     "0 0 * * 1-5",
-				"every_weekend":     "0 0 * * 0,6",
-				"every_month":       "0 0 1 * *",
-				"every_quarter":     "0 0 1 1,4,7,10 *",
-				"every_year":        "0 0 1 1 *",
+				"every_day_noon":     "0 12 * * *",
+				"every_monday":       "0 0 * * 1",
+				"every_weekday":      "0 0 * * 1-5",
+				"every_weekend":      "0 0 * * 0,6",
+				"every_month":        "0 0 1 * *",
+				"every_quarter":      "0 0 1 1,4,7,10 *",
+				"every_year":         "0 0 1 1 *",
 			}
 
 			result := map[string]any{

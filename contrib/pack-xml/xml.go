@@ -38,10 +38,10 @@ func Pack() *pack.Pack {
 
 // Node represents an XML element
 type Node struct {
-	XMLName    xml.Name
-	Attrs      []xml.Attr `xml:",any,attr"`
-	Content    string     `xml:",chardata"`
-	Children   []Node     `xml:",any"`
+	XMLName  xml.Name
+	Attrs    []xml.Attr `xml:",any,attr"`
+	Content  string     `xml:",chardata"`
+	Children []Node     `xml:",any"`
 }
 
 func parseTool() tool.Tool {
@@ -183,9 +183,9 @@ func fromJSONTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				JSON    map[string]any `json:"json"`
-				Root    string         `json:"root,omitempty"`
-				Indent  string         `json:"indent,omitempty"`
+				JSON   map[string]any `json:"json"`
+				Root   string         `json:"root,omitempty"`
+				Indent string         `json:"indent,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

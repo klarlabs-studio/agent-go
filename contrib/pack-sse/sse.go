@@ -18,23 +18,23 @@ import (
 
 // ConnectionPool manages SSE connections.
 type ConnectionPool struct {
-	mu     sync.RWMutex
-	conns  map[string]*sseConnection
+	mu    sync.RWMutex
+	conns map[string]*sseConnection
 }
 
 type sseConnection struct {
-	url      string
-	cancel   context.CancelFunc
-	events   []sseEvent
-	mu       sync.Mutex
-	running  bool
-	lastID   string
+	url     string
+	cancel  context.CancelFunc
+	events  []sseEvent
+	mu      sync.Mutex
+	running bool
+	lastID  string
 }
 
 type sseEvent struct {
-	ID    string `json:"id,omitempty"`
-	Event string `json:"event,omitempty"`
-	Data  string `json:"data"`
+	ID    string    `json:"id,omitempty"`
+	Event string    `json:"event,omitempty"`
+	Data  string    `json:"data"`
 	Time  time.Time `json:"time"`
 }
 
@@ -68,10 +68,10 @@ func connectTool() tool.Tool {
 		WithDescription("Connect to an SSE endpoint").
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				URL     string            `json:"url"`
-				ID      string            `json:"id,omitempty"`
-				Headers map[string]string `json:"headers,omitempty"`
-				LastEventID string        `json:"last_event_id,omitempty"`
+				URL         string            `json:"url"`
+				ID          string            `json:"id,omitempty"`
+				Headers     map[string]string `json:"headers,omitempty"`
+				LastEventID string            `json:"last_event_id,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

@@ -1125,7 +1125,7 @@ func createTestRunWithDuration(ctx context.Context, t *testing.T, eventStore *me
 
 func TestCalculateSequenceConfidence(t *testing.T) {
 	tests := []struct {
-		name       string
+		name        string
 		occurrences int
 		minExpected float64
 		maxExpected float64
@@ -1176,11 +1176,11 @@ func TestCalculateFailureConfidence(t *testing.T) {
 
 func TestCalculatePerformanceConfidence(t *testing.T) {
 	tests := []struct {
-		name          string
-		anomalyCount  int
-		totalCount    int
-		minExpected   float64
-		maxExpected   float64
+		name         string
+		anomalyCount int
+		totalCount   int
+		minExpected  float64
+		maxExpected  float64
 	}{
 		{"no data", 0, 0, 0.5, 0.5},
 		{"low ratio", 1, 10, 0.5, 0.7},

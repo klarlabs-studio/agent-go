@@ -81,10 +81,10 @@ type Config struct {
 
 // Approver implements policy.Approver via Slack.
 type Approver struct {
-	config   Config
-	pending  map[string]*pendingApproval
-	mu       sync.Mutex
-	client   *http.Client
+	config  Config
+	pending map[string]*pendingApproval
+	mu      sync.Mutex
+	client  *http.Client
 }
 
 // pendingApproval tracks an in-flight approval request.

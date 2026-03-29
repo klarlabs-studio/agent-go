@@ -154,8 +154,8 @@ func absTool() tool.Tool {
 			abs := math.Abs(params.Value)
 
 			result := map[string]any{
-				"absolute":    abs,
-				"original":    params.Value,
+				"absolute":     abs,
+				"original":     params.Value,
 				"was_negative": params.Value < 0,
 			}
 			output, _ := json.Marshal(result)
@@ -247,7 +247,7 @@ func trigTool() tool.Tool {
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
 				Value   float64 `json:"value"`
-				Func    string  `json:"func"`    // sin, cos, tan, asin, acos, atan
+				Func    string  `json:"func"` // sin, cos, tan, asin, acos, atan
 				Degrees bool    `json:"degrees,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {

@@ -184,17 +184,17 @@ func (p *timePack) parseTool() tool.Tool {
 			}
 
 			result := map[string]interface{}{
-				"iso8601":    t.Format(time.RFC3339),
-				"unix":       t.Unix(),
-				"year":       t.Year(),
-				"month":      int(t.Month()),
-				"day":        t.Day(),
-				"hour":       t.Hour(),
-				"minute":     t.Minute(),
-				"second":     t.Second(),
-				"weekday":    t.Weekday().String(),
+				"iso8601":     t.Format(time.RFC3339),
+				"unix":        t.Unix(),
+				"year":        t.Year(),
+				"month":       int(t.Month()),
+				"day":         t.Day(),
+				"hour":        t.Hour(),
+				"minute":      t.Minute(),
+				"second":      t.Second(),
+				"weekday":     t.Weekday().String(),
 				"day_of_year": t.YearDay(),
-				"timezone":   t.Location().String(),
+				"timezone":    t.Location().String(),
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
@@ -457,12 +457,12 @@ func (p *timePack) diffTool() tool.Tool {
 			totalDays := totalHours / 24
 
 			result := map[string]interface{}{
-				"total_seconds":      totalSeconds,
-				"total_minutes":      totalMinutes,
-				"total_hours":        totalHours,
-				"total_days":         totalDays,
-				"duration":           diff.String(),
-				"is_negative":        diff < 0,
+				"total_seconds": totalSeconds,
+				"total_minutes": totalMinutes,
+				"total_hours":   totalHours,
+				"total_days":    totalDays,
+				"duration":      diff.String(),
+				"is_negative":   diff < 0,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
@@ -941,10 +941,10 @@ func (p *timePack) weekdayTool() tool.Tool {
 			weekday := t.Weekday()
 
 			result := map[string]interface{}{
-				"weekday":      weekday.String(),
-				"weekday_num":  int(weekday),
-				"is_weekend":   weekday == time.Saturday || weekday == time.Sunday,
-				"is_weekday":   weekday >= time.Monday && weekday <= time.Friday,
+				"weekday":     weekday.String(),
+				"weekday_num": int(weekday),
+				"is_weekend":  weekday == time.Saturday || weekday == time.Sunday,
+				"is_weekday":  weekday >= time.Monday && weekday <= time.Friday,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

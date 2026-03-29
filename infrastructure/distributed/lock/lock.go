@@ -25,10 +25,10 @@ type Lock interface {
 
 // LockInfo contains metadata about a lock.
 type LockInfo struct {
-	Key       string    `json:"key"`
-	HolderID  string    `json:"holder_id"`
+	Key        string    `json:"key"`
+	HolderID   string    `json:"holder_id"`
 	AcquiredAt time.Time `json:"acquired_at"`
-	ExpiresAt time.Time `json:"expires_at"`
+	ExpiresAt  time.Time `json:"expires_at"`
 }
 
 // Locker provides lock acquisition with automatic ID tracking.
@@ -45,10 +45,10 @@ type Locker interface {
 
 // Common errors.
 var (
-	ErrLockNotHeld    = errors.New("lock not held")
-	ErrLockHeld       = errors.New("lock already held by another owner")
-	ErrLockExpired    = errors.New("lock has expired")
-	ErrInvalidTTL     = errors.New("invalid TTL")
+	ErrLockNotHeld = errors.New("lock not held")
+	ErrLockHeld    = errors.New("lock already held by another owner")
+	ErrLockExpired = errors.New("lock has expired")
+	ErrInvalidTTL  = errors.New("invalid TTL")
 )
 
 // LockOption configures lock behavior.

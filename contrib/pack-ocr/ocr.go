@@ -98,10 +98,10 @@ type BoundingBox struct {
 
 // Table represents an extracted table.
 type Table struct {
-	Rows       int        `json:"rows"`
-	Columns    int        `json:"columns"`
-	Cells      [][]Cell   `json:"cells"`
-	Confidence float64    `json:"confidence,omitempty"`
+	Rows        int          `json:"rows"`
+	Columns     int          `json:"columns"`
+	Cells       [][]Cell     `json:"cells"`
+	Confidence  float64      `json:"confidence,omitempty"`
 	BoundingBox *BoundingBox `json:"bounding_box,omitempty"`
 }
 
@@ -146,17 +146,17 @@ type ReceiptParser interface {
 
 // Invoice represents parsed invoice data.
 type Invoice struct {
-	InvoiceNumber string        `json:"invoice_number,omitempty"`
-	Date          string        `json:"date,omitempty"`
-	DueDate       string        `json:"due_date,omitempty"`
-	Vendor        Entity        `json:"vendor,omitempty"`
-	Customer      Entity        `json:"customer,omitempty"`
-	LineItems     []LineItem    `json:"line_items,omitempty"`
-	Subtotal      float64       `json:"subtotal,omitempty"`
-	Tax           float64       `json:"tax,omitempty"`
-	Total         float64       `json:"total"`
-	Currency      string        `json:"currency,omitempty"`
-	Confidence    float64       `json:"confidence,omitempty"`
+	InvoiceNumber string     `json:"invoice_number,omitempty"`
+	Date          string     `json:"date,omitempty"`
+	DueDate       string     `json:"due_date,omitempty"`
+	Vendor        Entity     `json:"vendor,omitempty"`
+	Customer      Entity     `json:"customer,omitempty"`
+	LineItems     []LineItem `json:"line_items,omitempty"`
+	Subtotal      float64    `json:"subtotal,omitempty"`
+	Tax           float64    `json:"tax,omitempty"`
+	Total         float64    `json:"total"`
+	Currency      string     `json:"currency,omitempty"`
+	Confidence    float64    `json:"confidence,omitempty"`
 }
 
 // Receipt represents parsed receipt data.
@@ -269,8 +269,8 @@ func (p *ocrPack) extractTextTool() tool.Tool {
 				Format: in.Format,
 				Pages:  in.Pages,
 			}, ExtractOptions{
-				Languages:     langs,
-				Mode:          "text",
+				Languages:         langs,
+				Mode:              "text",
 				IncludeConfidence: true,
 			})
 			if err != nil {

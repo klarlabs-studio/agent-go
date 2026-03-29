@@ -591,10 +591,10 @@ func describeTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"type_name":    params.TypeName,
-				"simple_name":  simpleName,
-				"package":      pkgName,
-				"note":         "Use grpc_parse_proto with proto file content for detailed field information",
+				"type_name":   params.TypeName,
+				"simple_name": simpleName,
+				"package":     pkgName,
+				"note":        "Use grpc_parse_proto with proto file content for detailed field information",
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

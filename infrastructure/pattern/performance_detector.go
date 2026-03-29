@@ -15,12 +15,12 @@ import (
 
 // PerformanceDetector detects performance anomaly patterns.
 type PerformanceDetector struct {
-	eventStore         event.Store
-	runStore           run.Store
-	slowToolThreshold  time.Duration
-	longRunThreshold   time.Duration
-	minOccurrences     int
-	stdDevMultiplier   float64
+	eventStore        event.Store
+	runStore          run.Store
+	slowToolThreshold time.Duration
+	longRunThreshold  time.Duration
+	minOccurrences    int
+	stdDevMultiplier  float64
 }
 
 // PerformanceOption configures the performance detector.
@@ -203,10 +203,10 @@ func (d *PerformanceDetector) Detect(ctx context.Context, opts pattern.Detection
 		}
 
 		data := pattern.SlowToolData{
-			ToolName:       toolName,
+			ToolName:        toolName,
 			AverageDuration: avgDuration,
-			P90Duration:    durations[p90Idx],
-			SlowCount:      len(slowExecutions),
+			P90Duration:     durations[p90Idx],
+			SlowCount:       len(slowExecutions),
 		}
 		if err := p.SetData(data); err != nil {
 			continue

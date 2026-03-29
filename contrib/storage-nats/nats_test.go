@@ -346,10 +346,10 @@ func TestEventStore_EventSubject(t *testing.T) {
 	_, js := startTestServer(t)
 
 	tests := []struct {
-		name          string
-		config        EventStoreConfig
-		runID         string
-		wantSubject   string
+		name        string
+		config      EventStoreConfig
+		runID       string
+		wantSubject string
 	}{
 		{
 			name: "default prefix",

@@ -106,7 +106,7 @@ func sentenceTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Text             string `json:"text"`
+				Text              string `json:"text"`
 				SentencesPerChunk int    `json:"sentences_per_chunk,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
@@ -228,7 +228,7 @@ func semanticTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Text        string `json:"text"`
+				Text         string `json:"text"`
 				MaxChunkSize int    `json:"max_chunk_size,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
@@ -708,10 +708,10 @@ func mergeTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Chunks        []string `json:"chunks"`
-				MinChunkSize  int      `json:"min_chunk_size,omitempty"`
-				MaxChunkSize  int      `json:"max_chunk_size,omitempty"`
-				Separator     string   `json:"separator,omitempty"`
+				Chunks       []string `json:"chunks"`
+				MinChunkSize int      `json:"min_chunk_size,omitempty"`
+				MaxChunkSize int      `json:"max_chunk_size,omitempty"`
+				Separator    string   `json:"separator,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -774,9 +774,9 @@ func splitByTokensTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Text       string `json:"text"`
-				MaxTokens  int    `json:"max_tokens,omitempty"`
-				Overlap    int    `json:"overlap_tokens,omitempty"`
+				Text      string `json:"text"`
+				MaxTokens int    `json:"max_tokens,omitempty"`
+				Overlap   int    `json:"overlap_tokens,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -870,7 +870,7 @@ func estimateTokensTool() tool.Tool {
 			}
 
 			// Different estimation methods
-			byChars := charCount / 4              // ~4 chars per token
+			byChars := charCount / 4                 // ~4 chars per token
 			byWords := int(float64(wordCount) * 1.3) // ~1.3 tokens per word
 
 			result := map[string]any{

@@ -673,11 +673,11 @@ func TestCalculateTimeoutConfidence(t *testing.T) {
 		minExpected float64
 		maxExpected float64
 	}{
-		{"few timeouts low rate", 3, 30, 0.1, 0.80, 0.85},    // Base 0.8 + rate bonus 0.02
-		{"many timeouts low rate", 10, 100, 0.1, 0.80, 0.85}, // Base 0.8 (capped) + rate bonus 0.02
-		{"few timeouts high rate", 3, 5, 0.6, 0.70, 0.85},    // Base 0.6 + rate bonus 0.12
+		{"few timeouts low rate", 3, 30, 0.1, 0.80, 0.85},     // Base 0.8 + rate bonus 0.02
+		{"many timeouts low rate", 10, 100, 0.1, 0.80, 0.85},  // Base 0.8 (capped) + rate bonus 0.02
+		{"few timeouts high rate", 3, 5, 0.6, 0.70, 0.85},     // Base 0.6 + rate bonus 0.12
 		{"many timeouts high rate", 50, 60, 0.83, 0.93, 0.95}, // Base 0.8 + rate bonus 0.166 = 0.966 (capped at 0.95)
-		{"perfect timeout rate", 10, 10, 1.0, 0.88, 0.92},    // Base 0.7 + rate bonus 0.2 = 0.9
+		{"perfect timeout rate", 10, 10, 1.0, 0.88, 0.92},     // Base 0.7 + rate bonus 0.2 = 0.9
 	}
 
 	for _, tt := range tests {

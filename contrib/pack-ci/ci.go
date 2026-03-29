@@ -44,10 +44,10 @@ type CIProvider interface {
 
 // TriggerOptions configures a pipeline trigger.
 type TriggerOptions struct {
-	Pipeline   string            `json:"pipeline"`
-	Branch     string            `json:"branch,omitempty"`
-	Commit     string            `json:"commit,omitempty"`
-	Variables  map[string]string `json:"variables,omitempty"`
+	Pipeline  string            `json:"pipeline"`
+	Branch    string            `json:"branch,omitempty"`
+	Commit    string            `json:"commit,omitempty"`
+	Variables map[string]string `json:"variables,omitempty"`
 }
 
 // ListOptions configures pipeline run listing.

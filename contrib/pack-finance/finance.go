@@ -42,10 +42,10 @@ func compoundInterestTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Principal   float64 `json:"principal"`
-				Rate        float64 `json:"rate"`        // Annual rate as decimal (0.05 = 5%)
-				Time        float64 `json:"time"`        // Years
-				Compounds   int     `json:"compounds,omitempty"` // Per year (default 12)
+				Principal float64 `json:"principal"`
+				Rate      float64 `json:"rate"`                // Annual rate as decimal (0.05 = 5%)
+				Time      float64 `json:"time"`                // Years
+				Compounds int     `json:"compounds,omitempty"` // Per year (default 12)
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -61,14 +61,14 @@ func compoundInterestTool() tool.Tool {
 			interest := amount - params.Principal
 
 			result := map[string]any{
-				"principal":      params.Principal,
-				"rate":           params.Rate,
-				"rate_percent":   params.Rate * 100,
-				"time_years":     params.Time,
-				"compounds_year": n,
-				"final_amount":   amount,
+				"principal":       params.Principal,
+				"rate":            params.Rate,
+				"rate_percent":    params.Rate * 100,
+				"time_years":      params.Time,
+				"compounds_year":  n,
+				"final_amount":    amount,
 				"interest_earned": interest,
-				"total_periods":  n * int(params.Time),
+				"total_periods":   n * int(params.Time),
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
@@ -85,7 +85,7 @@ func loanPaymentTool() tool.Tool {
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
 				Principal float64 `json:"principal"`
-				Rate      float64 `json:"rate"`      // Annual rate as decimal
+				Rate      float64 `json:"rate"` // Annual rate as decimal
 				Years     float64 `json:"years"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
@@ -109,13 +109,13 @@ func loanPaymentTool() tool.Tool {
 			totalInterest := totalPayment - params.Principal
 
 			result := map[string]any{
-				"principal":        params.Principal,
-				"annual_rate":      params.Rate,
-				"years":            params.Years,
-				"monthly_payment":  monthlyPayment,
-				"total_payments":   int(numPayments),
-				"total_paid":       totalPayment,
-				"total_interest":   totalInterest,
+				"principal":       params.Principal,
+				"annual_rate":     params.Rate,
+				"years":           params.Years,
+				"monthly_payment": monthlyPayment,
+				"total_payments":  int(numPayments),
+				"total_paid":      totalPayment,
+				"total_interest":  totalInterest,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
@@ -132,7 +132,7 @@ func loanAmortizationTool() tool.Tool {
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
 				Principal float64 `json:"principal"`
-				Rate      float64 `json:"rate"`      // Annual rate
+				Rate      float64 `json:"rate"` // Annual rate
 				Years     float64 `json:"years"`
 				MaxRows   int     `json:"max_rows,omitempty"`
 			}
@@ -345,9 +345,9 @@ func irrTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"irr":          rate,
-				"irr_percent":  rate * 100,
-				"periods":      len(params.CashFlows),
+				"irr":         rate,
+				"irr_percent": rate * 100,
+				"periods":     len(params.CashFlows),
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
@@ -412,7 +412,7 @@ func breakEvenTool() tool.Tool {
 
 			if contributionMargin <= 0 {
 				result := map[string]any{
-					"error": "price per unit must be greater than cost per unit",
+					"error":               "price per unit must be greater than cost per unit",
 					"contribution_margin": contributionMargin,
 				}
 				output, _ := json.Marshal(result)
@@ -443,11 +443,11 @@ func depreciationTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Cost       float64 `json:"cost"`
-				Salvage    float64 `json:"salvage"`
-				Life       int     `json:"life_years"`
-				Method     string  `json:"method,omitempty"` // straight_line, declining_balance, sum_of_years
-				Rate       float64 `json:"rate,omitempty"`   // For declining balance
+				Cost    float64 `json:"cost"`
+				Salvage float64 `json:"salvage"`
+				Life    int     `json:"life_years"`
+				Method  string  `json:"method,omitempty"` // straight_line, declining_balance, sum_of_years
+				Rate    float64 `json:"rate,omitempty"`   // For declining balance
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -461,9 +461,9 @@ func depreciationTool() tool.Tool {
 			depreciable := params.Cost - params.Salvage
 
 			type YearDepreciation struct {
-				Year        int     `json:"year"`
+				Year         int     `json:"year"`
 				Depreciation float64 `json:"depreciation"`
-				BookValue   float64 `json:"book_value"`
+				BookValue    float64 `json:"book_value"`
 			}
 
 			schedule := make([]YearDepreciation, params.Life)
@@ -550,11 +550,11 @@ func taxTool() tool.Tool {
 			remaining := params.Income
 
 			type BracketTax struct {
-				Min    float64 `json:"min"`
-				Max    float64 `json:"max"`
-				Rate   float64 `json:"rate"`
+				Min     float64 `json:"min"`
+				Max     float64 `json:"max"`
+				Rate    float64 `json:"rate"`
 				Taxable float64 `json:"taxable"`
-				Tax    float64 `json:"tax"`
+				Tax     float64 `json:"tax"`
 			}
 
 			breakdown := make([]BracketTax, 0)

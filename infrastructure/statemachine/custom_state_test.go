@@ -336,12 +336,12 @@ func TestInterpreter_CustomStateTransitions(t *testing.T) {
 
 	// Add custom transitions to policy layer
 	ctx.Transitions = policy.NewStateTransitionsWith(policy.TransitionRules{
-		agent.StateIntake:       {agent.StateExplore, agent.StateFailed},
-		agent.StateExplore:      {agent.StateDecide, agent.StateFailed},
-		agent.StateDecide:       {agent.StateAct, agent.StateDone, agent.StateFailed},
-		agent.StateAct:          {agent.StateValidate, agent.StateFailed},
-		agent.StateValidate:     {agent.StateDone, agent.StateExplore, agent.StateFailed, agent.State("review")},
-		agent.State("review"):   {agent.StateExplore, agent.StateFailed},
+		agent.StateIntake:     {agent.StateExplore, agent.StateFailed},
+		agent.StateExplore:    {agent.StateDecide, agent.StateFailed},
+		agent.StateDecide:     {agent.StateAct, agent.StateDone, agent.StateFailed},
+		agent.StateAct:        {agent.StateValidate, agent.StateFailed},
+		agent.StateValidate:   {agent.StateDone, agent.StateExplore, agent.StateFailed, agent.State("review")},
+		agent.State("review"): {agent.StateExplore, agent.StateFailed},
 	})
 
 	interp := NewInterpreterFromDefinition(def, ctx)

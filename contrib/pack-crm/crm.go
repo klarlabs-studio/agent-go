@@ -26,24 +26,24 @@ type CRMPlatform interface {
 
 // Contact represents a CRM contact.
 type Contact struct {
-	FirstName  string            `json:"first_name"`
-	LastName   string            `json:"last_name"`
-	Email      string            `json:"email,omitempty"`
-	Phone      string            `json:"phone,omitempty"`
-	Company    string            `json:"company,omitempty"`
-	Title      string            `json:"title,omitempty"`
-	Tags       []string          `json:"tags,omitempty"`
-	Properties map[string]any    `json:"properties,omitempty"`
+	FirstName  string         `json:"first_name"`
+	LastName   string         `json:"last_name"`
+	Email      string         `json:"email,omitempty"`
+	Phone      string         `json:"phone,omitempty"`
+	Company    string         `json:"company,omitempty"`
+	Title      string         `json:"title,omitempty"`
+	Tags       []string       `json:"tags,omitempty"`
+	Properties map[string]any `json:"properties,omitempty"`
 }
 
 // ContactResult contains contact operation output.
 type ContactResult struct {
-	ID        string         `json:"id"`
-	FirstName string         `json:"first_name"`
-	LastName  string         `json:"last_name"`
-	Email     string         `json:"email,omitempty"`
-	CreatedAt string         `json:"created_at,omitempty"`
-	UpdatedAt string         `json:"updated_at,omitempty"`
+	ID        string `json:"id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `json:"email,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
 }
 
 // SearchQuery configures a CRM search.
@@ -63,12 +63,12 @@ type SearchResult struct {
 
 // Activity represents a CRM activity log entry.
 type Activity struct {
-	ContactID string         `json:"contact_id"`
-	Type      string         `json:"type"` // "call", "email", "meeting", "note", "task"
-	Subject   string         `json:"subject"`
-	Body      string         `json:"body,omitempty"`
-	DealID    string         `json:"deal_id,omitempty"`
-	DueDate   string         `json:"due_date,omitempty"`
+	ContactID  string         `json:"contact_id"`
+	Type       string         `json:"type"` // "call", "email", "meeting", "note", "task"
+	Subject    string         `json:"subject"`
+	Body       string         `json:"body,omitempty"`
+	DealID     string         `json:"deal_id,omitempty"`
+	DueDate    string         `json:"due_date,omitempty"`
 	Properties map[string]any `json:"properties,omitempty"`
 }
 
@@ -92,7 +92,7 @@ type DealResult struct {
 
 // SyncOptions configures contact synchronization.
 type SyncOptions struct {
-	Source    string `json:"source"` // external system identifier
+	Source    string `json:"source"`              // external system identifier
 	Direction string `json:"direction,omitempty"` // "import", "export", "bidirectional"
 	Since     string `json:"since,omitempty"`
 	DryRun    bool   `json:"dry_run,omitempty"`
@@ -100,10 +100,10 @@ type SyncOptions struct {
 
 // SyncResult contains synchronization output.
 type SyncResult struct {
-	Created  int `json:"created"`
-	Updated  int `json:"updated"`
-	Skipped  int `json:"skipped"`
-	Errors   int `json:"errors"`
+	Created int `json:"created"`
+	Updated int `json:"updated"`
+	Skipped int `json:"skipped"`
+	Errors  int `json:"errors"`
 }
 
 // Config holds CRM pack configuration.

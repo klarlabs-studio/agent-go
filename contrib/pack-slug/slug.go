@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	multiDash  = regexp.MustCompile(`-+`)
+	multiDash   = regexp.MustCompile(`-+`)
 	nonAlphaNum = regexp.MustCompile(`[^a-z0-9-]`)
 )
 

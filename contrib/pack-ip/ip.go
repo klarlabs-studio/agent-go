@@ -68,13 +68,13 @@ func parseTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"valid":       true,
-				"ip":          ip.String(),
-				"version":     version,
-				"is_loopback": ip.IsLoopback(),
-				"is_private":  ip.IsPrivate(),
-				"is_global":   ip.IsGlobalUnicast(),
-				"is_multicast": ip.IsMulticast(),
+				"valid":          true,
+				"ip":             ip.String(),
+				"version":        version,
+				"is_loopback":    ip.IsLoopback(),
+				"is_private":     ip.IsPrivate(),
+				"is_global":      ip.IsGlobalUnicast(),
+				"is_multicast":   ip.IsMulticast(),
 				"is_unspecified": ip.IsUnspecified(),
 			}
 			output, _ := json.Marshal(result)

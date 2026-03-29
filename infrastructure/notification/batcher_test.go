@@ -275,8 +275,8 @@ func TestBatcher_DefaultConfig(t *testing.T) {
 func TestBatcher_ConfigDefaults(t *testing.T) {
 	// Test that invalid config values get corrected
 	config := BatcherConfig{
-		MaxBatchSize: 0,  // Invalid
-		MaxWait:      0,  // Invalid
+		MaxBatchSize: 0, // Invalid
+		MaxWait:      0, // Invalid
 		OnBatch:      nil,
 	}
 

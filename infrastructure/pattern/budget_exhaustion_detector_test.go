@@ -284,12 +284,12 @@ func TestBudgetExhaustionDetector_TrendDetection(t *testing.T) {
 
 func TestBudgetExhaustionDetector_Recommendations(t *testing.T) {
 	tests := []struct {
-		name              string
-		exhaustionCount   int
-		totalRuns         int
-		trend             string
-		nearMissCount     int
-		expectContains    string
+		name            string
+		exhaustionCount int
+		totalRuns       int
+		trend           string
+		nearMissCount   int
+		expectContains  string
 	}{
 		{
 			name:            "critical rate",

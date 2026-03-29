@@ -1186,10 +1186,10 @@ func (m *mockProposalStore) Update(ctx context.Context, p *proposal.Proposal) er
 }
 
 type mockVersionStore struct {
-	saveFn       func(ctx context.Context, v *policy.PolicyVersion) error
-	getFn        func(ctx context.Context, version int) (*policy.PolicyVersion, error)
-	getCurrentFn func(ctx context.Context) (*policy.PolicyVersion, error)
-	listFn       func(ctx context.Context) ([]*policy.PolicyVersion, error)
+	saveFn          func(ctx context.Context, v *policy.PolicyVersion) error
+	getFn           func(ctx context.Context, version int) (*policy.PolicyVersion, error)
+	getCurrentFn    func(ctx context.Context) (*policy.PolicyVersion, error)
+	listFn          func(ctx context.Context) ([]*policy.PolicyVersion, error)
 	getByProposalFn func(ctx context.Context, proposalID string) (*policy.PolicyVersion, error)
 }
 

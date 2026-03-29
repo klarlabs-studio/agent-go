@@ -251,10 +251,10 @@ func fewShotTool() tool.Tool {
 					Input  string `json:"input"`
 					Output string `json:"output"`
 				} `json:"examples"`
-				Query         string `json:"query"`
-				InputLabel    string `json:"input_label,omitempty"`
-				OutputLabel   string `json:"output_label,omitempty"`
-				Separator     string `json:"separator,omitempty"`
+				Query       string `json:"query"`
+				InputLabel  string `json:"input_label,omitempty"`
+				OutputLabel string `json:"output_label,omitempty"`
+				Separator   string `json:"separator,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

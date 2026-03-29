@@ -603,8 +603,8 @@ func keygenTool() tool.Tool {
 		ReadOnly().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Type    string `json:"type,omitempty"`    // rsa, ed25519
-				Bits    int    `json:"bits,omitempty"`    // For RSA
+				Type    string `json:"type,omitempty"` // rsa, ed25519
+				Bits    int    `json:"bits,omitempty"` // For RSA
 				Comment string `json:"comment,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {

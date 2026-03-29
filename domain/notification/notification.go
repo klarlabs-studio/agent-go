@@ -11,16 +11,16 @@ type EventType string
 
 // Event types for webhook notifications.
 const (
-	EventRunStarted     EventType = "run.started"
-	EventRunCompleted   EventType = "run.completed"
-	EventRunFailed      EventType = "run.failed"
-	EventRunPaused      EventType = "run.paused"
-	EventStateChanged   EventType = "state.changed"
-	EventToolStarted    EventType = "tool.started"
-	EventToolCompleted  EventType = "tool.completed"
-	EventToolFailed     EventType = "tool.failed"
-	EventApprovalNeeded EventType = "approval.needed"
-	EventBudgetWarning  EventType = "budget.warning"
+	EventRunStarted      EventType = "run.started"
+	EventRunCompleted    EventType = "run.completed"
+	EventRunFailed       EventType = "run.failed"
+	EventRunPaused       EventType = "run.paused"
+	EventStateChanged    EventType = "state.changed"
+	EventToolStarted     EventType = "tool.started"
+	EventToolCompleted   EventType = "tool.completed"
+	EventToolFailed      EventType = "tool.failed"
+	EventApprovalNeeded  EventType = "approval.needed"
+	EventBudgetWarning   EventType = "budget.warning"
 	EventBudgetExhausted EventType = "budget.exhausted"
 )
 

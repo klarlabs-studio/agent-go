@@ -299,8 +299,8 @@ func (d *BudgetExhaustionDetector) createPattern(s *budgetUsageStats, confidence
 	// Add evidence from events
 	for _, evt := range s.events {
 		_ = p.AddEvidence(evt.runID, map[string]any{
-			"timestamp":    evt.timestamp,
-			"budget_name":  evt.budgetName,
+			"timestamp":   evt.timestamp,
+			"budget_name": evt.budgetName,
 		})
 	}
 

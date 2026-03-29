@@ -382,7 +382,7 @@ func (ep *emailPack) emailValidate() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Email    string `json:"email"`
+				Email   string `json:"email"`
 				CheckMX bool   `json:"check_mx,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {

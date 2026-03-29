@@ -1054,11 +1054,11 @@ func linearRegressionTool() tool.Tool {
 			stdErr := math.Sqrt(ssRes / (n - 2))
 
 			result := map[string]any{
-				"slope":      slope,
-				"intercept":  intercept,
-				"r_squared":  rSquared,
-				"std_error":  stdErr,
-				"equation":   map[string]float64{"m": slope, "b": intercept},
+				"slope":     slope,
+				"intercept": intercept,
+				"r_squared": rSquared,
+				"std_error": stdErr,
+				"equation":  map[string]float64{"m": slope, "b": intercept},
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

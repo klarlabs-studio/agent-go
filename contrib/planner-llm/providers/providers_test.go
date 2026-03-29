@@ -620,9 +620,9 @@ func TestBedrock_Complete_TextResponse(t *testing.T) {
 	defer srv.Close()
 
 	p := NewBedrockProvider(BedrockConfig{
-		AccessKeyID:    "AKID",
+		AccessKeyID:     "AKID",
 		SecretAccessKey: "secret",
-		Region:         "us-east-1",
+		Region:          "us-east-1",
 	})
 	// Override the URL by making a request with the test server
 	// Bedrock doesn't use doRequest (uses its own SigV4 HTTP client),

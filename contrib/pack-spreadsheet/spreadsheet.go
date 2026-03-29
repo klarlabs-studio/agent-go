@@ -325,9 +325,9 @@ func (p *spreadsheetPack) appendCSVTool() tool.Tool {
 			}
 
 			result := map[string]interface{}{
-				"path":         params.Path,
-				"rows_added":   len(rows),
-				"success":      true,
+				"path":       params.Path,
+				"rows_added": len(rows),
+				"success":    true,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
@@ -1237,9 +1237,9 @@ func (p *spreadsheetPack) mergeCellsTool() tool.Tool {
 		WithDescription("Merge a range of cells").
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Path    string `json:"path"`
-				Sheet   string `json:"sheet,omitempty"`
-				TopLeft string `json:"top_left"`
+				Path        string `json:"path"`
+				Sheet       string `json:"sheet,omitempty"`
+				TopLeft     string `json:"top_left"`
 				BottomRight string `json:"bottom_right"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
@@ -1286,16 +1286,16 @@ func (p *spreadsheetPack) setCellStyleTool() tool.Tool {
 		WithDescription("Set style for a cell or range").
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Path      string `json:"path"`
-				Sheet     string `json:"sheet,omitempty"`
-				Cell      string `json:"cell,omitempty"`
-				Range     string `json:"range,omitempty"`
-				Bold      bool   `json:"bold,omitempty"`
-				Italic    bool   `json:"italic,omitempty"`
+				Path      string  `json:"path"`
+				Sheet     string  `json:"sheet,omitempty"`
+				Cell      string  `json:"cell,omitempty"`
+				Range     string  `json:"range,omitempty"`
+				Bold      bool    `json:"bold,omitempty"`
+				Italic    bool    `json:"italic,omitempty"`
 				FontSize  float64 `json:"font_size,omitempty"`
-				FontColor string `json:"font_color,omitempty"`
-				FillColor string `json:"fill_color,omitempty"`
-				Alignment string `json:"alignment,omitempty"` // left, center, right
+				FontColor string  `json:"font_color,omitempty"`
+				FillColor string  `json:"fill_color,omitempty"`
+				Alignment string  `json:"alignment,omitempty"` // left, center, right
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, fmt.Errorf("invalid input: %w", err)

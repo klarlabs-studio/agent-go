@@ -89,9 +89,9 @@ func createTool() tool.Tool {
 		WithDescription("Create a rate limiter").
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				ID         string  `json:"id"`
-				Rate       float64 `json:"rate"`       // requests per second
-				Burst      float64 `json:"burst,omitempty"` // max burst size
+				ID    string  `json:"id"`
+				Rate  float64 `json:"rate"`            // requests per second
+				Burst float64 `json:"burst,omitempty"` // max burst size
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -214,9 +214,9 @@ func waitTool() tool.Tool {
 			for time.Now().Before(deadline) {
 				if limiter.allow(count) {
 					result := map[string]any{
-						"id":       params.ID,
-						"allowed":  true,
-						"waited":   time.Since(start).Milliseconds(),
+						"id":      params.ID,
+						"allowed": true,
+						"waited":  time.Since(start).Milliseconds(),
 					}
 					output, _ := json.Marshal(result)
 					return tool.Result{Output: output}, nil
@@ -231,10 +231,10 @@ func waitTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"id":       params.ID,
-				"allowed":  false,
-				"timeout":  true,
-				"waited":   time.Since(start).Milliseconds(),
+				"id":      params.ID,
+				"allowed": false,
+				"timeout": true,
+				"waited":  time.Since(start).Milliseconds(),
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
@@ -453,10 +453,10 @@ func slidingWindowTool() tool.Tool {
 		WithDescription("Create/use a sliding window rate limiter").
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				ID       string `json:"id"`
-				Window   int    `json:"window_seconds,omitempty"`
-				Limit    int    `json:"limit,omitempty"`
-				Consume  bool   `json:"consume,omitempty"`
+				ID      string `json:"id"`
+				Window  int    `json:"window_seconds,omitempty"`
+				Limit   int    `json:"limit,omitempty"`
+				Consume bool   `json:"consume,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -525,10 +525,10 @@ func slidingWindowTool() tool.Tool {
 
 // Fixed window rate limiter data
 type fixedWindow struct {
-	mu         sync.Mutex
-	window     time.Duration
-	limit      int
-	count      int
+	mu          sync.Mutex
+	window      time.Duration
+	limit       int
+	count       int
 	windowStart time.Time
 }
 
@@ -615,8 +615,8 @@ func throttleTool() tool.Tool {
 		WithDescription("Throttle requests with delay").
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				ID         string `json:"id"`
-				MinInterval int   `json:"min_interval_ms,omitempty"`
+				ID          string `json:"id"`
+				MinInterval int    `json:"min_interval_ms,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err

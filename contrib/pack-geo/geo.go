@@ -144,7 +144,7 @@ func bearingTool() tool.Tool {
 
 			// Compass direction
 			directions := []string{"N", "NE", "E", "SE", "S", "SW", "W", "NW"}
-			idx := int((bearing + 22.5) / 45) % 8
+			idx := int((bearing+22.5)/45) % 8
 			compass := directions[idx]
 
 			result := map[string]any{
@@ -540,12 +540,12 @@ func convertCoordTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Lat    float64 `json:"lat,omitempty"`
-				Lon    float64 `json:"lon,omitempty"`
-				X      float64 `json:"x,omitempty"`
-				Y      float64 `json:"y,omitempty"`
-				From   string  `json:"from"` // wgs84, mercator
-				To     string  `json:"to"`
+				Lat  float64 `json:"lat,omitempty"`
+				Lon  float64 `json:"lon,omitempty"`
+				X    float64 `json:"x,omitempty"`
+				Y    float64 `json:"y,omitempty"`
+				From string  `json:"from"` // wgs84, mercator
+				To   string  `json:"to"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -570,7 +570,7 @@ func convertCoordTool() tool.Tool {
 			case "mercator->wgs84":
 				// Web Mercator to WGS84
 				lon := params.X * 180 / 20037508.34
-				lat := math.Atan(math.Exp(params.Y*math.Pi/20037508.34)) * 360 / math.Pi - 90
+				lat := math.Atan(math.Exp(params.Y*math.Pi/20037508.34))*360/math.Pi - 90
 
 				result["lat"] = lat
 				result["lon"] = lon

@@ -18,9 +18,9 @@ import (
 
 // DataFrame represents a tabular data structure with named columns.
 type DataFrame struct {
-	Columns []string                   `json:"columns"`
-	Rows    []map[string]any           `json:"rows"`
-	Types   map[string]string          `json:"types,omitempty"`
+	Columns []string          `json:"columns"`
+	Rows    []map[string]any  `json:"rows"`
+	Types   map[string]string `json:"types,omitempty"`
 }
 
 // Pack returns the dataframe tools pack.
@@ -69,8 +69,8 @@ func createTool() tool.Tool {
 		Idempotent().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Columns []string         `json:"columns"`
-				Rows    [][]any          `json:"rows"`
+				Columns []string `json:"columns"`
+				Rows    [][]any  `json:"rows"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -470,8 +470,8 @@ func sortByTool() tool.Tool {
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
 				DataFrame
-				By         []string `json:"by"`
-				Ascending  []bool   `json:"ascending,omitempty"`
+				By        []string `json:"by"`
+				Ascending []bool   `json:"ascending,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -610,8 +610,8 @@ func aggregateTool() tool.Tool {
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
 				DataFrame
-				GroupBy     []string            `json:"group_by"`
-				Aggregations map[string]string  `json:"aggregations"` // column -> function (sum, avg, min, max, count)
+				GroupBy      []string          `json:"group_by"`
+				Aggregations map[string]string `json:"aggregations"` // column -> function (sum, avg, min, max, count)
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -711,10 +711,10 @@ func joinTool() tool.Tool {
 		Idempotent().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Left    DataFrame `json:"left"`
-				Right   DataFrame `json:"right"`
-				On      []string  `json:"on"`
-				How     string    `json:"how"` // inner, left, right, outer
+				Left  DataFrame `json:"left"`
+				Right DataFrame `json:"right"`
+				On    []string  `json:"on"`
+				How   string    `json:"how"` // inner, left, right, outer
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -893,9 +893,9 @@ func mapColumnTool() tool.Tool {
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
 				DataFrame
-				Column  string            `json:"column"`
-				Mapping map[string]any    `json:"mapping"`
-				Default any               `json:"default,omitempty"`
+				Column  string         `json:"column"`
+				Mapping map[string]any `json:"mapping"`
+				Default any            `json:"default,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -930,8 +930,8 @@ func fillNATool() tool.Tool {
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
 				DataFrame
-				Value     any               `json:"value,omitempty"`
-				PerColumn map[string]any    `json:"per_column,omitempty"`
+				Value     any            `json:"value,omitempty"`
+				PerColumn map[string]any `json:"per_column,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -1289,8 +1289,8 @@ func shapeTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"rows":    len(df.Rows),
-				"columns": len(df.Columns),
+				"rows":         len(df.Rows),
+				"columns":      len(df.Columns),
 				"column_names": df.Columns,
 			}
 

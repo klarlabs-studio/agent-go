@@ -41,18 +41,18 @@ type CalendarProvider interface {
 
 // Event represents a calendar event.
 type Event struct {
-	ID           string            `json:"id,omitempty"`
-	CalendarID   string            `json:"calendar_id,omitempty"`
-	Title        string            `json:"title"`
-	Description  string            `json:"description,omitempty"`
-	Location     string            `json:"location,omitempty"`
-	Start        time.Time         `json:"start"`
-	End          time.Time         `json:"end"`
-	AllDay       bool              `json:"all_day,omitempty"`
-	Attendees    []Attendee        `json:"attendees,omitempty"`
-	Recurrence   string            `json:"recurrence,omitempty"`
-	Status       string            `json:"status,omitempty"`
-	Metadata     map[string]string `json:"metadata,omitempty"`
+	ID          string            `json:"id,omitempty"`
+	CalendarID  string            `json:"calendar_id,omitempty"`
+	Title       string            `json:"title"`
+	Description string            `json:"description,omitempty"`
+	Location    string            `json:"location,omitempty"`
+	Start       time.Time         `json:"start"`
+	End         time.Time         `json:"end"`
+	AllDay      bool              `json:"all_day,omitempty"`
+	Attendees   []Attendee        `json:"attendees,omitempty"`
+	Recurrence  string            `json:"recurrence,omitempty"`
+	Status      string            `json:"status,omitempty"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
 // Attendee represents an event participant.

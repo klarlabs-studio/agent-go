@@ -17,13 +17,13 @@ type Coordinator struct {
 	lock    lock.Lock
 	workers []*Worker
 
-	mu           sync.Mutex
-	running      bool
-	cancel       context.CancelFunc
-	runStates    map[string]*RunState
-	onRunStart   func(runID string)
+	mu            sync.Mutex
+	running       bool
+	cancel        context.CancelFunc
+	runStates     map[string]*RunState
+	onRunStart    func(runID string)
 	onRunComplete func(runID string, result json.RawMessage)
-	onRunFailed  func(runID string, err error)
+	onRunFailed   func(runID string, err error)
 }
 
 // RunState tracks the state of a distributed run.

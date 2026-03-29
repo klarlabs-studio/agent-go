@@ -439,9 +439,9 @@ func stopwordsTool() tool.Tool {
 		Cacheable().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var params struct {
-				Tokens    []string `json:"tokens"`
-				Language  string   `json:"language,omitempty"`
-				Custom    []string `json:"custom_stopwords,omitempty"`
+				Tokens   []string `json:"tokens"`
+				Language string   `json:"language,omitempty"`
+				Custom   []string `json:"custom_stopwords,omitempty"`
 			}
 			if err := json.Unmarshal(input, &params); err != nil {
 				return tool.Result{}, err
@@ -585,9 +585,9 @@ func frequencyTool() tool.Tool {
 			}
 
 			result := map[string]any{
-				"frequencies":   sorted[:topN],
-				"unique_count":  len(freq),
-				"total_count":   total,
+				"frequencies":  sorted[:topN],
+				"unique_count": len(freq),
+				"total_count":  total,
 			}
 			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil

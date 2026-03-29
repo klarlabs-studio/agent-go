@@ -51,9 +51,9 @@ type (
 
 // Re-export export format constants.
 const (
-	FormatJSON    = inspector.FormatJSON
-	FormatDOT     = inspector.FormatDOT
-	FormatMermaid = inspector.FormatMermaid
+	FormatJSON     = inspector.FormatJSON
+	FormatDOT      = inspector.FormatDOT
+	FormatMermaid  = inspector.FormatMermaid
 	FormatTimeline = inspector.FormatTimeline
 )
 

@@ -7,18 +7,18 @@ import (
 	"time"
 
 	"github.com/felixgeelhaar/agent-go/domain/cache"
-	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/api/v3/mvccpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // mockKV implements a mock etcd KV interface for testing
 type mockKV struct {
-	getData    map[string][]byte
-	getErr     error
-	putErr     error
-	deleteErr  error
-	grantErr   error
-	leaseID    clientv3.LeaseID
+	getData   map[string][]byte
+	getErr    error
+	putErr    error
+	deleteErr error
+	grantErr  error
+	leaseID   clientv3.LeaseID
 }
 
 func (m *mockKV) Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error) {

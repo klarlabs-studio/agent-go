@@ -17,8 +17,8 @@ import (
 	infraInspector "github.com/felixgeelhaar/agent-go/infrastructure/inspector"
 	infraPattern "github.com/felixgeelhaar/agent-go/infrastructure/pattern"
 	infraProposal "github.com/felixgeelhaar/agent-go/infrastructure/proposal"
-	infraSuggestion "github.com/felixgeelhaar/agent-go/infrastructure/suggestion"
 	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	infraSuggestion "github.com/felixgeelhaar/agent-go/infrastructure/suggestion"
 )
 
 // TestHorizon3_EndToEnd_FullWorkflow tests the complete governed adaptivity workflow:
