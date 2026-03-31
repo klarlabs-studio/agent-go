@@ -32,12 +32,11 @@ make coverage-report          # Generate detailed report
 make coverage-debt            # Show coverage debt by domain
 coverctl check --fail-under=80
 
-# Security (verdict)
-make security                 # Run all security scans
-make security-sast            # Static analysis security testing
-make security-vuln            # Vulnerability scanning
-make security-secrets         # Secret detection
-verdict scan --path=.
+# Security (nox)
+make security                 # Run nox security scan (high+ severity)
+make security-secrets         # Scan git history for leaked secrets
+make security-diff            # Show new findings vs main branch
+nox scan . --severity-threshold=high
 
 # Release (relicta)
 make release-plan             # Analyze commits, suggest version

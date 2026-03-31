@@ -446,7 +446,7 @@ go test -race ./...
 coverctl check --fail-under=80
 
 # Security scan
-verdict scan
+nox scan . --severity-threshold=high
 
 # Lint
 golangci-lint run ./...
