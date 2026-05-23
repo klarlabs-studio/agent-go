@@ -620,8 +620,19 @@ func (p *slackPack) uploadFileTool() tool.Tool {
 			}
 
 			client := p.getClient()
-			file, err := client.UploadFileContext(ctx, slack.FileUploadParameters{
-				Channels:       in.Channels,
+			// slack-go v0.23 renamed FileUploadParameters to
+			// UploadFileParameters and changed the return type to
+			// *FileSummary (narrower: ID + Title only).
+			// v0.23 collapsed Channels[] to a single Channel field on
+			// the upload params. Pick the first requested channel; the
+			// caller can issue additional shares via files.share if
+			// they need multi-channel uploads.
+			var channel string
+			if len(in.Channels) > 0 {
+				channel = in.Channels[0]
+			}
+			file, err := client.UploadFileContext(ctx, slack.UploadFileParameters{
+				Channel:        channel,
 				Content:        in.Content,
 				Filename:       in.Filename,
 				Title:          in.Title,
@@ -632,12 +643,8 @@ func (p *slackPack) uploadFileTool() tool.Tool {
 			}
 
 			output, _ := json.Marshal(map[string]any{
-				"id":        file.ID,
-				"name":      file.Name,
-				"title":     file.Title,
-				"url":       file.URLPrivate,
-				"permalink": file.Permalink,
-				"size":      file.Size,
+				"id":    file.ID,
+				"title": file.Title,
 			})
 			return tool.Result{Output: output}, nil
 		}).
