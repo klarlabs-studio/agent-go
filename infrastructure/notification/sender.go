@@ -139,7 +139,7 @@ func (s *Sender) SendBatch(ctx context.Context, endpoint *notification.Endpoint,
 
 	// Execute with circuit breaker and retry
 	_, err = breaker.Execute(ctx, func(ctx context.Context) (*http.Response, error) {
-		return s.retrier.Do(ctx, func(ctx context.Context) (*http.Response, error) {
+		return s.retrier.Execute(ctx, func(ctx context.Context) (*http.Response, error) {
 			resp, err := s.client.Do(req)
 			if err != nil {
 				return nil, fmt.Errorf("%w: %v", notification.ErrEndpointUnavailable, err)

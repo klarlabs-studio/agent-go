@@ -60,7 +60,7 @@ func newRateLimiterSet(cfg *RateLimiterConfig) *rateLimiterSet {
 		if burst <= 0 {
 			burst = cfg.GlobalRate
 		}
-		s.global = ratelimit.New(&ratelimit.Config{
+		s.global = ratelimit.New(ratelimit.Config{
 			Rate:     cfg.GlobalRate,
 			Burst:    burst,
 			FailOpen: cfg.FailOpen,
@@ -72,7 +72,7 @@ func newRateLimiterSet(cfg *RateLimiterConfig) *rateLimiterSet {
 		if burst <= 0 {
 			burst = rc.Rate
 		}
-		s.perTool[name] = ratelimit.New(&ratelimit.Config{
+		s.perTool[name] = ratelimit.New(ratelimit.Config{
 			Rate:     rc.Rate,
 			Burst:    burst,
 			FailOpen: cfg.FailOpen,

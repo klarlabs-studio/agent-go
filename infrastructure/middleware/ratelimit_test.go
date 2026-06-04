@@ -65,7 +65,7 @@ func TestRateLimit(t *testing.T) {
 
 	t.Run("blocks_requests_exceeding_limit", func(t *testing.T) {
 		// Create a very restrictive rate limiter
-		limiter := ratelimit.New(&ratelimit.Config{
+		limiter := ratelimit.New(ratelimit.Config{
 			Rate:  1,
 			Burst: 1,
 		})
@@ -91,7 +91,7 @@ func TestRateLimit(t *testing.T) {
 	})
 
 	t.Run("calls_on_limit_exceeded_callback", func(t *testing.T) {
-		limiter := ratelimit.New(&ratelimit.Config{
+		limiter := ratelimit.New(ratelimit.Config{
 			Rate:  1,
 			Burst: 1,
 		})
@@ -124,7 +124,7 @@ func TestRateLimit(t *testing.T) {
 
 func TestRateLimitScope(t *testing.T) {
 	t.Run("scope_global", func(t *testing.T) {
-		limiter := ratelimit.New(&ratelimit.Config{
+		limiter := ratelimit.New(ratelimit.Config{
 			Rate:  1,
 			Burst: 1,
 		})
