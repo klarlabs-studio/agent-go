@@ -92,7 +92,7 @@ func RateLimit(cfg RateLimitConfig) middleware.Middleware {
 		if burst <= 0 {
 			burst = rate
 		}
-		limiter = ratelimit.New(&ratelimit.Config{
+		limiter = ratelimit.New(ratelimit.Config{
 			Rate:     rate,
 			Burst:    burst,
 			FailOpen: cfg.FailOpen,
@@ -208,7 +208,7 @@ func PerToolRateLimit(cfg PerToolRateLimitConfig) middleware.Middleware {
 		if burst <= 0 {
 			burst = rate
 		}
-		limiters[toolName] = ratelimit.New(&ratelimit.Config{
+		limiters[toolName] = ratelimit.New(ratelimit.Config{
 			Rate:     rate,
 			Burst:    burst,
 			FailOpen: cfg.FailOpen,
@@ -216,7 +216,7 @@ func PerToolRateLimit(cfg PerToolRateLimitConfig) middleware.Middleware {
 	}
 
 	// Create default limiter
-	defaultLimiter := ratelimit.New(&ratelimit.Config{
+	defaultLimiter := ratelimit.New(ratelimit.Config{
 		Rate:     defaultRate,
 		Burst:    defaultBurst,
 		FailOpen: cfg.FailOpen,
@@ -300,7 +300,7 @@ func AdaptiveRateLimit(cfg AdaptiveRateLimitConfig) middleware.Middleware {
 	var mu sync.Mutex
 	currentRate := float64(cfg.InitialRate)
 
-	limiter := ratelimit.New(&ratelimit.Config{
+	limiter := ratelimit.New(ratelimit.Config{
 		Rate:     cfg.InitialRate,
 		Burst:    cfg.InitialBurst,
 		FailOpen: cfg.FailOpen,
@@ -330,7 +330,7 @@ func AdaptiveRateLimit(cfg AdaptiveRateLimitConfig) middleware.Middleware {
 				mu.Unlock()
 
 				// Recreate limiter with new rate
-				limiter = ratelimit.New(&ratelimit.Config{
+				limiter = ratelimit.New(ratelimit.Config{
 					Rate:     newRate,
 					Burst:    newRate,
 					FailOpen: cfg.FailOpen,
@@ -365,7 +365,7 @@ func RateLimitWait(cfg RateLimitConfig) middleware.Middleware {
 		if burst <= 0 {
 			burst = rate
 		}
-		limiter = ratelimit.New(&ratelimit.Config{
+		limiter = ratelimit.New(ratelimit.Config{
 			Rate:     rate,
 			Burst:    burst,
 			FailOpen: cfg.FailOpen,

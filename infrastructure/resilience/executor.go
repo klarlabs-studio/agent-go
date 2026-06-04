@@ -213,7 +213,7 @@ func (e *Executor) Execute(ctx context.Context, t tool.Tool, input json.RawMessa
 		cbResult, cbErr := e.breaker.Execute(ctx, func(ctx context.Context) (tool.Result, error) {
 			// Apply retry only for idempotent tools.
 			if t.Annotations().CanRetry() {
-				return e.retry.Do(ctx, func(ctx context.Context) (tool.Result, error) {
+				return e.retry.Execute(ctx, func(ctx context.Context) (tool.Result, error) {
 					return t.Execute(ctx, input)
 				})
 			}
