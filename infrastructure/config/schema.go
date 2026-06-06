@@ -34,7 +34,7 @@ type JSONSchema struct {
 func GenerateSchema() *JSONSchema {
 	return &JSONSchema{
 		Schema:      "https://json-schema.org/draft/2020-12/schema",
-		ID:          "https://github.com/felixgeelhaar/agent-go/agent-config.schema.json",
+		ID:          "https://github.com/klarlabs-studio/agent-go/agent-config.schema.json",
 		Title:       "Agent Configuration",
 		Description: "Configuration schema for agent-go runtime",
 		Type:        "object",

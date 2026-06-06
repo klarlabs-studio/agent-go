@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/pack"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
 	jira "github.com/felixgeelhaar/jirasdk"
 	"github.com/felixgeelhaar/jirasdk/core/agile"
 	"github.com/felixgeelhaar/jirasdk/core/issue"
 	"github.com/felixgeelhaar/jirasdk/core/search"
 	"github.com/felixgeelhaar/jirasdk/core/user"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/pack"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // Config holds Jira connection settings.

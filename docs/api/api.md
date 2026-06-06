@@ -1,10 +1,10 @@
 # Package `api`
 
-**Import path:** `github.com/felixgeelhaar/agent-go/interfaces/api`
+**Import path:** `go.klarlabs.de/agent/interfaces/api`
 
 ## Overview
 
-package api // import "github.com/felixgeelhaar/agent-go/interfaces/api"
+package api // import "go.klarlabs.de/agent/interfaces/api"
 
 Package api provides the public API for the agent-go runtime.
 
@@ -26,7 +26,7 @@ The agent operates within a canonical state graph:
 ## Full API Reference
 
 ```
-package api // import "github.com/felixgeelhaar/agent-go/interfaces/api"
+package api // import "go.klarlabs.de/agent/interfaces/api"
 
 Package api provides the public API for the agent-go runtime.
 

@@ -3,9 +3,9 @@
 package api
 
 import (
-	"github.com/felixgeelhaar/agent-go/domain/metrics"
-	"github.com/felixgeelhaar/agent-go/domain/middleware"
-	inframw "github.com/felixgeelhaar/agent-go/infrastructure/middleware"
+	"go.klarlabs.de/agent/domain/metrics"
+	"go.klarlabs.de/agent/domain/middleware"
+	inframw "go.klarlabs.de/agent/infrastructure/middleware"
 )
 
 // Re-export domain metrics types.

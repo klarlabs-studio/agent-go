@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/felixgeelhaar/bolt/v3"
+	"go.klarlabs.de/bolt"
 )
 
 var (

@@ -18,7 +18,7 @@ etcd is a distributed, reliable key-value store for the most critical data of a 
 ## Installation
 
 ```bash
-go get github.com/felixgeelhaar/agent-go/contrib/storage-etcd
+go get go.klarlabs.de/agent/contrib/storage-etcd
 ```
 
 ## Usage
@@ -30,7 +30,7 @@ import (
     "context"
     "time"
 
-    "github.com/felixgeelhaar/agent-go/contrib/storage-etcd"
+    "go.klarlabs.de/agent/contrib/storage-etcd"
     clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -72,7 +72,7 @@ cache := etcd.NewCacheWithConfig(client, etcd.CacheConfig{
 ### TTL Support
 
 ```go
-import "github.com/felixgeelhaar/agent-go/domain/cache"
+import "go.klarlabs.de/agent/domain/cache"
 
 // Store with 5-minute TTL
 err := cache.Set(ctx, "temporary-key", []byte("value"), cache.SetOptions{

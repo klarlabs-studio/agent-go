@@ -10,9 +10,9 @@ Key principle: **Trust is the product.** Intelligence is constrained by design, 
 
 ### External Libraries
 
-- **[statekit](https://github.com/felixgeelhaar/statekit)** - Statechart execution engine with hierarchical states, guards, actions, and XState JSON export
-- **[fortify](https://github.com/felixgeelhaar/fortify)** - Resilience patterns (circuit breaker, retry, rate limiter, bulkhead, timeout)
-- **[bolt](https://github.com/felixgeelhaar/bolt)** - High-performance zero-allocation structured logging with OpenTelemetry support
+- **[statekit](https://go.klarlabs.de/statekit)** - Statechart execution engine with hierarchical states, guards, actions, and XState JSON export
+- **[fortify](https://go.klarlabs.de/fortify)** - Resilience patterns (circuit breaker, retry, rate limiter, bulkhead, timeout)
+- **[bolt](https://go.klarlabs.de/bolt)** - High-performance zero-allocation structured logging with OpenTelemetry support
 
 ## Development Commands
 
@@ -332,7 +332,7 @@ planner := api.NewScriptedPlanner(
 ## Public API Usage
 
 ```go
-import api "github.com/felixgeelhaar/agent-go/interfaces/api"
+import api "go.klarlabs.de/agent/interfaces/api"
 
 // Create tool
 tool := api.NewToolBuilder("read_file").

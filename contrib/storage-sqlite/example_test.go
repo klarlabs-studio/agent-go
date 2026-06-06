@@ -7,9 +7,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/contrib/storage-sqlite"
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/cache"
+	"go.klarlabs.de/agent/contrib/storage-sqlite"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/cache"
 	_ "modernc.org/sqlite"
 )
 

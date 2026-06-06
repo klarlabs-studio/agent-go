@@ -15,9 +15,9 @@ import (
 
 	"github.com/xuri/excelize/v2"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/pack"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/pack"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // Config holds spreadsheet pack configuration.

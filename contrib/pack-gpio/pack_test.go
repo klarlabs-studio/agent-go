@@ -3,8 +3,8 @@ package gpio_test
 import (
 	"testing"
 
-	gpio "github.com/felixgeelhaar/agent-go/contrib/pack-gpio"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	gpio "go.klarlabs.de/agent/contrib/pack-gpio"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

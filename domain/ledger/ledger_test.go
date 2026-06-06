@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/ledger"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/ledger"
 )
 
 func TestNew(t *testing.T) {

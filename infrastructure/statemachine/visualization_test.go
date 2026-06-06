@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 func TestExportDOT_Canonical(t *testing.T) {

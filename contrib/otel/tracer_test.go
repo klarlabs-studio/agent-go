@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/telemetry"
+	"go.klarlabs.de/agent/domain/telemetry"
 )
 
 func TestTracerProvider(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 func TestNewConfigLoader(t *testing.T) {

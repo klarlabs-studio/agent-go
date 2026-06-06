@@ -3,8 +3,8 @@ package mqtt_test
 import (
 	"testing"
 
-	mqtt "github.com/felixgeelhaar/agent-go/contrib/pack-mqtt"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	mqtt "go.klarlabs.de/agent/contrib/pack-mqtt"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

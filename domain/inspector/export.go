@@ -4,7 +4,7 @@ package inspector
 import (
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // ExportFormat identifies the export format.

@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	infraconfig "github.com/felixgeelhaar/agent-go/infrastructure/config"
+	infraconfig "go.klarlabs.de/agent/infrastructure/config"
 )
 
 func newValidateCmd() *cobra.Command {

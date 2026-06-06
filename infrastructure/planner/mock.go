@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/policy"
 )
 
 // ToolDef describes a tool available for planning decisions.

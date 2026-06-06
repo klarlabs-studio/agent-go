@@ -4,9 +4,9 @@ package inspector
 import (
 	"context"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/inspector"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/inspector"
+	"go.klarlabs.de/agent/domain/policy"
 )
 
 // StateMachineExporter exports state machine data.

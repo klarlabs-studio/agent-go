@@ -77,7 +77,7 @@ Worker 1:
 ### Memory Queue (Development)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/distributed"
+import "go.klarlabs.de/agent/contrib/distributed"
 
 q := distributed.NewMemoryQueue()
 ```
@@ -85,7 +85,7 @@ q := distributed.NewMemoryQueue()
 ### Redis Queue (Production)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/distributed/redis"
+import "go.klarlabs.de/agent/contrib/distributed/redis"
 
 q, _ := redis.NewQueue(
     redis.WithAddress("localhost:6379"),
@@ -97,7 +97,7 @@ q, _ := redis.NewQueue(
 ### NATS Queue (High Throughput)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/distributed/nats"
+import "go.klarlabs.de/agent/contrib/distributed/nats"
 
 q, _ := nats.NewQueue(
     nats.WithURL("nats://localhost:4222"),
@@ -110,7 +110,7 @@ q, _ := nats.NewQueue(
 ### Memory Lock (Development)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/distributed"
+import "go.klarlabs.de/agent/contrib/distributed"
 
 l := distributed.NewMemoryLock()
 ```
@@ -118,7 +118,7 @@ l := distributed.NewMemoryLock()
 ### Redis Lock (Production)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/distributed/redis"
+import "go.klarlabs.de/agent/contrib/distributed/redis"
 
 l, _ := redis.NewLock(
     redis.WithAddress("localhost:6379"),

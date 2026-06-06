@@ -10,12 +10,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	domainconfig "github.com/felixgeelhaar/agent-go/domain/config"
-	"github.com/felixgeelhaar/agent-go/domain/event"
-	infraconfig "github.com/felixgeelhaar/agent-go/infrastructure/config"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/agent"
+	domainconfig "go.klarlabs.de/agent/domain/config"
+	"go.klarlabs.de/agent/domain/event"
+	infraconfig "go.klarlabs.de/agent/infrastructure/config"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 func newRunCmd() *cobra.Command {

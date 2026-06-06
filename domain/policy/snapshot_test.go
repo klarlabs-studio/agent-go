@@ -3,8 +3,8 @@ package policy_test
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/policy"
 )
 
 func TestEligibilitySnapshot(t *testing.T) {

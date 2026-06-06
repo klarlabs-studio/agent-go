@@ -1,7 +1,7 @@
 # agent-go
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/felixgeelhaar/agent-go.svg)](https://pkg.go.dev/github.com/felixgeelhaar/agent-go)
-[![Go Report Card](https://goreportcard.com/badge/github.com/felixgeelhaar/agent-go)](https://goreportcard.com/report/github.com/felixgeelhaar/agent-go)
+[![Go Reference](https://pkg.go.dev/badge/go.klarlabs.de/agent.svg)](https://pkg.go.dev/go.klarlabs.de/agent)
+[![Go Report Card](https://goreportcard.com/badge/go.klarlabs.de/agent)](https://goreportcard.com/report/go.klarlabs.de/agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Build trustworthy AI agents in Go.** A state-driven runtime where intelligence is constrained by design, not hope. Works great for a **single agent** — scales to **multi-agent systems** when you're ready.
@@ -87,7 +87,7 @@ contrib/            → 134 optional modules (storage, tools, enhancements)
 ### Installation
 
 ```bash
-go get github.com/felixgeelhaar/agent-go
+go get go.klarlabs.de/agent
 ```
 
 ### Your First Agent (5 minutes)
@@ -101,8 +101,8 @@ import (
     "fmt"
     "log"
 
-    agent "github.com/felixgeelhaar/agent-go/interfaces/api"
-    "github.com/felixgeelhaar/agent-go/domain/tool"
+    agent "go.klarlabs.de/agent/interfaces/api"
+    "go.klarlabs.de/agent/domain/tool"
 )
 
 func main() {
@@ -253,10 +253,10 @@ engine, _ := agent.New(
 Pluggable providers for all major LLMs (via contrib modules):
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/planner-llm/providers/anthropic"
-import "github.com/felixgeelhaar/agent-go/contrib/planner-llm/providers/openai"
-import "github.com/felixgeelhaar/agent-go/contrib/planner-llm/providers/gemini"
-import "github.com/felixgeelhaar/agent-go/contrib/planner-llm/providers/ollama"
+import "go.klarlabs.de/agent/contrib/planner-llm/providers/anthropic"
+import "go.klarlabs.de/agent/contrib/planner-llm/providers/openai"
+import "go.klarlabs.de/agent/contrib/planner-llm/providers/gemini"
+import "go.klarlabs.de/agent/contrib/planner-llm/providers/ollama"
 
 // Each provider implements the same interface
 provider, _ := anthropic.New(anthropic.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")))
@@ -270,10 +270,10 @@ provider, _ := ollama.New(ollama.WithBaseURL("http://localhost:11434"))
 Pre-built tool collections for common domains (94 packs available via contrib modules):
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/pack-database"
-import "github.com/felixgeelhaar/agent-go/contrib/pack-git"
-import "github.com/felixgeelhaar/agent-go/contrib/pack-kubernetes"
-import "github.com/felixgeelhaar/agent-go/contrib/pack-cloud"
+import "go.klarlabs.de/agent/contrib/pack-database"
+import "go.klarlabs.de/agent/contrib/pack-git"
+import "go.klarlabs.de/agent/contrib/pack-kubernetes"
+import "go.klarlabs.de/agent/contrib/pack-cloud"
 
 // Database: query, execute, schema inspection
 dbPack := database.New(db, database.WithMaxRows(1000))
@@ -295,7 +295,7 @@ cloudPack := cloud.New(provider, cloud.WithBucket("my-bucket"))
 OpenTelemetry integration for traces and metrics (via contrib/otel):
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/otel"
+import "go.klarlabs.de/agent/contrib/otel"
 
 tracer, _ := otel.NewTracer("my-agent",
     otel.WithOTLPEndpoint("localhost:4317"),
@@ -314,8 +314,8 @@ engine, _ := agent.New(
 Input validation, secret management, and audit logging (via contrib packs):
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/pack-validate"
-import "github.com/felixgeelhaar/agent-go/contrib/pack-secrets"
+import "go.klarlabs.de/agent/contrib/pack-validate"
+import "go.klarlabs.de/agent/contrib/pack-secrets"
 
 // Validate tool inputs with pack-validate
 validator := validate.NewValidator(
@@ -332,7 +332,7 @@ secretMgr := secrets.NewEnvManager(secrets.WithPrefix("AGENT_"))
 Scale across multiple workers (via contrib/distributed):
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/distributed"
+import "go.klarlabs.de/agent/contrib/distributed"
 
 // Create queue (memory for dev, Redis/NATS for prod)
 q := distributed.NewMemoryQueue()
@@ -411,7 +411,7 @@ agent-go/
 - **[Architecture](docs/architecture/)** - DDD structure, layer responsibilities
 - **[Integration Guides](docs/integrations/)** - LLM providers, packs, security
 - **[Examples](example/)** - Progressive examples from minimal to production
-- **[API Reference](https://pkg.go.dev/github.com/felixgeelhaar/agent-go)** - GoDoc
+- **[API Reference](https://pkg.go.dev/go.klarlabs.de/agent)** - GoDoc
 
 ---
 
@@ -457,9 +457,9 @@ golangci-lint run ./...
 ## Dependencies
 
 **Core module** (lean, ~15 dependencies):
-- **[statekit](https://github.com/felixgeelhaar/statekit)** - Statechart execution engine
-- **[fortify](https://github.com/felixgeelhaar/fortify)** - Resilience patterns (circuit breaker, retry)
-- **[bolt](https://github.com/felixgeelhaar/bolt)** - High-performance structured logging
+- **[statekit](https://go.klarlabs.de/statekit)** - Statechart execution engine
+- **[fortify](https://go.klarlabs.de/fortify)** - Resilience patterns (circuit breaker, retry)
+- **[bolt](https://go.klarlabs.de/bolt)** - High-performance structured logging
 - Standard library for everything else
 
 **Contrib modules** add dependencies only when imported:

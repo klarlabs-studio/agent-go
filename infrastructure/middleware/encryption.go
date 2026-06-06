@@ -11,8 +11,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // EncryptionConfig configures the encryption middleware.

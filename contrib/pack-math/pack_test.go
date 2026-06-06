@@ -6,8 +6,8 @@ import (
 	"math"
 	"testing"
 
-	mathutil "github.com/felixgeelhaar/agent-go/contrib/pack-math"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	mathutil "go.klarlabs.de/agent/contrib/pack-math"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

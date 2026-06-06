@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/knowledge"
+	"go.klarlabs.de/agent/domain/knowledge"
 )
 
 // KnowledgeStore is a SQLite-backed implementation of knowledge.Store.

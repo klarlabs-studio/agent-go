@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/felixgeelhaar/agent-go/contrib/pack-notification"
+	"go.klarlabs.de/agent/contrib/pack-notification"
 )
 
 // ExamplePack demonstrates basic usage of the notification pack.

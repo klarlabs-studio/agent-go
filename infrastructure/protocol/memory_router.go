@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	domainprotocol "github.com/felixgeelhaar/agent-go/domain/protocol"
+	domainprotocol "go.klarlabs.de/agent/domain/protocol"
 )
 
 // MemoryRouter is an in-process message router for agent communication.

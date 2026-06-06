@@ -3,8 +3,8 @@ package image_test
 import (
 	"testing"
 
-	packimage "github.com/felixgeelhaar/agent-go/contrib/pack-image"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	packimage "go.klarlabs.de/agent/contrib/pack-image"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

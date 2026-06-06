@@ -23,9 +23,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/pack"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/pack"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // emailRegexp is a basic email validation pattern.

@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/event"
-	"github.com/felixgeelhaar/agent-go/domain/pattern"
-	"github.com/felixgeelhaar/agent-go/domain/run"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/event"
+	"go.klarlabs.de/agent/domain/pattern"
+	"go.klarlabs.de/agent/domain/run"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // ToolPreferenceDetector detects over/under-used tools.

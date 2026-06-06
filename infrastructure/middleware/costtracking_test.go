@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	domainmw "github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	mw "github.com/felixgeelhaar/agent-go/infrastructure/middleware"
+	"go.klarlabs.de/agent/domain/agent"
+	domainmw "go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/tool"
+	mw "go.klarlabs.de/agent/infrastructure/middleware"
 )
 
 var errTestCost = errors.New("test error")

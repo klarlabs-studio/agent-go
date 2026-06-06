@@ -1,7 +1,7 @@
-module github.com/felixgeelhaar/agent-go/contrib/planner-llm
+module go.klarlabs.de/agent/contrib/planner-llm
 
 go 1.25.0
 
-require github.com/felixgeelhaar/agent-go v0.6.0
+require go.klarlabs.de/agent v0.6.0
 
-replace github.com/felixgeelhaar/agent-go => ../..
+replace go.klarlabs.de/agent => ../..

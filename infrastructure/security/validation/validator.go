@@ -10,8 +10,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // Validator validates input against a schema with rules.

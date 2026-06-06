@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	domainconfig "github.com/felixgeelhaar/agent-go/domain/config"
-	"github.com/felixgeelhaar/agent-go/domain/notification"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	infranotif "github.com/felixgeelhaar/agent-go/infrastructure/notification"
+	"go.klarlabs.de/agent/domain/agent"
+	domainconfig "go.klarlabs.de/agent/domain/config"
+	"go.klarlabs.de/agent/domain/notification"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/tool"
+	infranotif "go.klarlabs.de/agent/infrastructure/notification"
 )
 
 // Builder builds engine options from configuration.

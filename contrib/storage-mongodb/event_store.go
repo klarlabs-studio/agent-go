@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/event"
 	"github.com/google/uuid"
+	"go.klarlabs.de/agent/domain/event"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"

@@ -1,10 +1,10 @@
-module github.com/felixgeelhaar/agent-go/contrib/pack-qrcode
+module go.klarlabs.de/agent/contrib/pack-qrcode
 
 go 1.25.0
 
 require (
-	github.com/felixgeelhaar/agent-go v0.0.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
+	go.klarlabs.de/agent v0.0.0
 )
 
-replace github.com/felixgeelhaar/agent-go => ../..
+replace go.klarlabs.de/agent => ../..

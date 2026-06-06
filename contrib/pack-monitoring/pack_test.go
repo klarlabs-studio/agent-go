@@ -3,8 +3,8 @@ package monitoring_test
 import (
 	"testing"
 
-	monitoring "github.com/felixgeelhaar/agent-go/contrib/pack-monitoring"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	monitoring "go.klarlabs.de/agent/contrib/pack-monitoring"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/domain/tool"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 func createTestTool(name string, readonly bool) tool.Tool {

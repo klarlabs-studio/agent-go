@@ -3,9 +3,9 @@ package middleware
 import (
 	"context"
 
-	"github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // BudgetConfig configures the budget middleware.

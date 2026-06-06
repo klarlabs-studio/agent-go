@@ -6,8 +6,8 @@ import (
 	"errors"
 	"sync"
 
-	dcache "github.com/felixgeelhaar/agent-go/domain/cache"
 	"github.com/redis/go-redis/v9"
+	dcache "go.klarlabs.de/agent/domain/cache"
 )
 
 const (

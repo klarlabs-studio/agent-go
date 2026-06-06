@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // Analytics provides aggregate insights across runs.

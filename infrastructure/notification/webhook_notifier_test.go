@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/notification"
+	"go.klarlabs.de/agent/domain/notification"
 )
 
 func TestWebhookNotifier_Notify(t *testing.T) {

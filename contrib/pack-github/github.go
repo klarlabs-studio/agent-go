@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/pack"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
 	"github.com/google/go-github/v68/github"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/pack"
+	"go.klarlabs.de/agent/domain/tool"
 	"golang.org/x/oauth2"
 )
 

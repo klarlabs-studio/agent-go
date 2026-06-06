@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // Ledger provides an append-only record of all actions during a run.

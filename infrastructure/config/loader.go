@@ -11,7 +11,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/felixgeelhaar/agent-go/domain/config"
+	"go.klarlabs.de/agent/domain/config"
 )
 
 // Loader loads agent configuration from files.

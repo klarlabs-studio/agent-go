@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"time"
 
-	plannerllm "github.com/felixgeelhaar/agent-go/contrib/planner-llm"
+	plannerllm "go.klarlabs.de/agent/contrib/planner-llm"
 )
 
 // Common errors for providers.

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // Rule defines a condition-decision pair for the rule-based planner.

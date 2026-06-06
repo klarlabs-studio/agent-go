@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // mockTool implements tool.Tool for testing.

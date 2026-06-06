@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	git "github.com/felixgeelhaar/agent-go/contrib/pack-git"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	git "go.klarlabs.de/agent/contrib/pack-git"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

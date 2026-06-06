@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/tool"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 // FetchURLInput is the input schema for the fetch_url tool.

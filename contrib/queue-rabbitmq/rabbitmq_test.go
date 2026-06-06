@@ -3,7 +3,7 @@ package rabbitmq
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/infrastructure/distributed/queue"
+	"go.klarlabs.de/agent/infrastructure/distributed/queue"
 )
 
 func TestDefaultConfig(t *testing.T) {

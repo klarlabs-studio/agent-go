@@ -6,9 +6,6 @@ use (
 	./contrib/approval-cli
 	./contrib/approval-slack
 	./contrib/approval-webhook
-	./contrib/queue-kafka
-	./contrib/queue-rabbitmq
-	./contrib/sandbox-wasm
 	./contrib/dashboard
 	./contrib/distributed
 	./contrib/mcp
@@ -21,15 +18,15 @@ use (
 	./contrib/pack-audio
 	./contrib/pack-base64
 	./contrib/pack-browser
-	./contrib/pack-calendar
 	./contrib/pack-cache
+	./contrib/pack-calendar
 	./contrib/pack-case
 	./contrib/pack-changelog
 	./contrib/pack-chart
 	./contrib/pack-chunker
 	./contrib/pack-ci
-	./contrib/pack-code
 	./contrib/pack-cloud
+	./contrib/pack-code
 	./contrib/pack-collection
 	./contrib/pack-color
 	./contrib/pack-compression
@@ -44,9 +41,9 @@ use (
 	./contrib/pack-database
 	./contrib/pack-dataframe
 	./contrib/pack-diff
-	./contrib/pack-docs
 	./contrib/pack-dns
 	./contrib/pack-docker
+	./contrib/pack-docs
 	./contrib/pack-email
 	./contrib/pack-embeddings
 	./contrib/pack-emoji
@@ -80,22 +77,22 @@ use (
 	./contrib/pack-metrics
 	./contrib/pack-mime
 	./contrib/pack-model
-	./contrib/pack-mqtt
 	./contrib/pack-monitoring
+	./contrib/pack-mqtt
 	./contrib/pack-network
 	./contrib/pack-notification
 	./contrib/pack-ocr
 	./contrib/pack-openapi
 	./contrib/pack-password
-	./contrib/pack-payments
 	./contrib/pack-path
+	./contrib/pack-payments
 	./contrib/pack-pdf
 	./contrib/pack-phone
 	./contrib/pack-pluralize
 	./contrib/pack-process
 	./contrib/pack-prompt
-	./contrib/pack-rag
 	./contrib/pack-qrcode
+	./contrib/pack-rag
 	./contrib/pack-random
 	./contrib/pack-rate
 	./contrib/pack-regex
@@ -133,6 +130,9 @@ use (
 	./contrib/pack-xml
 	./contrib/pack-yaml
 	./contrib/planner-llm
+	./contrib/queue-kafka
+	./contrib/queue-rabbitmq
+	./contrib/sandbox-wasm
 	./contrib/storage-badger
 	./contrib/storage-dynamodb
 	./contrib/storage-etcd

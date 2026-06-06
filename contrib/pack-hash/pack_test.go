@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	hash "github.com/felixgeelhaar/agent-go/contrib/pack-hash"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	hash "go.klarlabs.de/agent/contrib/pack-hash"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

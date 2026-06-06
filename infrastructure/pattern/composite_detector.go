@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/felixgeelhaar/agent-go/domain/pattern"
+	"go.klarlabs.de/agent/domain/pattern"
 )
 
 // CompositeDetector combines multiple detectors.

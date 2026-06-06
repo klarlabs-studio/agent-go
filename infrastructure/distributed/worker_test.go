@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/infrastructure/distributed/lock"
-	"github.com/felixgeelhaar/agent-go/infrastructure/distributed/queue"
+	"go.klarlabs.de/agent/infrastructure/distributed/lock"
+	"go.klarlabs.de/agent/infrastructure/distributed/queue"
 )
 
 func TestWorkerStartStop(t *testing.T) {

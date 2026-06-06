@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // BudgetView provides read-only access to budget state.

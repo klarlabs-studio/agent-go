@@ -4,7 +4,7 @@ package inspector
 import (
 	"encoding/json"
 
-	"github.com/felixgeelhaar/agent-go/domain/inspector"
+	"go.klarlabs.de/agent/domain/inspector"
 )
 
 // JSONFormatter formats data as JSON.

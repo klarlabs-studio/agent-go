@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // Intent represents a tool execution intent in simulation mode.

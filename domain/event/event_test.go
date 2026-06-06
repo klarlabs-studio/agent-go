@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/event"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/event"
 )
 
 func TestNewEvent(t *testing.T) {

@@ -1,17 +1,17 @@
 # Package `pack`
 
-**Import path:** `github.com/felixgeelhaar/agent-go/domain/pack`
+**Import path:** `go.klarlabs.de/agent/domain/pack`
 
 ## Overview
 
-package pack // import "github.com/felixgeelhaar/agent-go/domain/pack"
+package pack // import "go.klarlabs.de/agent/domain/pack"
 
 Package pack provides types for reusable tool collections.
 
 ## Full API Reference
 
 ```
-package pack // import "github.com/felixgeelhaar/agent-go/domain/pack"
+package pack // import "go.klarlabs.de/agent/domain/pack"
 
 Package pack provides types for reusable tool collections.
 

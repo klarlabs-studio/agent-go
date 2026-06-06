@@ -7,7 +7,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"go.klarlabs.de/agent/domain/policy"
 )
 
 // ErrVersionNotFound indicates the policy version was not found.

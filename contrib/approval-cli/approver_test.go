@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/policy"
 	"github.com/stretchr/testify/require"
+	"go.klarlabs.de/agent/domain/policy"
 )
 
 func TestNew(t *testing.T) {

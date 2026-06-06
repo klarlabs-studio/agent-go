@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // Adapter bridges agent-go tools with Copilot SDK sessions.

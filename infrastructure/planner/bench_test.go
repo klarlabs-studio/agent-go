@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // BenchmarkRuleBasedPlanner_SmallRuleSet benchmarks a planner with 5 rules.

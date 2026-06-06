@@ -3,8 +3,8 @@ package fuzzy_test
 import (
 	"testing"
 
-	fuzzy "github.com/felixgeelhaar/agent-go/contrib/pack-fuzzy"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	fuzzy "go.klarlabs.de/agent/contrib/pack-fuzzy"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

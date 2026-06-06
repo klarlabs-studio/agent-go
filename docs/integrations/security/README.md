@@ -6,9 +6,9 @@ agent-go provides security infrastructure for input validation, secret managemen
 
 ```go
 import (
-    "github.com/felixgeelhaar/agent-go/infrastructure/security/validation"
-    "github.com/felixgeelhaar/agent-go/infrastructure/security/audit"
-    "github.com/felixgeelhaar/agent-go/infrastructure/security/secrets"
+    "go.klarlabs.de/agent/infrastructure/security/validation"
+    "go.klarlabs.de/agent/infrastructure/security/audit"
+    "go.klarlabs.de/agent/infrastructure/security/secrets"
 )
 
 // Input validation schema
@@ -41,7 +41,7 @@ The validation package prevents malicious or malformed input from reaching tools
 ### Creating Schemas
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/security/validation"
+import "go.klarlabs.de/agent/infrastructure/security/validation"
 
 schema := validation.NewSchema().
     AddRule("field_name", validation.Required()).
@@ -129,7 +129,7 @@ The audit package provides comprehensive logging of security-relevant events.
 ### Creating Loggers
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/security/audit"
+import "go.klarlabs.de/agent/infrastructure/security/audit"
 
 // JSON logger to stdout
 jsonLogger := audit.NewJSONLogger(os.Stdout)
@@ -222,7 +222,7 @@ type SecretManager interface {
 ### Environment Variable Secrets
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/security/secrets"
+import "go.klarlabs.de/agent/infrastructure/security/secrets"
 
 // Load from environment variables
 envManager := secrets.NewEnvManager(secrets.EnvConfig{

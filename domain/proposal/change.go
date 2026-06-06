@@ -4,7 +4,7 @@ package proposal
 import (
 	"encoding/json"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // ChangeType classifies policy changes.

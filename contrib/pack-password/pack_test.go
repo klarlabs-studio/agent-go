@@ -3,8 +3,8 @@ package password_test
 import (
 	"testing"
 
-	password "github.com/felixgeelhaar/agent-go/contrib/pack-password"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	password "go.klarlabs.de/agent/contrib/pack-password"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

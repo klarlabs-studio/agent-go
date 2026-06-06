@@ -3,8 +3,8 @@ package grpc_test
 import (
 	"testing"
 
-	grpc "github.com/felixgeelhaar/agent-go/contrib/pack-grpc"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	grpc "go.klarlabs.de/agent/contrib/pack-grpc"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

@@ -3,8 +3,8 @@ package openapi_test
 import (
 	"testing"
 
-	openapi "github.com/felixgeelhaar/agent-go/contrib/pack-openapi"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	openapi "go.klarlabs.de/agent/contrib/pack-openapi"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

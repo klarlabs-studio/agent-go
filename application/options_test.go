@@ -3,12 +3,12 @@ package application_test
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/application"
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/infrastructure/planner"
-	"github.com/felixgeelhaar/agent-go/infrastructure/resilience"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/application"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/infrastructure/planner"
+	"go.klarlabs.de/agent/infrastructure/resilience"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 func TestWithRegistry(t *testing.T) {

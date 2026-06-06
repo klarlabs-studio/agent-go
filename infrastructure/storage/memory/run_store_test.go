@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/run"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/run"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 func TestNewRunStore(t *testing.T) {

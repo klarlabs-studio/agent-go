@@ -4,13 +4,13 @@ package api
 import (
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/cache"
-	"github.com/felixgeelhaar/agent-go/domain/ledger"
-	"github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	inframw "github.com/felixgeelhaar/agent-go/infrastructure/middleware"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/domain/cache"
+	"go.klarlabs.de/agent/domain/ledger"
+	"go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/tool"
+	inframw "go.klarlabs.de/agent/infrastructure/middleware"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 // Re-export middleware types for convenience.

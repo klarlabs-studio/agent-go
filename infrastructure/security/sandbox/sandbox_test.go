@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	"github.com/felixgeelhaar/agent-go/infrastructure/security/sandbox"
+	"go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/tool"
+	"go.klarlabs.de/agent/infrastructure/security/sandbox"
 )
 
 // mockTool is a simple tool for testing.

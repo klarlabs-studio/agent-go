@@ -1,17 +1,17 @@
 # Package `ledger`
 
-**Import path:** `github.com/felixgeelhaar/agent-go/domain/ledger`
+**Import path:** `go.klarlabs.de/agent/domain/ledger`
 
 ## Overview
 
-package ledger // import "github.com/felixgeelhaar/agent-go/domain/ledger"
+package ledger // import "go.klarlabs.de/agent/domain/ledger"
 
 Package ledger provides domain models for audit trail recording.
 
 ## Full API Reference
 
 ```
-package ledger // import "github.com/felixgeelhaar/agent-go/domain/ledger"
+package ledger // import "go.klarlabs.de/agent/domain/ledger"
 
 Package ledger provides domain models for audit trail recording.
 

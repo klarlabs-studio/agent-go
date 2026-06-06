@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // repoDir extracts the repo_dir field from input, defaulting to ".".

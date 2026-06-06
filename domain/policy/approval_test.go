@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"go.klarlabs.de/agent/domain/policy"
 )
 
 func TestAutoApprover(t *testing.T) {

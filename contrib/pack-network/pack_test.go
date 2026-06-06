@@ -3,8 +3,8 @@ package network_test
 import (
 	"testing"
 
-	network "github.com/felixgeelhaar/agent-go/contrib/pack-network"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	network "go.klarlabs.de/agent/contrib/pack-network"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

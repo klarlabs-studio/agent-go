@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/artifact"
+	"go.klarlabs.de/agent/domain/artifact"
 )
 
 // ArtifactStore implements artifact.Store using the local filesystem.

@@ -3,8 +3,8 @@ package ip_test
 import (
 	"testing"
 
-	ip "github.com/felixgeelhaar/agent-go/contrib/pack-ip"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	ip "go.klarlabs.de/agent/contrib/pack-ip"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

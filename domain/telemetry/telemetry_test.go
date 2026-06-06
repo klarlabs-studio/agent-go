@@ -3,7 +3,7 @@ package telemetry_test
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/telemetry"
+	"go.klarlabs.de/agent/domain/telemetry"
 )
 
 func TestWithAttributes(t *testing.T) {

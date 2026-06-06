@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/notification"
+	"go.klarlabs.de/agent/domain/notification"
 )
 
 func newTestEvent(runID string) *notification.Event {

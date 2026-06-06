@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/tool"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 // MockInfrastructure simulates a monitoring backend.

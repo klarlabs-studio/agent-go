@@ -6,11 +6,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	"github.com/felixgeelhaar/agent-go/infrastructure/planner"
-	"github.com/felixgeelhaar/agent-go/infrastructure/resilience"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/filesystem"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/tool"
+	"go.klarlabs.de/agent/infrastructure/planner"
+	"go.klarlabs.de/agent/infrastructure/resilience"
+	"go.klarlabs.de/agent/infrastructure/storage/filesystem"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 func TestNew(t *testing.T) {

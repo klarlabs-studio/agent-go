@@ -186,7 +186,7 @@ Implements interfaces defined in the domain layer and integrates external librar
 
 #### State Machine (`infrastructure/statemachine/`)
 
-Integrates with [statekit](https://github.com/felixgeelhaar/statekit) for state management.
+Integrates with [statekit](https://go.klarlabs.de/statekit) for state management.
 
 ```go
 // Context carries run state through the machine
@@ -227,7 +227,7 @@ func (i *Interpreter) IsTerminal() bool
 
 #### Resilience (`infrastructure/resilience/`)
 
-Integrates with [fortify](https://github.com/felixgeelhaar/fortify) for fault tolerance.
+Integrates with [fortify](https://go.klarlabs.de/fortify) for fault tolerance.
 
 ```go
 type Executor struct {
@@ -253,7 +253,7 @@ func (e *Executor) Execute(ctx context.Context, t tool.Tool, input json.RawMessa
 
 #### Logging (`infrastructure/logging/`)
 
-Integrates with [bolt](https://github.com/felixgeelhaar/bolt) for structured logging.
+Integrates with [bolt](https://go.klarlabs.de/bolt) for structured logging.
 
 ```go
 // Field helpers for consistent log structure

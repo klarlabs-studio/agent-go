@@ -16,9 +16,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/infrastructure/logging"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/infrastructure/logging"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 func main() {

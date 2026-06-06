@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	"github.com/felixgeelhaar/agent-go/infrastructure/distributed"
-	"github.com/felixgeelhaar/agent-go/infrastructure/distributed/lock"
-	"github.com/felixgeelhaar/agent-go/infrastructure/distributed/queue"
-	agent "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/tool"
+	"go.klarlabs.de/agent/infrastructure/distributed"
+	"go.klarlabs.de/agent/infrastructure/distributed/lock"
+	"go.klarlabs.de/agent/infrastructure/distributed/queue"
+	agent "go.klarlabs.de/agent/interfaces/api"
 )
 
 // contextKey is a custom type for context keys to avoid collisions.

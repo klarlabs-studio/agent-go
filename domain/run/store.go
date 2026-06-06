@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // Store defines the interface for run persistence.

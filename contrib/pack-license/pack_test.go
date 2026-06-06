@@ -3,8 +3,8 @@ package license_test
 import (
 	"testing"
 
-	license "github.com/felixgeelhaar/agent-go/contrib/pack-license"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	license "go.klarlabs.de/agent/contrib/pack-license"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

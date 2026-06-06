@@ -2,7 +2,7 @@
 package suggestion
 
 import (
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // SuggestionType classifies suggestions.

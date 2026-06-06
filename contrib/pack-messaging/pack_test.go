@@ -3,8 +3,8 @@ package messaging_test
 import (
 	"testing"
 
-	messaging "github.com/felixgeelhaar/agent-go/contrib/pack-messaging"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	messaging "go.klarlabs.de/agent/contrib/pack-messaging"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

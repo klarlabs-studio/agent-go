@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/felixgeelhaar/agent-go/domain/inspector"
+	"go.klarlabs.de/agent/domain/inspector"
 )
 
 // PrometheusFormatter formats metrics data in Prometheus exposition format.

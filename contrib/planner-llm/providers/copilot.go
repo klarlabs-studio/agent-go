@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	plannerllm "github.com/felixgeelhaar/agent-go/contrib/planner-llm"
+	plannerllm "go.klarlabs.de/agent/contrib/planner-llm"
 )
 
 // CopilotConfig configures the GitHub Copilot provider.

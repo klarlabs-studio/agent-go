@@ -158,16 +158,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Dependencies
 - Go 1.25.5+
-- github.com/felixgeelhaar/statekit v1.0.1
-- github.com/felixgeelhaar/fortify v1.1.2
-- github.com/felixgeelhaar/bolt/v3 v3.1.2
+- go.klarlabs.de/statekit v1.0.1
+- go.klarlabs.de/fortify v1.1.2
+- go.klarlabs.de/bolt v3.1.2
 - github.com/felixgeelhaar/mcp-go v1.5.0
 - github.com/tetratelabs/wazero v1.11.0
 - go.opentelemetry.io/otel v1.39.0
 - And various cloud SDKs (AWS, GCP, Azure)
 
-[unreleased]: https://github.com/felixgeelhaar/agent-go/compare/v0.7.0...HEAD
-[0.7.0]: https://github.com/felixgeelhaar/agent-go/compare/v0.6.0...v0.7.0
-[0.6.0]: https://github.com/felixgeelhaar/agent-go/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/felixgeelhaar/agent-go/compare/v0.1.0...v0.5.0
-[0.1.0]: https://github.com/felixgeelhaar/agent-go/releases/tag/v0.1.0
+[unreleased]: https://github.com/klarlabs-studio/agent-go/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/klarlabs-studio/agent-go/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/klarlabs-studio/agent-go/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/klarlabs-studio/agent-go/compare/v0.1.0...v0.5.0
+[0.1.0]: https://github.com/klarlabs-studio/agent-go/releases/tag/v0.1.0

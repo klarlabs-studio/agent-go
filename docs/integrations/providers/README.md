@@ -6,7 +6,7 @@ agent-go supports multiple LLM providers for intelligent planning. All providers
 
 ```go
 import (
-    "github.com/felixgeelhaar/agent-go/infrastructure/planner"
+    "go.klarlabs.de/agent/infrastructure/planner"
 )
 
 // Create provider

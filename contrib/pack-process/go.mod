@@ -1,10 +1,10 @@
-module github.com/felixgeelhaar/agent-go/contrib/pack-process
+module go.klarlabs.de/agent/contrib/pack-process
 
 go 1.25.0
 
 require (
-	github.com/felixgeelhaar/agent-go v0.0.0
 	github.com/shirou/gopsutil/v3 v3.24.5
+	go.klarlabs.de/agent v0.0.0
 )
 
 require (
@@ -17,7 +17,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 )
 
-replace github.com/felixgeelhaar/agent-go => ../..
+replace go.klarlabs.de/agent => ../..

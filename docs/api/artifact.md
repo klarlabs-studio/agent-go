@@ -1,17 +1,17 @@
 # Package `artifact`
 
-**Import path:** `github.com/felixgeelhaar/agent-go/domain/artifact`
+**Import path:** `go.klarlabs.de/agent/domain/artifact`
 
 ## Overview
 
-package artifact // import "github.com/felixgeelhaar/agent-go/domain/artifact"
+package artifact // import "go.klarlabs.de/agent/domain/artifact"
 
 Package artifact provides domain models for artifact storage.
 
 ## Full API Reference
 
 ```
-package artifact // import "github.com/felixgeelhaar/agent-go/domain/artifact"
+package artifact // import "go.klarlabs.de/agent/domain/artifact"
 
 Package artifact provides domain models for artifact storage.
 

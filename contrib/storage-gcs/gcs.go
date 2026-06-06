@@ -26,8 +26,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/felixgeelhaar/agent-go/domain/artifact"
 	"github.com/google/uuid"
+	"go.klarlabs.de/agent/domain/artifact"
 )
 
 // ArtifactStore is a GCS-backed implementation of artifact.Store.

@@ -3,9 +3,9 @@ package logging
 import (
 	"time"
 
-	"github.com/felixgeelhaar/bolt/v3"
+	"go.klarlabs.de/bolt"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // Field is a function that applies structured data to a log event.

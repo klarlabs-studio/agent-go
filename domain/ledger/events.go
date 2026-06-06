@@ -3,7 +3,7 @@ package ledger
 import (
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // Event represents a domain event that can be published.

@@ -2,9 +2,9 @@
 package api
 
 import (
-	"github.com/felixgeelhaar/agent-go/domain/inspector"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	infraInspector "github.com/felixgeelhaar/agent-go/infrastructure/inspector"
+	"go.klarlabs.de/agent/domain/inspector"
+	"go.klarlabs.de/agent/domain/policy"
+	infraInspector "go.klarlabs.de/agent/infrastructure/inspector"
 )
 
 // Re-export inspector types for convenience.

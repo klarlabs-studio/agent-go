@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // ScriptStep defines an expected state and the decision to return.

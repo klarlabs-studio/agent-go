@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	plannerllm "github.com/felixgeelhaar/agent-go/contrib/planner-llm"
+	plannerllm "go.klarlabs.de/agent/contrib/planner-llm"
 )
 
 // BedrockConfig configures the AWS Bedrock provider.

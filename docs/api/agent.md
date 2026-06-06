@@ -1,17 +1,17 @@
 # Package `agent`
 
-**Import path:** `github.com/felixgeelhaar/agent-go/domain/agent`
+**Import path:** `go.klarlabs.de/agent/domain/agent`
 
 ## Overview
 
-package agent // import "github.com/felixgeelhaar/agent-go/domain/agent"
+package agent // import "go.klarlabs.de/agent/domain/agent"
 
 Package agent provides the core domain model for the agent runtime.
 
 ## Full API Reference
 
 ```
-package agent // import "github.com/felixgeelhaar/agent-go/domain/agent"
+package agent // import "go.klarlabs.de/agent/domain/agent"
 
 Package agent provides the core domain model for the agent runtime.
 

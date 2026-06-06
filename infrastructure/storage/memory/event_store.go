@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/event"
 	"github.com/google/uuid"
+	"go.klarlabs.de/agent/domain/event"
 )
 
 // EventStore is an in-memory implementation of event.Store.

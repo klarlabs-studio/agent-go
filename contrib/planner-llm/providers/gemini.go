@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	plannerllm "github.com/felixgeelhaar/agent-go/contrib/planner-llm"
+	plannerllm "go.klarlabs.de/agent/contrib/planner-llm"
 )
 
 // GeminiConfig configures the Google Gemini provider.

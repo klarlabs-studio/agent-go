@@ -3,8 +3,8 @@ package pdf_test
 import (
 	"testing"
 
-	pdf "github.com/felixgeelhaar/agent-go/contrib/pack-pdf"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	pdf "go.klarlabs.de/agent/contrib/pack-pdf"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

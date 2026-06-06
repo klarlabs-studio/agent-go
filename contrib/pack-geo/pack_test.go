@@ -3,8 +3,8 @@ package geo_test
 import (
 	"testing"
 
-	geo "github.com/felixgeelhaar/agent-go/contrib/pack-geo"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	geo "go.klarlabs.de/agent/contrib/pack-geo"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

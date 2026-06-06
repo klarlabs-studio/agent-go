@@ -8,13 +8,13 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/pack"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/pack"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // Pack returns the markdown tools pack.

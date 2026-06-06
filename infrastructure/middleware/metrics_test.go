@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/metrics"
-	"github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/metrics"
+	"go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // mockMetricsProvider is a mock implementation of telemetry.Metrics for testing.

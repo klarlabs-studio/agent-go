@@ -3,8 +3,8 @@
 package api
 
 import (
-	domainnotif "github.com/felixgeelhaar/agent-go/domain/notification"
-	infranotif "github.com/felixgeelhaar/agent-go/infrastructure/notification"
+	domainnotif "go.klarlabs.de/agent/domain/notification"
+	infranotif "go.klarlabs.de/agent/infrastructure/notification"
 )
 
 // Re-export domain notification types.

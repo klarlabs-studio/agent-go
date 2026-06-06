@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 func TestNewPatternStore(t *testing.T) {

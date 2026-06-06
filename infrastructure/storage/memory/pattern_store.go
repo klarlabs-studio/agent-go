@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/pattern"
+	"go.klarlabs.de/agent/domain/pattern"
 )
 
 // PatternStore is an in-memory implementation of pattern.Store.

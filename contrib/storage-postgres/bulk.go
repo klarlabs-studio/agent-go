@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/event"
-	"github.com/felixgeelhaar/agent-go/domain/run"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/event"
+	"go.klarlabs.de/agent/domain/run"
 )
 
 // BulkInsertRuns inserts multiple runs in a single batch operation using the

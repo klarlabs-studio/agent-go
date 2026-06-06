@@ -1,17 +1,17 @@
 # Package `tool`
 
-**Import path:** `github.com/felixgeelhaar/agent-go/domain/tool`
+**Import path:** `go.klarlabs.de/agent/domain/tool`
 
 ## Overview
 
-package tool // import "github.com/felixgeelhaar/agent-go/domain/tool"
+package tool // import "go.klarlabs.de/agent/domain/tool"
 
 Package tool provides the domain model for agent tools.
 
 ## Full API Reference
 
 ```
-package tool // import "github.com/felixgeelhaar/agent-go/domain/tool"
+package tool // import "go.klarlabs.de/agent/domain/tool"
 
 Package tool provides the domain model for agent tools.
 

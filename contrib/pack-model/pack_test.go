@@ -3,8 +3,8 @@ package model_test
 import (
 	"testing"
 
-	model "github.com/felixgeelhaar/agent-go/contrib/pack-model"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	model "go.klarlabs.de/agent/contrib/pack-model"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

@@ -6,12 +6,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/application"
-	"github.com/felixgeelhaar/agent-go/domain/pattern"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/proposal"
-	"github.com/felixgeelhaar/agent-go/domain/suggestion"
-	infraProposal "github.com/felixgeelhaar/agent-go/infrastructure/proposal"
+	"go.klarlabs.de/agent/application"
+	"go.klarlabs.de/agent/domain/pattern"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/proposal"
+	"go.klarlabs.de/agent/domain/suggestion"
+	infraProposal "go.klarlabs.de/agent/infrastructure/proposal"
 )
 
 // mockSuggestionGenerator implements suggestion.Generator for testing.

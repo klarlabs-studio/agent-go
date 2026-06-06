@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/felixgeelhaar/agent-go/domain/inspector"
+	"go.klarlabs.de/agent/domain/inspector"
 )
 
 // XStateFormatter formats state machine data as XState JSON.

@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/ledger"
-	"github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/ledger"
+	"go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/tool"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 func TestNewMiddlewareRegistry(t *testing.T) {

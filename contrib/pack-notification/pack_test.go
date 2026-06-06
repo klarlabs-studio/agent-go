@@ -3,8 +3,8 @@ package notification_test
 import (
 	"testing"
 
-	notification "github.com/felixgeelhaar/agent-go/contrib/pack-notification"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	notification "go.klarlabs.de/agent/contrib/pack-notification"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

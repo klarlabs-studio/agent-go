@@ -3,8 +3,8 @@ package finance_test
 import (
 	"testing"
 
-	finance "github.com/felixgeelhaar/agent-go/contrib/pack-finance"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	finance "go.klarlabs.de/agent/contrib/pack-finance"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

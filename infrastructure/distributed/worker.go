@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	"github.com/felixgeelhaar/agent-go/infrastructure/distributed/lock"
-	"github.com/felixgeelhaar/agent-go/infrastructure/distributed/queue"
+	"go.klarlabs.de/agent/domain/tool"
+	"go.klarlabs.de/agent/infrastructure/distributed/lock"
+	"go.klarlabs.de/agent/infrastructure/distributed/queue"
 )
 
 // TaskHandler processes tasks of a specific type.

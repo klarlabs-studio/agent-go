@@ -7,9 +7,9 @@ import (
 	"sort"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/pack"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/pack"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // Pack returns the semver tools pack.

@@ -4,7 +4,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 func TestNewToolEligibility(t *testing.T) {

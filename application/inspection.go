@@ -4,7 +4,7 @@ package application
 import (
 	"context"
 
-	"github.com/felixgeelhaar/agent-go/domain/inspector"
+	"go.klarlabs.de/agent/domain/inspector"
 )
 
 // InspectionService provides inspection and export capabilities.

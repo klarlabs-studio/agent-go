@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/pattern"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/domain/pattern"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 func TestNewPatternStore(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/knowledge"
+	"go.klarlabs.de/agent/domain/knowledge"
 )
 
 // KnowledgeStore is an in-memory vector store with cosine similarity search.

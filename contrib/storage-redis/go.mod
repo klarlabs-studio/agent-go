@@ -1,11 +1,11 @@
-module github.com/felixgeelhaar/agent-go/contrib/storage-redis
+module go.klarlabs.de/agent/contrib/storage-redis
 
 go 1.25.0
 
 require (
 	github.com/alicebob/miniredis/v2 v2.37.0
-	github.com/felixgeelhaar/agent-go v0.0.0
 	github.com/redis/go-redis/v9 v9.17.2
+	go.klarlabs.de/agent v0.0.0
 )
 
 require (
@@ -14,4 +14,4 @@ require (
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 )
 
-replace github.com/felixgeelhaar/agent-go => ../..
+replace go.klarlabs.de/agent => ../..

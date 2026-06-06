@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/application"
-	domainagent "github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	infraagent "github.com/felixgeelhaar/agent-go/infrastructure/agent"
-	"github.com/felixgeelhaar/agent-go/infrastructure/planner"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/application"
+	domainagent "go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/tool"
+	infraagent "go.klarlabs.de/agent/infrastructure/agent"
+	"go.klarlabs.de/agent/infrastructure/planner"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 // buildChildEngine creates a child engine with a scripted planner for testing.

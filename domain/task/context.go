@@ -18,7 +18,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // Context spans a multi-agent task, enabling state sharing across runs.

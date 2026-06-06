@@ -4,7 +4,7 @@ package suggestion
 import (
 	"context"
 
-	"github.com/felixgeelhaar/agent-go/domain/pattern"
+	"go.klarlabs.de/agent/domain/pattern"
 )
 
 // Generator generates suggestions from detected patterns.

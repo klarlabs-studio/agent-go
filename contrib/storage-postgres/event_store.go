@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/event"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.klarlabs.de/agent/domain/event"
 )
 
 // EventStore is a PostgreSQL-backed implementation of event.Store.

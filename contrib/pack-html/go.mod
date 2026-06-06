@@ -1,10 +1,10 @@
-module github.com/felixgeelhaar/agent-go/contrib/pack-html
+module go.klarlabs.de/agent/contrib/pack-html
 
 go 1.25.0
 
 require (
-	github.com/felixgeelhaar/agent-go v0.0.0
-	golang.org/x/net v0.49.0
+	go.klarlabs.de/agent v0.0.0
+	golang.org/x/net v0.54.0
 )
 
-replace github.com/felixgeelhaar/agent-go => ../..
+replace go.klarlabs.de/agent => ../..

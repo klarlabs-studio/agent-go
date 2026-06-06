@@ -2,9 +2,9 @@
 package api
 
 import (
-	"github.com/felixgeelhaar/agent-go/domain/suggestion"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
-	infraSuggestion "github.com/felixgeelhaar/agent-go/infrastructure/suggestion"
+	"go.klarlabs.de/agent/domain/suggestion"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
+	infraSuggestion "go.klarlabs.de/agent/infrastructure/suggestion"
 )
 
 // Re-export suggestion types for convenience.

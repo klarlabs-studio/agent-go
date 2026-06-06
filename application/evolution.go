@@ -5,10 +5,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/felixgeelhaar/agent-go/domain/pattern"
-	"github.com/felixgeelhaar/agent-go/domain/proposal"
-	"github.com/felixgeelhaar/agent-go/domain/suggestion"
-	infraProposal "github.com/felixgeelhaar/agent-go/infrastructure/proposal"
+	"go.klarlabs.de/agent/domain/pattern"
+	"go.klarlabs.de/agent/domain/proposal"
+	"go.klarlabs.de/agent/domain/suggestion"
+	infraProposal "go.klarlabs.de/agent/infrastructure/proposal"
 )
 
 // EvolutionService manages policy evolution through the suggestion-proposal workflow.

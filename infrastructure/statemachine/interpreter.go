@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/felixgeelhaar/statekit"
+	"go.klarlabs.de/statekit"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/policy"
 )
 
 // TransitionPayload carries additional data with a transition event.

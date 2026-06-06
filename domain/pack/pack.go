@@ -2,8 +2,8 @@
 package pack
 
 import (
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // Pack is a collection of related tools with their eligibility rules.

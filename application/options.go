@@ -1,16 +1,16 @@
 package application
 
 import (
-	"github.com/felixgeelhaar/agent-go/domain/artifact"
-	"github.com/felixgeelhaar/agent-go/domain/event"
-	"github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/run"
-	"github.com/felixgeelhaar/agent-go/domain/task"
-	"github.com/felixgeelhaar/agent-go/domain/telemetry"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	"github.com/felixgeelhaar/agent-go/infrastructure/planner"
-	"github.com/felixgeelhaar/agent-go/infrastructure/resilience"
+	"go.klarlabs.de/agent/domain/artifact"
+	"go.klarlabs.de/agent/domain/event"
+	"go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/run"
+	"go.klarlabs.de/agent/domain/task"
+	"go.klarlabs.de/agent/domain/telemetry"
+	"go.klarlabs.de/agent/domain/tool"
+	"go.klarlabs.de/agent/infrastructure/planner"
+	"go.klarlabs.de/agent/infrastructure/resilience"
 )
 
 // Option configures the engine.

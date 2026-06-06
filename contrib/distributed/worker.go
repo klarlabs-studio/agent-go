@@ -41,8 +41,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
 	"github.com/google/uuid"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // Common errors for distributed operations.

@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	kubernetes "github.com/felixgeelhaar/agent-go/contrib/pack-kubernetes"
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	kubernetes "go.klarlabs.de/agent/contrib/pack-kubernetes"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestPack(t *testing.T) {

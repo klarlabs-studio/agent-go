@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/felixgeelhaar/agent-go/domain/cache"
 	goredis "github.com/redis/go-redis/v9"
+	"go.klarlabs.de/agent/domain/cache"
 )
 
 // newTestCache creates a Cache backed by miniredis for unit testing.

@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/proposal"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/proposal"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 // WorkflowService Tests

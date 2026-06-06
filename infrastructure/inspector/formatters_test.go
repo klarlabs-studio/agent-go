@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/inspector"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/inspector"
 )
 
 func TestHTMLFormatter(t *testing.T) {

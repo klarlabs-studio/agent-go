@@ -1,7 +1,7 @@
 package policy
 
 import (
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // ToolEligibility defines which tools are allowed in which states.

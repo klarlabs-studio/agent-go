@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/knowledge"
+	"go.klarlabs.de/agent/domain/knowledge"
 )
 
 func TestKnowledgeStore_EnsureSchema(t *testing.T) {

@@ -1,10 +1,10 @@
-module github.com/felixgeelhaar/agent-go/contrib/pack-spreadsheet
+module go.klarlabs.de/agent/contrib/pack-spreadsheet
 
 go 1.25.0
 
 require (
-	github.com/felixgeelhaar/agent-go v0.0.0
 	github.com/xuri/excelize/v2 v2.9.0
+	go.klarlabs.de/agent v0.0.0
 )
 
 require (
@@ -14,10 +14,10 @@ require (
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/xuri/efp v0.0.0-20240408161823-9ad904a10d6d // indirect
 	github.com/xuri/nfp v0.0.0-20240318013403-ab9948c2c4a7 // indirect
-	golang.org/x/crypto v0.47.0 // indirect
+	golang.org/x/crypto v0.51.0 // indirect
 	golang.org/x/image v0.38.0 // indirect
-	golang.org/x/net v0.49.0 // indirect
-	golang.org/x/text v0.35.0 // indirect
+	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 )
 
-replace github.com/felixgeelhaar/agent-go => ../..
+replace go.klarlabs.de/agent => ../..

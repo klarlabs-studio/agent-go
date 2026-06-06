@@ -145,7 +145,7 @@ For production agents, use LLM-powered planners:
 ### Anthropic (Claude)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/planner/provider/anthropic"
+import "go.klarlabs.de/agent/infrastructure/planner/provider/anthropic"
 
 provider, _ := anthropic.New(
     anthropic.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
@@ -162,7 +162,7 @@ llmPlanner := planner.NewLLMPlanner(planner.LLMPlannerConfig{
 ### OpenAI (GPT-4)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/planner/provider/openai"
+import "go.klarlabs.de/agent/infrastructure/planner/provider/openai"
 
 provider, _ := openai.New(
     openai.WithAPIKey(os.Getenv("OPENAI_API_KEY")),
@@ -173,7 +173,7 @@ provider, _ := openai.New(
 ### Google (Gemini)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/planner/provider/gemini"
+import "go.klarlabs.de/agent/infrastructure/planner/provider/gemini"
 
 provider, _ := gemini.New(
     gemini.WithAPIKey(os.Getenv("GEMINI_API_KEY")),
@@ -184,7 +184,7 @@ provider, _ := gemini.New(
 ### Ollama (Local)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/planner/provider/ollama"
+import "go.klarlabs.de/agent/infrastructure/planner/provider/ollama"
 
 provider, _ := ollama.New(
     ollama.WithBaseURL("http://localhost:11434"),

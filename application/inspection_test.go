@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/application"
-	"github.com/felixgeelhaar/agent-go/domain/inspector"
+	"go.klarlabs.de/agent/application"
+	"go.klarlabs.de/agent/domain/inspector"
 )
 
 // mockInspector implements inspector.Inspector for testing.

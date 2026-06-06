@@ -1,6 +1,6 @@
 package resilience
 
-import "github.com/felixgeelhaar/fortify/circuitbreaker"
+import "go.klarlabs.de/fortify/circuitbreaker"
 
 // CircuitBreakerState re-exports the fortify state type so callers do not need
 // to import the fortify package directly.

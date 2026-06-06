@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/infrastructure/distributed/lock"
-	"github.com/felixgeelhaar/agent-go/infrastructure/distributed/queue"
+	"go.klarlabs.de/agent/infrastructure/distributed/lock"
+	"go.klarlabs.de/agent/infrastructure/distributed/queue"
 )
 
 // Coordinator distributes work across multiple workers.

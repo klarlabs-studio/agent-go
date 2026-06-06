@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/notification"
-	"github.com/felixgeelhaar/agent-go/infrastructure/logging"
+	"go.klarlabs.de/agent/domain/notification"
+	"go.klarlabs.de/agent/infrastructure/logging"
 )
 
 // WebhookNotifierConfig configures the webhook notifier.

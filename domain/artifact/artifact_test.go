@@ -3,7 +3,7 @@ package artifact_test
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/artifact"
+	"go.klarlabs.de/agent/domain/artifact"
 )
 
 func TestNewRef(t *testing.T) {

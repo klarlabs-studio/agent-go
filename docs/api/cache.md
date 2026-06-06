@@ -1,17 +1,17 @@
 # Package `cache`
 
-**Import path:** `github.com/felixgeelhaar/agent-go/domain/cache`
+**Import path:** `go.klarlabs.de/agent/domain/cache`
 
 ## Overview
 
-package cache // import "github.com/felixgeelhaar/agent-go/domain/cache"
+package cache // import "go.klarlabs.de/agent/domain/cache"
 
 Package cache provides the domain interface for tool result caching.
 
 ## Full API Reference
 
 ```
-package cache // import "github.com/felixgeelhaar/agent-go/domain/cache"
+package cache // import "go.klarlabs.de/agent/domain/cache"
 
 Package cache provides the domain interface for tool result caching.
 

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/application"
-	"github.com/felixgeelhaar/agent-go/domain/pattern"
+	"go.klarlabs.de/agent/application"
+	"go.klarlabs.de/agent/domain/pattern"
 )
 
 // mockDetector implements pattern.Detector for testing.

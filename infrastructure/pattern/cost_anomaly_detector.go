@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/event"
-	"github.com/felixgeelhaar/agent-go/domain/pattern"
-	"github.com/felixgeelhaar/agent-go/domain/run"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/event"
+	"go.klarlabs.de/agent/domain/pattern"
+	"go.klarlabs.de/agent/domain/run"
 )
 
 // CostAnomalyDetector detects unusual cost spikes and trends.

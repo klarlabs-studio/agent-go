@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	domainconfig "github.com/felixgeelhaar/agent-go/domain/config"
+	"go.klarlabs.de/agent/domain/agent"
+	domainconfig "go.klarlabs.de/agent/domain/config"
 )
 
 func TestBuilder_BasicBuild(t *testing.T) {

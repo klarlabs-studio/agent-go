@@ -6,10 +6,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/pack"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
 	qr "github.com/skip2/go-qrcode"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/pack"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // Pack returns the QR code tools pack.

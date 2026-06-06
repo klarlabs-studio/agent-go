@@ -23,8 +23,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/felixgeelhaar/agent-go/domain/cache"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.klarlabs.de/agent/domain/cache"
 )
 
 // Cache is an etcd-backed implementation of cache.Cache.

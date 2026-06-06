@@ -155,6 +155,6 @@ To add more tools:
 
 ## See Also
 
-- [Website Demo](https://felixgeelhaar.github.io/agent-go/#demo) - Interactive visualization of this agent
-- [Documentation](https://felixgeelhaar.github.io/agent-go/docs/) - Full API documentation
-- [GitHub Repository](https://github.com/felixgeelhaar/agent-go) - Source code and issues
+- [Website Demo](https://klarlabs-studio.github.io/agent-go/#demo) - Interactive visualization of this agent
+- [Documentation](https://klarlabs-studio.github.io/agent-go/docs/) - Full API documentation
+- [GitHub Repository](https://github.com/klarlabs-studio/agent-go) - Source code and issues

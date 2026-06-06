@@ -9,10 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 
-	storagedynamodb "github.com/felixgeelhaar/agent-go/contrib/storage-dynamodb"
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/cache"
-	"github.com/felixgeelhaar/agent-go/domain/run"
+	storagedynamodb "go.klarlabs.de/agent/contrib/storage-dynamodb"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/cache"
+	"go.klarlabs.de/agent/domain/run"
 )
 
 func ExampleCache() {

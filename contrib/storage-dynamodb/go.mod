@@ -1,16 +1,16 @@
-module github.com/felixgeelhaar/agent-go/contrib/storage-dynamodb
+module go.klarlabs.de/agent/contrib/storage-dynamodb
 
 go 1.25.0
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.2
+	github.com/aws/aws-sdk-go-v2/config v1.32.10
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.18.4
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.43.1
-	github.com/felixgeelhaar/agent-go v0.0.0
+	go.klarlabs.de/agent v0.0.0
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.32.10 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.10 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.18 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.18 // indirect
@@ -27,4 +27,4 @@ require (
 	github.com/aws/smithy-go v1.24.1 // indirect
 )
 
-replace github.com/felixgeelhaar/agent-go => ../..
+replace go.klarlabs.de/agent => ../..

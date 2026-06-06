@@ -3,8 +3,8 @@ package pathutil_test
 import (
 	"testing"
 
-	pathutil "github.com/felixgeelhaar/agent-go/contrib/pack-path"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	pathutil "go.klarlabs.de/agent/contrib/pack-path"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	plannerllm "github.com/felixgeelhaar/agent-go/contrib/planner-llm"
+	plannerllm "go.klarlabs.de/agent/contrib/planner-llm"
 )
 
 // testTools returns a set of tool definitions for testing.

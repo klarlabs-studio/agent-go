@@ -17,7 +17,7 @@ These guides cover integrating agent-go with external services and infrastructur
 ### LLM Providers
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/planner"
+import "go.klarlabs.de/agent/infrastructure/planner"
 
 // Anthropic
 provider := planner.NewAnthropicProvider(planner.AnthropicConfig{
@@ -47,8 +47,8 @@ llmPlanner := planner.NewLLMPlanner(planner.LLMPlannerConfig{
 
 ```go
 import (
-    "github.com/felixgeelhaar/agent-go/pack/database"
-    "github.com/felixgeelhaar/agent-go/pack/git"
+    "go.klarlabs.de/agent/pack/database"
+    "go.klarlabs.de/agent/pack/git"
 )
 
 // Database pack
@@ -68,8 +68,8 @@ engine, _ := api.New(
 
 ```go
 import (
-    "github.com/felixgeelhaar/agent-go/infrastructure/security/validation"
-    "github.com/felixgeelhaar/agent-go/infrastructure/security/audit"
+    "go.klarlabs.de/agent/infrastructure/security/validation"
+    "go.klarlabs.de/agent/infrastructure/security/audit"
 )
 
 // Validation
@@ -92,7 +92,7 @@ engine, _ := api.New(
 ### Observability
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/observability"
+import "go.klarlabs.de/agent/infrastructure/observability"
 
 tracer := observability.NewOTelTracer("my-service")
 meter := observability.NewOTelMeter("my-service")
@@ -109,9 +109,9 @@ engine, _ := api.New(
 
 ```go
 import (
-    "github.com/felixgeelhaar/agent-go/infrastructure/distributed"
-    "github.com/felixgeelhaar/agent-go/infrastructure/distributed/queue"
-    "github.com/felixgeelhaar/agent-go/infrastructure/distributed/lock"
+    "go.klarlabs.de/agent/infrastructure/distributed"
+    "go.klarlabs.de/agent/infrastructure/distributed/queue"
+    "go.klarlabs.de/agent/infrastructure/distributed/lock"
 )
 
 taskQueue := queue.NewMemoryQueue() // Use Redis in production

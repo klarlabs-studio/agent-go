@@ -13,10 +13,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	infraconfig "github.com/felixgeelhaar/agent-go/infrastructure/config"
-	"github.com/felixgeelhaar/agent-go/infrastructure/planner"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/agent"
+	infraconfig "go.klarlabs.de/agent/infrastructure/config"
+	"go.klarlabs.de/agent/infrastructure/planner"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 func newREPLCmd() *cobra.Command {

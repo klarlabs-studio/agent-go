@@ -16,7 +16,7 @@ This package provides AWS DynamoDB-backed implementations of agent-go storage in
 ## Installation
 
 ```bash
-go get github.com/felixgeelhaar/agent-go/contrib/storage-dynamodb
+go get go.klarlabs.de/agent/contrib/storage-dynamodb
 ```
 
 ## Quick Start
@@ -63,9 +63,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 
-	storagedynamodb "github.com/felixgeelhaar/agent-go/contrib/storage-dynamodb"
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/cache"
+	storagedynamodb "go.klarlabs.de/agent/contrib/storage-dynamodb"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/cache"
 )
 
 func main() {
@@ -162,7 +162,7 @@ DynamoDB typically deletes expired items within 48 hours. The Get and Exists met
 List and Count support rich filtering:
 
 ```go
-import "github.com/felixgeelhaar/agent-go/domain/run"
+import "go.klarlabs.de/agent/domain/run"
 
 // List completed runs from the last 24 hours
 runs, err := store.List(ctx, run.ListFilter{
@@ -194,8 +194,8 @@ The package returns domain-specific errors:
 ```go
 import (
     "errors"
-    "github.com/felixgeelhaar/agent-go/domain/cache"
-    "github.com/felixgeelhaar/agent-go/domain/run"
+    "go.klarlabs.de/agent/domain/cache"
+    "go.klarlabs.de/agent/domain/run"
 )
 
 // Cache errors

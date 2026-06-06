@@ -3,9 +3,9 @@ package statemachine
 import (
 	"strings"
 
-	"github.com/felixgeelhaar/statekit"
+	"go.klarlabs.de/statekit"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // guardCanTransition checks if the transition is valid according to policy.

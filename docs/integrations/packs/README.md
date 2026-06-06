@@ -9,8 +9,8 @@ import (
     "database/sql"
     _ "github.com/lib/pq"
 
-    api "github.com/felixgeelhaar/agent-go/interfaces/api"
-    "github.com/felixgeelhaar/agent-go/pack/database"
+    api "go.klarlabs.de/agent/interfaces/api"
+    "go.klarlabs.de/agent/pack/database"
 )
 
 // Create pack
@@ -42,7 +42,7 @@ Tools for SQL database operations with support for PostgreSQL, MySQL, and SQLite
 ### Configuration
 
 ```go
-import "github.com/felixgeelhaar/agent-go/pack/database"
+import "go.klarlabs.de/agent/pack/database"
 
 dbPack, err := database.New(db,
     database.WithQueryTimeout(30*time.Second), // Query timeout
@@ -81,7 +81,7 @@ Tools for Git repository operations.
 ### Configuration
 
 ```go
-import "github.com/felixgeelhaar/agent-go/pack/git"
+import "go.klarlabs.de/agent/pack/git"
 
 gitPack, err := git.New("/path/to/repo",
     git.WithAllowPush(true),   // Allow git push
@@ -122,7 +122,7 @@ Tools for Kubernetes cluster operations.
 
 ```go
 import (
-    "github.com/felixgeelhaar/agent-go/pack/kubernetes"
+    "go.klarlabs.de/agent/pack/kubernetes"
     "k8s.io/client-go/kubernetes"
 )
 
@@ -165,7 +165,7 @@ Tools for cloud storage operations (S3-compatible).
 ### Configuration
 
 ```go
-import "github.com/felixgeelhaar/agent-go/pack/cloud"
+import "go.klarlabs.de/agent/pack/cloud"
 
 // Use with AWS S3
 cloudPack, err := cloud.New(s3Provider,
@@ -204,7 +204,7 @@ Tools for local filesystem operations.
 ### Configuration
 
 ```go
-import "github.com/felixgeelhaar/agent-go/pack/fileops"
+import "go.klarlabs.de/agent/pack/fileops"
 
 filesPack, err := fileops.New(
     fileops.WithBasePath("/app/data"), // Restrict to directory
@@ -229,7 +229,7 @@ Tools for making HTTP requests.
 ### Configuration
 
 ```go
-import "github.com/felixgeelhaar/agent-go/pack/http"
+import "go.klarlabs.de/agent/pack/http"
 
 httpPack, err := http.New(
     http.WithTimeout(30*time.Second),
@@ -278,8 +278,8 @@ Build your own packs using the pack builder:
 
 ```go
 import (
-    "github.com/felixgeelhaar/agent-go/domain/pack"
-    "github.com/felixgeelhaar/agent-go/domain/agent"
+    "go.klarlabs.de/agent/domain/pack"
+    "go.klarlabs.de/agent/domain/agent"
 )
 
 myPack := pack.NewBuilder("my-pack").

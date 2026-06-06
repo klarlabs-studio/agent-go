@@ -59,4 +59,4 @@ jobs:
       - name: Trigger pkg.go.dev update
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          curl -s "https://proxy.golang.org/github.com/felixgeelhaar/agent-go/@v/${VERSION}.info" || true
+          curl -s "https://proxy.golang.org/go.klarlabs.de/agent/@v/${VERSION}.info" || true

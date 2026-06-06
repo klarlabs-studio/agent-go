@@ -6,9 +6,9 @@ agent-go supports distributed execution with multiple workers, queues, and distr
 
 ```go
 import (
-    "github.com/felixgeelhaar/agent-go/infrastructure/distributed"
-    "github.com/felixgeelhaar/agent-go/infrastructure/distributed/queue"
-    "github.com/felixgeelhaar/agent-go/infrastructure/distributed/lock"
+    "go.klarlabs.de/agent/infrastructure/distributed"
+    "go.klarlabs.de/agent/infrastructure/distributed/queue"
+    "go.klarlabs.de/agent/infrastructure/distributed/lock"
 )
 
 // Create shared infrastructure
@@ -58,7 +58,7 @@ go worker.Start(ctx)
 ### Memory Queue (Development/Testing)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/distributed/queue"
+import "go.klarlabs.de/agent/infrastructure/distributed/queue"
 
 taskQueue := queue.NewMemoryQueue()
 ```
@@ -71,7 +71,7 @@ taskQueue := queue.NewMemoryQueue()
 ### Redis Queue (Production)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/distributed/queue"
+import "go.klarlabs.de/agent/infrastructure/distributed/queue"
 
 taskQueue := queue.NewRedisQueue(queue.RedisConfig{
     Addr:     "localhost:6379",
@@ -149,7 +149,7 @@ Prevent concurrent execution of critical operations.
 ### Memory Lock (Development)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/distributed/lock"
+import "go.klarlabs.de/agent/infrastructure/distributed/lock"
 
 // Shared store for all workers in process
 sharedStore := lock.NewMemoryLockStore()

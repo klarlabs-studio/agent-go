@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/cache"
 	"github.com/redis/go-redis/v9"
+	"go.klarlabs.de/agent/domain/cache"
 )
 
 // ClusterConfig holds Redis Cluster connection configuration.

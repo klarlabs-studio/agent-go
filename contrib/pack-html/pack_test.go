@@ -3,8 +3,8 @@ package html_test
 import (
 	"testing"
 
-	packhtml "github.com/felixgeelhaar/agent-go/contrib/pack-html"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	packhtml "go.klarlabs.de/agent/contrib/pack-html"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

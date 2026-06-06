@@ -24,9 +24,9 @@ import (
 	"sync"
 
 	"github.com/dgraph-io/badger/v4"
-	"github.com/felixgeelhaar/agent-go/domain/cache"
-	"github.com/felixgeelhaar/agent-go/domain/event"
 	"github.com/google/uuid"
+	"go.klarlabs.de/agent/domain/cache"
+	"go.klarlabs.de/agent/domain/event"
 )
 
 // DB is a type alias for BadgerDB.

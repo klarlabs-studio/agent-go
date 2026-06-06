@@ -22,7 +22,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
-	"github.com/felixgeelhaar/agent-go/infrastructure/distributed/queue"
+	"go.klarlabs.de/agent/infrastructure/distributed/queue"
 )
 
 // Config configures the RabbitMQ queue.

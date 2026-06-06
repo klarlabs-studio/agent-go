@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	packhttp "github.com/felixgeelhaar/agent-go/contrib/pack-http"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	packhttp "go.klarlabs.de/agent/contrib/pack-http"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

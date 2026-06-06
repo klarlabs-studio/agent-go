@@ -3,7 +3,7 @@ package api_test
 import (
 	"testing"
 
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 func TestNewEvent(t *testing.T) {

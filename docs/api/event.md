@@ -1,17 +1,17 @@
 # Package `event`
 
-**Import path:** `github.com/felixgeelhaar/agent-go/domain/event`
+**Import path:** `go.klarlabs.de/agent/domain/event`
 
 ## Overview
 
-package event // import "github.com/felixgeelhaar/agent-go/domain/event"
+package event // import "go.klarlabs.de/agent/domain/event"
 
 Package event provides domain types and interfaces for event sourcing.
 
 ## Full API Reference
 
 ```
-package event // import "github.com/felixgeelhaar/agent-go/domain/event"
+package event // import "go.klarlabs.de/agent/domain/event"
 
 Package event provides domain types and interfaces for event sourcing.
 

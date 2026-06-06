@@ -4,7 +4,7 @@ package memory
 import (
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // ToolRegistry is an in-memory implementation of tool.Registry.

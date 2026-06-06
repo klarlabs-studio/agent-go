@@ -3,8 +3,8 @@ package jira_test
 import (
 	"testing"
 
-	jira "github.com/felixgeelhaar/agent-go/contrib/pack-jira"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	jira "go.klarlabs.de/agent/contrib/pack-jira"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

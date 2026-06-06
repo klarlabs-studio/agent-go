@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/metrics"
-	mw "github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/metrics"
+	mw "go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // MetricsConfig configures the metrics middleware.

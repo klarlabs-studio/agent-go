@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/event"
-	"github.com/felixgeelhaar/agent-go/domain/inspector"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/event"
+	"go.klarlabs.de/agent/domain/inspector"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 // ===============================

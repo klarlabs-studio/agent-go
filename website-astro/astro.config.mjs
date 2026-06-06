@@ -4,7 +4,7 @@ import vue from '@astrojs/vue';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://felixgeelhaar.github.io',
+  site: 'https://klarlabs-studio.github.io',
   base: '/agent-go/',
   integrations: [vue()],
   output: 'static',

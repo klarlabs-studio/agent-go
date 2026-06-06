@@ -3,8 +3,8 @@ package pluralize_test
 import (
 	"testing"
 
-	pluralize "github.com/felixgeelhaar/agent-go/contrib/pack-pluralize"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	pluralize "go.klarlabs.de/agent/contrib/pack-pluralize"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

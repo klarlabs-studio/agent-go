@@ -26,8 +26,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/infrastructure/planner"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/infrastructure/planner"
 )
 
 // Provider defines the interface for LLM providers.

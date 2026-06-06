@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/suggestion"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/domain/suggestion"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 func TestNewSuggestionStore(t *testing.T) {

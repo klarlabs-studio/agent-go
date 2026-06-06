@@ -103,8 +103,8 @@ Create a PagerDuty incident via Events API v2.
 
 ```go
 import (
-    "github.com/felixgeelhaar/agent-go/contrib/pack-notification"
-    api "github.com/felixgeelhaar/agent-go/interfaces/api"
+    "go.klarlabs.de/agent/contrib/pack-notification"
+    api "go.klarlabs.de/agent/interfaces/api"
 )
 
 // Configure notification services

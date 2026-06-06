@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/felixgeelhaar/agent-go/domain/inspector"
+	"go.klarlabs.de/agent/domain/inspector"
 )
 
 // DefaultInspector provides a default implementation of Inspector.

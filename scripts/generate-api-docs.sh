@@ -26,7 +26,7 @@ PACKAGES=(
     "application"
 )
 
-MODULE="github.com/felixgeelhaar/agent-go"
+MODULE="go.klarlabs.de/agent"
 
 index_entries=""
 

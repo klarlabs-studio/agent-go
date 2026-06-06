@@ -4,11 +4,11 @@ package api
 import (
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/event"
-	"github.com/felixgeelhaar/agent-go/domain/pattern"
-	"github.com/felixgeelhaar/agent-go/domain/run"
-	infraPattern "github.com/felixgeelhaar/agent-go/infrastructure/pattern"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/domain/event"
+	"go.klarlabs.de/agent/domain/pattern"
+	"go.klarlabs.de/agent/domain/run"
+	infraPattern "go.klarlabs.de/agent/infrastructure/pattern"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 // Re-export pattern types for convenience.

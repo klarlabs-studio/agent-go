@@ -4,7 +4,7 @@
 // Note: LLM provider implementations have been moved to contrib/planner-llm.
 // To use real LLM planners, import:
 //
-//	import "github.com/felixgeelhaar/agent-go/contrib/planner-llm"
+//	import "go.klarlabs.de/agent/contrib/planner-llm"
 //
 // This example uses the ScriptedPlanner to demonstrate the planning interface
 // without requiring external API keys.
@@ -16,8 +16,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	agent "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/tool"
+	agent "go.klarlabs.de/agent/interfaces/api"
 )
 
 func main() {
@@ -80,7 +80,7 @@ func main() {
 	//
 	// For real LLM planning, use contrib/planner-llm:
 	//
-	//   import llmplanner "github.com/felixgeelhaar/agent-go/contrib/planner-llm"
+	//   import llmplanner "go.klarlabs.de/agent/contrib/planner-llm"
 	//
 	//   provider := llmplanner.NewAnthropicProvider(llmplanner.AnthropicConfig{
 	//       APIKey: os.Getenv("ANTHROPIC_API_KEY"),

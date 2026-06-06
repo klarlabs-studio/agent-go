@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/cache"
+	"go.klarlabs.de/agent/domain/cache"
 )
 
 // cacheEntry holds a cached value with expiration.

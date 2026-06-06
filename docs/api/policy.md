@@ -1,10 +1,10 @@
 # Package `policy`
 
-**Import path:** `github.com/felixgeelhaar/agent-go/domain/policy`
+**Import path:** `go.klarlabs.de/agent/domain/policy`
 
 ## Overview
 
-package policy // import "github.com/felixgeelhaar/agent-go/domain/policy"
+package policy // import "go.klarlabs.de/agent/domain/policy"
 
 Package policy provides domain models for policy enforcement.
 
@@ -15,7 +15,7 @@ Package policy provides policy constraint types.
 ## Full API Reference
 
 ```
-package policy // import "github.com/felixgeelhaar/agent-go/domain/policy"
+package policy // import "go.klarlabs.de/agent/domain/policy"
 
 Package policy provides domain models for policy enforcement.
 

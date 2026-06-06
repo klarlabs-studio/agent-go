@@ -1,10 +1,10 @@
-module github.com/felixgeelhaar/agent-go/contrib/queue-rabbitmq
+module go.klarlabs.de/agent/contrib/queue-rabbitmq
 
 go 1.25.0
 
 require (
-	github.com/felixgeelhaar/agent-go v0.0.0
 	github.com/rabbitmq/amqp091-go v1.10.0
+	go.klarlabs.de/agent v0.0.0
 )
 
-replace github.com/felixgeelhaar/agent-go => ../..
+replace go.klarlabs.de/agent => ../..

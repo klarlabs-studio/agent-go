@@ -10,10 +10,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/felixgeelhaar/agent-go/application"
-	domainagent "github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/task"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/application"
+	domainagent "go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/task"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // delegateInput is the expected JSON input for DelegateTool.

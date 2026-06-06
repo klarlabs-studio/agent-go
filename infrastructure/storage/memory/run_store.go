@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/run"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/run"
 )
 
 // runEntry holds a deep copy of a run for storage.

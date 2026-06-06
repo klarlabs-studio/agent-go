@@ -3,8 +3,8 @@ package phone_test
 import (
 	"testing"
 
-	phone "github.com/felixgeelhaar/agent-go/contrib/pack-phone"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	phone "go.klarlabs.de/agent/contrib/pack-phone"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

@@ -16,7 +16,7 @@ This package provides a production-ready implementation of `event.Store` using N
 ## Installation
 
 ```bash
-go get github.com/felixgeelhaar/agent-go/contrib/storage-nats
+go get go.klarlabs.de/agent/contrib/storage-nats
 ```
 
 ## Quick Start
@@ -29,7 +29,7 @@ import (
     "log"
 
     "github.com/nats-io/nats.go"
-    storagenats "github.com/felixgeelhaar/agent-go/contrib/storage-nats"
+    storagenats "go.klarlabs.de/agent/contrib/storage-nats"
 )
 
 func main() {

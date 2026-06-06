@@ -3,8 +3,8 @@ package payments_test
 import (
 	"testing"
 
-	payments "github.com/felixgeelhaar/agent-go/contrib/pack-payments"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	payments "go.klarlabs.de/agent/contrib/pack-payments"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

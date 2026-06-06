@@ -3,9 +3,9 @@ package middleware
 import (
 	"context"
 
-	"github.com/felixgeelhaar/agent-go/domain/ledger"
-	"github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/ledger"
+	"go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // LedgerConfig configures the ledger recording middleware.

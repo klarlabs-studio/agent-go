@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/felixgeelhaar/agent-go/domain/pattern"
+	"go.klarlabs.de/agent/domain/pattern"
 )
 
 // DetectionService manages pattern detection.

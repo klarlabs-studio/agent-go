@@ -1,11 +1,11 @@
-module github.com/felixgeelhaar/agent-go/contrib/pack-github
+module go.klarlabs.de/agent/contrib/pack-github
 
 go 1.25.0
 
 require (
-	github.com/felixgeelhaar/agent-go v0.0.0
 	github.com/google/go-github/v68 v68.0.0
-	golang.org/x/oauth2 v0.34.0
+	go.klarlabs.de/agent v0.0.0
+	golang.org/x/oauth2 v0.36.0
 )
 
 require (
@@ -13,4 +13,4 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 )
 
-replace github.com/felixgeelhaar/agent-go => ../..
+replace go.klarlabs.de/agent => ../..

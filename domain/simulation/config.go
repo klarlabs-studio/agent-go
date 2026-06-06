@@ -2,7 +2,7 @@
 package simulation
 
 import (
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // Config configures simulation mode behavior.

@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	domainconfig "github.com/felixgeelhaar/agent-go/domain/config"
+	domainconfig "go.klarlabs.de/agent/domain/config"
 )
 
 // envExpander expands environment variables in configuration strings.

@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/application"
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/event"
+	"go.klarlabs.de/agent/application"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/event"
 )
 
 // mockEventStore implements event.Store for testing.

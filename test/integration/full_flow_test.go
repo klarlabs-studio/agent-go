@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/event"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/event"
+	"go.klarlabs.de/agent/domain/tool"
+	api "go.klarlabs.de/agent/interfaces/api"
 
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 // makeEchoTool creates a simple tool that echoes input as output.

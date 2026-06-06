@@ -140,7 +140,7 @@ const scenarios = [
     icon: '📁',
     title: 'File Operations Agent',
     description: 'Manages files in a workspace: read, write, list, and delete operations.',
-    githubUrl: 'https://github.com/felixgeelhaar/agent-go/tree/main/example/fileops',
+    githubUrl: 'https://github.com/klarlabs-studio/agent-go/tree/main/example/fileops',
     tools: [
       { name: 'list_dir', badge: 'readonly', badgeText: 'ReadOnly', description: 'List files and directories' },
       { name: 'read_file', badge: 'readonly', badgeText: 'ReadOnly', description: 'Read contents of a file' },
@@ -162,7 +162,7 @@ const scenarios = [
     icon: '🎧',
     title: 'Customer Support Agent',
     description: 'Handles support tickets: lookup customers, check orders, search knowledge base, escalate issues.',
-    githubUrl: 'https://github.com/felixgeelhaar/agent-go/tree/main/example/customer-support',
+    githubUrl: 'https://github.com/klarlabs-studio/agent-go/tree/main/example/customer-support',
     tools: [
       { name: 'lookup_customer', badge: 'readonly', badgeText: 'ReadOnly', description: 'Find customer by email or ID' },
       { name: 'get_order_status', badge: 'readonly', badgeText: 'ReadOnly', description: 'Check order shipping status' },
@@ -186,7 +186,7 @@ const scenarios = [
     icon: '🔧',
     title: 'DevOps Monitoring Agent',
     description: 'Monitors infrastructure: check metrics, analyze logs, restart services, send alerts.',
-    githubUrl: 'https://github.com/felixgeelhaar/agent-go/tree/main/example/devops-monitor',
+    githubUrl: 'https://github.com/klarlabs-studio/agent-go/tree/main/example/devops-monitor',
     tools: [
       { name: 'get_metrics', badge: 'readonly', badgeText: 'ReadOnly', description: 'Fetch service health metrics' },
       { name: 'query_logs', badge: 'readonly', badgeText: 'ReadOnly', description: 'Search application logs' },

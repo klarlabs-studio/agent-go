@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/fortify/circuitbreaker"
+	"go.klarlabs.de/fortify/circuitbreaker"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestCircuitBreakerHooks_OnTrip(t *testing.T) {

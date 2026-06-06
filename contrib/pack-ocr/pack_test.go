@@ -3,8 +3,8 @@ package ocr_test
 import (
 	"testing"
 
-	ocr "github.com/felixgeelhaar/agent-go/contrib/pack-ocr"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	ocr "go.klarlabs.de/agent/contrib/pack-ocr"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

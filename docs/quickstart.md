@@ -13,7 +13,7 @@ Get your first agent running in 5 minutes.
 mkdir my-first-agent
 cd my-first-agent
 go mod init my-first-agent
-go get github.com/felixgeelhaar/agent-go
+go get go.klarlabs.de/agent
 ```
 
 ## Step 2: Create Your Agent
@@ -29,8 +29,8 @@ import (
     "fmt"
     "log"
 
-    agent "github.com/felixgeelhaar/agent-go/interfaces/api"
-    "github.com/felixgeelhaar/agent-go/domain/tool"
+    agent "go.klarlabs.de/agent/interfaces/api"
+    "go.klarlabs.de/agent/domain/tool"
 )
 
 func main() {
@@ -168,7 +168,7 @@ engine, _ := agent.New(
 ### Use a Real LLM Planner
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/planner/provider/anthropic"
+import "go.klarlabs.de/agent/infrastructure/planner/provider/anthropic"
 
 provider, _ := anthropic.New(
     anthropic.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
@@ -188,7 +188,7 @@ engine, _ := agent.New(
 ### Add Observability
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/observability"
+import "go.klarlabs.de/agent/infrastructure/observability"
 
 tracer, _ := observability.NewTracer("calculator-agent")
 

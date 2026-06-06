@@ -1,12 +1,12 @@
-module github.com/felixgeelhaar/agent-go
+module go.klarlabs.de/agent
 
 go 1.25.0
 
 require (
-	github.com/felixgeelhaar/bolt/v3 v3.1.2
-	github.com/felixgeelhaar/fortify v1.5.1
-	github.com/felixgeelhaar/statekit v1.7.0
 	github.com/google/uuid v1.6.0
+	go.klarlabs.de/bolt v1.5.2
+	go.klarlabs.de/fortify v1.6.0
+	go.klarlabs.de/statekit v1.8.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -19,6 +19,6 @@ require (
 	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/term v0.39.0 // indirect
+	golang.org/x/term v0.43.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

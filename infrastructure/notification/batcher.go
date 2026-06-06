@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/notification"
+	"go.klarlabs.de/agent/domain/notification"
 )
 
 // BatcherConfig configures the event batcher.

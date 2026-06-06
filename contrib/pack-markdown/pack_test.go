@@ -3,8 +3,8 @@ package markdown_test
 import (
 	"testing"
 
-	markdown "github.com/felixgeelhaar/agent-go/contrib/pack-markdown"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	markdown "go.klarlabs.de/agent/contrib/pack-markdown"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

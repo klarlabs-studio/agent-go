@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/event"
+	"go.klarlabs.de/agent/domain/event"
 )
 
 // Publisher publishes events to an event store.

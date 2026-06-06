@@ -5,10 +5,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/event"
-	"github.com/felixgeelhaar/agent-go/domain/inspector"
-	"github.com/felixgeelhaar/agent-go/domain/run"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/event"
+	"go.klarlabs.de/agent/domain/inspector"
+	"go.klarlabs.de/agent/domain/run"
 )
 
 // RunExporter exports run data.

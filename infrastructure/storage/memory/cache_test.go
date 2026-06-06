@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/cache"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/domain/cache"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 func TestNewCache(t *testing.T) {

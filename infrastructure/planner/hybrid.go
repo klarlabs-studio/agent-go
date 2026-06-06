@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // HybridPlanner combines a rule-based planner with a fallback planner.

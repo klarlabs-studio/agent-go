@@ -1,10 +1,10 @@
 # Package `knowledge`
 
-**Import path:** `github.com/felixgeelhaar/agent-go/domain/knowledge`
+**Import path:** `go.klarlabs.de/agent/domain/knowledge`
 
 ## Overview
 
-package knowledge // import "github.com/felixgeelhaar/agent-go/domain/knowledge"
+package knowledge // import "go.klarlabs.de/agent/domain/knowledge"
 
 Package knowledge provides domain models for vector knowledge storage. This
 enables RAG (Retrieval-Augmented Generation) capabilities by allowing agents to
@@ -13,7 +13,7 @@ store and retrieve knowledge based on semantic similarity.
 ## Full API Reference
 
 ```
-package knowledge // import "github.com/felixgeelhaar/agent-go/domain/knowledge"
+package knowledge // import "go.klarlabs.de/agent/domain/knowledge"
 
 Package knowledge provides domain models for vector knowledge storage. This
 enables RAG (Retrieval-Augmented Generation) capabilities by allowing agents to

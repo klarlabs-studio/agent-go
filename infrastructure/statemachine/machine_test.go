@@ -3,11 +3,11 @@ package statemachine
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/statekit"
+	"go.klarlabs.de/statekit"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/ledger"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/ledger"
+	"go.klarlabs.de/agent/domain/policy"
 )
 
 func TestNewContext(t *testing.T) {

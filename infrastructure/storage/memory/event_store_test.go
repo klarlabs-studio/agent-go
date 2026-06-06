@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/event"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
+	"go.klarlabs.de/agent/domain/event"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
 
 func TestNewEventStore(t *testing.T) {

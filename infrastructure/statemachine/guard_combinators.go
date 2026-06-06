@@ -1,7 +1,7 @@
 package statemachine
 
 import (
-	"github.com/felixgeelhaar/statekit"
+	"go.klarlabs.de/statekit"
 )
 
 // Guard is a function that evaluates a condition and returns whether

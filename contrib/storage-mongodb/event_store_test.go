@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/event"
+	"go.klarlabs.de/agent/domain/event"
 )
 
 // Since EventStore uses *mongo.Collection directly and we cannot easily mock it

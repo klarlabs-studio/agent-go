@@ -1,10 +1,10 @@
-module github.com/felixgeelhaar/agent-go/contrib/pack-crypto
+module go.klarlabs.de/agent/contrib/pack-crypto
 
 go 1.25.0
 
 require (
-	github.com/felixgeelhaar/agent-go v0.0.0
-	golang.org/x/crypto v0.47.0
+	go.klarlabs.de/agent v0.0.0
+	golang.org/x/crypto v0.51.0
 )
 
-replace github.com/felixgeelhaar/agent-go => ../..
+replace go.klarlabs.de/agent => ../..

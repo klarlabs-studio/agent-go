@@ -3,8 +3,8 @@ package linear_test
 import (
 	"testing"
 
-	linear "github.com/felixgeelhaar/agent-go/contrib/pack-linear"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	linear "go.klarlabs.de/agent/contrib/pack-linear"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

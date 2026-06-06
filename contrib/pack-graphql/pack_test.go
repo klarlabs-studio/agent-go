@@ -3,8 +3,8 @@ package graphql_test
 import (
 	"testing"
 
-	graphql "github.com/felixgeelhaar/agent-go/contrib/pack-graphql"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	graphql "go.klarlabs.de/agent/contrib/pack-graphql"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

@@ -32,9 +32,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/event"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
+	"go.klarlabs.de/agent/domain/event"
 )
 
 // JetStreamContext represents a NATS JetStream context interface.

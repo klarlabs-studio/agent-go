@@ -26,8 +26,8 @@ import (
 
 	kafkago "github.com/segmentio/kafka-go"
 
-	"github.com/felixgeelhaar/agent-go/domain/event"
-	"github.com/felixgeelhaar/agent-go/infrastructure/distributed/queue"
+	"go.klarlabs.de/agent/domain/event"
+	"go.klarlabs.de/agent/infrastructure/distributed/queue"
 )
 
 // QueueConfig configures the Kafka queue.

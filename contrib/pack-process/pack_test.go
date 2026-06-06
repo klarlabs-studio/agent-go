@@ -3,8 +3,8 @@ package process_test
 import (
 	"testing"
 
-	process "github.com/felixgeelhaar/agent-go/contrib/pack-process"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	process "go.klarlabs.de/agent/contrib/pack-process"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

@@ -23,8 +23,8 @@ import (
     "context"
     "encoding/json"
 
-    agent "github.com/felixgeelhaar/agent-go/interfaces/api"
-    "github.com/felixgeelhaar/agent-go/domain/tool"
+    agent "go.klarlabs.de/agent/interfaces/api"
+    "go.klarlabs.de/agent/domain/tool"
 )
 
 readFile := agent.NewToolBuilder("read_file").
@@ -276,8 +276,8 @@ func handler(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 For common use cases, use pre-built tool packs:
 
 ```go
-import "github.com/felixgeelhaar/agent-go/pack/database"
-import "github.com/felixgeelhaar/agent-go/pack/git"
+import "go.klarlabs.de/agent/pack/database"
+import "go.klarlabs.de/agent/pack/git"
 
 // Database pack provides: query, execute, schema, tables
 dbPack := database.New(dbConnection, database.WithMaxRows(1000))

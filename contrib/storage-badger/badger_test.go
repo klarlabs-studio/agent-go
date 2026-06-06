@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
-	"github.com/felixgeelhaar/agent-go/domain/cache"
-	"github.com/felixgeelhaar/agent-go/domain/event"
+	"go.klarlabs.de/agent/domain/cache"
+	"go.klarlabs.de/agent/domain/event"
 )
 
 // newTestDB creates an in-memory BadgerDB for testing.

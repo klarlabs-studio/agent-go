@@ -30,8 +30,8 @@ changelog:
     includedate: true
     linkcommits: true
     linkissues: true
-    repositoryurl: https://github.com/felixgeelhaar/agent-go
-    issueurl: https://github.com/felixgeelhaar/agent-go/issues
+    repositoryurl: https://github.com/klarlabs-studio/agent-go
+    issueurl: https://github.com/klarlabs-studio/agent-go/issues
     exclude:
         - chore
         - ci

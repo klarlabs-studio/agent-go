@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/suggestion"
+	"go.klarlabs.de/agent/domain/suggestion"
 )
 
 // SuggestionStore is an in-memory implementation of suggestion.Store.

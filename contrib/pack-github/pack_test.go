@@ -3,8 +3,8 @@ package github_test
 import (
 	"testing"
 
-	github "github.com/felixgeelhaar/agent-go/contrib/pack-github"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	github "go.klarlabs.de/agent/contrib/pack-github"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

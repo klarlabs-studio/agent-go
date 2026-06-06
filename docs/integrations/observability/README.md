@@ -6,8 +6,8 @@ agent-go integrates with OpenTelemetry for distributed tracing and metrics colle
 
 ```go
 import (
-    "github.com/felixgeelhaar/agent-go/infrastructure/observability"
-    api "github.com/felixgeelhaar/agent-go/interfaces/api"
+    "go.klarlabs.de/agent/infrastructure/observability"
+    api "go.klarlabs.de/agent/interfaces/api"
 )
 
 // Create tracer and meter
@@ -152,7 +152,7 @@ func myToolHandler(ctx context.Context, input json.RawMessage) (tool.Result, err
 Structured logging with run context:
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/logging"
+import "go.klarlabs.de/agent/infrastructure/logging"
 
 engine, _ := api.New(
     api.WithMiddleware(
@@ -266,9 +266,9 @@ import (
     "context"
     "os"
 
-    api "github.com/felixgeelhaar/agent-go/interfaces/api"
-    "github.com/felixgeelhaar/agent-go/infrastructure/observability"
-    "github.com/felixgeelhaar/agent-go/infrastructure/security/audit"
+    api "go.klarlabs.de/agent/interfaces/api"
+    "go.klarlabs.de/agent/infrastructure/observability"
+    "go.klarlabs.de/agent/infrastructure/security/audit"
 )
 
 func main() {

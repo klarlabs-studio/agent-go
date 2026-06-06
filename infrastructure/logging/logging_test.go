@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/bolt/v3"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/bolt"
 )
 
 // testLogger creates a logger that writes to a buffer for testing

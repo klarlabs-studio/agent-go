@@ -5,8 +5,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/felixgeelhaar/agent-go/domain/pattern"
-	"github.com/felixgeelhaar/agent-go/domain/suggestion"
+	"go.klarlabs.de/agent/domain/pattern"
+	"go.klarlabs.de/agent/domain/suggestion"
 )
 
 // BudgetGenerator generates budget-related suggestions.

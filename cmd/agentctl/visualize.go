@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/felixgeelhaar/agent-go/infrastructure/statemachine"
+	"go.klarlabs.de/agent/infrastructure/statemachine"
 )
 
 func newVisualizeCmd() *cobra.Command {

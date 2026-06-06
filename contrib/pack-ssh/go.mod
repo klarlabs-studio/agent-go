@@ -1,12 +1,12 @@
-module github.com/felixgeelhaar/agent-go/contrib/pack-ssh
+module go.klarlabs.de/agent/contrib/pack-ssh
 
 go 1.25.0
 
 require (
-	github.com/felixgeelhaar/agent-go v0.0.0
-	golang.org/x/crypto v0.47.0
+	go.klarlabs.de/agent v0.0.0
+	golang.org/x/crypto v0.51.0
 )
 
-require golang.org/x/sys v0.40.0 // indirect
+require golang.org/x/sys v0.45.0 // indirect
 
-replace github.com/felixgeelhaar/agent-go => ../..
+replace go.klarlabs.de/agent => ../..

@@ -3,8 +3,8 @@ package llm_test
 import (
 	"testing"
 
-	llm "github.com/felixgeelhaar/agent-go/contrib/pack-llm"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	llm "go.klarlabs.de/agent/contrib/pack-llm"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

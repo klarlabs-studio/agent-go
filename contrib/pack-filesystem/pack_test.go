@@ -3,8 +3,8 @@ package filesystem_test
 import (
 	"testing"
 
-	filesystem "github.com/felixgeelhaar/agent-go/contrib/pack-filesystem"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	filesystem "go.klarlabs.de/agent/contrib/pack-filesystem"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

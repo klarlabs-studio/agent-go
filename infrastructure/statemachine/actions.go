@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/felixgeelhaar/statekit"
+	"go.klarlabs.de/statekit"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // logStateEntry logs when entering a state.

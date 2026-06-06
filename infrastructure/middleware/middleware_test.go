@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/cache"
-	"github.com/felixgeelhaar/agent-go/domain/ledger"
-	domainmw "github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/simulation"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	mw "github.com/felixgeelhaar/agent-go/infrastructure/middleware"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/cache"
+	"go.klarlabs.de/agent/domain/ledger"
+	domainmw "go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/simulation"
+	"go.klarlabs.de/agent/domain/tool"
+	mw "go.klarlabs.de/agent/infrastructure/middleware"
 )
 
 // mockTool implements tool.Tool for testing.

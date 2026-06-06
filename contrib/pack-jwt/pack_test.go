@@ -3,8 +3,8 @@ package jwt_test
 import (
 	"testing"
 
-	jwt "github.com/felixgeelhaar/agent-go/contrib/pack-jwt"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	jwt "go.klarlabs.de/agent/contrib/pack-jwt"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

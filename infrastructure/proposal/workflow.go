@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/proposal"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/proposal"
 )
 
 // WorkflowService manages the proposal approval workflow.

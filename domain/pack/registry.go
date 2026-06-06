@@ -1,8 +1,8 @@
 package pack
 
 import (
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // Registry manages a collection of packs.

@@ -3,8 +3,8 @@
 package api
 
 import (
-	domainconfig "github.com/felixgeelhaar/agent-go/domain/config"
-	infraconfig "github.com/felixgeelhaar/agent-go/infrastructure/config"
+	domainconfig "go.klarlabs.de/agent/domain/config"
+	infraconfig "go.klarlabs.de/agent/infrastructure/config"
 )
 
 // Re-export domain configuration types.

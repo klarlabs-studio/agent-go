@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/notification"
+	"go.klarlabs.de/agent/domain/notification"
 )
 
 func TestSender_Send(t *testing.T) {

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/tool"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 func TestNewToolBuilder(t *testing.T) {

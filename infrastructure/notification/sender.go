@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/fortify/circuitbreaker"
-	"github.com/felixgeelhaar/fortify/retry"
+	"go.klarlabs.de/fortify/circuitbreaker"
+	"go.klarlabs.de/fortify/retry"
 
-	"github.com/felixgeelhaar/agent-go/domain/notification"
+	"go.klarlabs.de/agent/domain/notification"
 )
 
 // SenderConfig configures the HTTP sender.

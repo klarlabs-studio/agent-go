@@ -11,8 +11,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	agent "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/tool"
+	agent "go.klarlabs.de/agent/interfaces/api"
 )
 
 func main() {

@@ -37,7 +37,7 @@ const tabs = [
     label: 'Install',
     filename: 'terminal',
     code: `<span class="comment"># Add agent-go to your project</span>
-go get github.com/felixgeelhaar/agent-go`
+go get go.klarlabs.de/agent`
   },
   {
     id: 'tool',
@@ -46,7 +46,7 @@ go get github.com/felixgeelhaar/agent-go`
     code: `<span class="keyword">package</span> main
 
 <span class="keyword">import</span> (
-    api <span class="string">"github.com/felixgeelhaar/agent-go/interfaces/api"</span>
+    api <span class="string">"go.klarlabs.de/agent/interfaces/api"</span>
 )
 
 <span class="comment">// Define a read-only tool</span>
@@ -75,7 +75,7 @@ go get github.com/felixgeelhaar/agent-go`
     code: `<span class="keyword">package</span> main
 
 <span class="keyword">import</span> (
-    api <span class="string">"github.com/felixgeelhaar/agent-go/interfaces/api"</span>
+    api <span class="string">"go.klarlabs.de/agent/interfaces/api"</span>
 )
 
 <span class="keyword">func</span> main() {
@@ -119,7 +119,7 @@ go get github.com/felixgeelhaar/agent-go`
 
 <span class="keyword">import</span> (
     <span class="string">"testing"</span>
-    api <span class="string">"github.com/felixgeelhaar/agent-go/interfaces/api"</span>
+    api <span class="string">"go.klarlabs.de/agent/interfaces/api"</span>
 )
 
 <span class="keyword">func</span> TestAgentExecution(t *testing.T) {

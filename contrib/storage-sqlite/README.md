@@ -11,7 +11,7 @@ This module provides SQLite-backed implementations of agent-go storage interface
 ## Installation
 
 ```bash
-go get github.com/felixgeelhaar/agent-go/contrib/storage-sqlite
+go get go.klarlabs.de/agent/contrib/storage-sqlite
 ```
 
 ## Usage
@@ -26,7 +26,7 @@ import (
     "database/sql"
     "log"
 
-    "github.com/felixgeelhaar/agent-go/contrib/storage-sqlite"
+    "go.klarlabs.de/agent/contrib/storage-sqlite"
     _ "modernc.org/sqlite"
 )
 

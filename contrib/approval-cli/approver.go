@@ -32,7 +32,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"go.klarlabs.de/agent/domain/policy"
 )
 
 // Config configures the CLI approver.

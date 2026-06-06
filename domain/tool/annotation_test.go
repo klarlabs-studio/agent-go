@@ -3,7 +3,7 @@ package tool_test
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRiskLevel_String(t *testing.T) {

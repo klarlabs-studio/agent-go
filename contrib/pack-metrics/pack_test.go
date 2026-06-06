@@ -3,8 +3,8 @@ package metrics_test
 import (
 	"testing"
 
-	metrics "github.com/felixgeelhaar/agent-go/contrib/pack-metrics"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	metrics "go.klarlabs.de/agent/contrib/pack-metrics"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

@@ -41,7 +41,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/telemetry"
+	"go.klarlabs.de/agent/domain/telemetry"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"

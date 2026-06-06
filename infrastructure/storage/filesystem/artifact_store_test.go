@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/artifact"
+	"go.klarlabs.de/agent/domain/artifact"
 )
 
 func TestNewArtifactStore(t *testing.T) {

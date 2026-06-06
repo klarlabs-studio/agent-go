@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/proposal"
+	"go.klarlabs.de/agent/domain/proposal"
 )
 
 // ProposalStore is an in-memory implementation of proposal.Store.

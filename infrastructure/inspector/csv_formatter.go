@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/inspector"
+	"go.klarlabs.de/agent/domain/inspector"
 )
 
 // CSVFormatter formats data as CSV.

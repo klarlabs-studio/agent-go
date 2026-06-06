@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/analytics"
-	domainevent "github.com/felixgeelhaar/agent-go/domain/event"
-	"github.com/felixgeelhaar/agent-go/domain/run"
-	infraanalytics "github.com/felixgeelhaar/agent-go/infrastructure/analytics"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/analytics"
+	domainevent "go.klarlabs.de/agent/domain/event"
+	"go.klarlabs.de/agent/domain/run"
+	infraanalytics "go.klarlabs.de/agent/infrastructure/analytics"
 )
 
 // mockRunStore implements run.Store for testing.

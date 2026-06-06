@@ -6,11 +6,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	domainpack "github.com/felixgeelhaar/agent-go/domain/pack"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	infrapack "github.com/felixgeelhaar/agent-go/infrastructure/pack"
+	"go.klarlabs.de/agent/domain/agent"
+	domainpack "go.klarlabs.de/agent/domain/pack"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/tool"
+	infrapack "go.klarlabs.de/agent/infrastructure/pack"
 )
 
 // mockTool implements tool.Tool for testing.

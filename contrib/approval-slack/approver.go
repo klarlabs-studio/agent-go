@@ -43,7 +43,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/policy"
+	"go.klarlabs.de/agent/domain/policy"
 )
 
 // Common errors for Slack approval operations.

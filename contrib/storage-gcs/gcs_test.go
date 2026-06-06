@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/artifact"
+	"go.klarlabs.de/agent/domain/artifact"
 )
 
 // --- Interface compliance tests ---

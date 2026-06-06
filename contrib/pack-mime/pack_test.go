@@ -3,8 +3,8 @@ package mime_test
 import (
 	"testing"
 
-	packmime "github.com/felixgeelhaar/agent-go/contrib/pack-mime"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	packmime "go.klarlabs.de/agent/contrib/pack-mime"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestRegister(t *testing.T) {

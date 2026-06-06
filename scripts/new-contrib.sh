@@ -6,7 +6,7 @@ set -euo pipefail
 
 NAME="${1:?Usage: $0 <module-name> (e.g., pack-foo, storage-memcached)}"
 DIR="contrib/$NAME"
-MODULE="github.com/felixgeelhaar/agent-go/contrib/$NAME"
+MODULE="go.klarlabs.de/agent/contrib/$NAME"
 
 # Derive Go package name from module name (remove prefix, replace hyphens)
 PKG=$(echo "$NAME" | sed 's/^pack-//;s/^storage-//;s/^approval-//;s/-/_/g')
@@ -31,9 +31,9 @@ module $MODULE
 
 go 1.25.0
 
-require github.com/felixgeelhaar/agent-go v0.0.0
+require go.klarlabs.de/agent v0.0.0
 
-replace github.com/felixgeelhaar/agent-go => ../..
+replace go.klarlabs.de/agent => ../..
 GOMOD
 
 # Main source file
@@ -43,8 +43,8 @@ if [[ "$NAME" == pack-* ]]; then
 package PKGNAME
 
 import (
-	"github.com/felixgeelhaar/agent-go/domain/pack"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/pack"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // Pack returns the tool pack.
@@ -78,7 +78,7 @@ package PKGNAME
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 func TestPack_RegistersTools(t *testing.T) {

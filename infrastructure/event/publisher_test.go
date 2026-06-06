@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	domainevent "github.com/felixgeelhaar/agent-go/domain/event"
-	infraevent "github.com/felixgeelhaar/agent-go/infrastructure/event"
+	domainevent "go.klarlabs.de/agent/domain/event"
+	infraevent "go.klarlabs.de/agent/infrastructure/event"
 )
 
 // mockEventStore implements event.Store for testing.

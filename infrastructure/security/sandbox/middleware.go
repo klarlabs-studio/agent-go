@@ -3,8 +3,8 @@ package sandbox
 import (
 	"context"
 
-	"github.com/felixgeelhaar/agent-go/domain/middleware"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
+	"go.klarlabs.de/agent/domain/middleware"
+	"go.klarlabs.de/agent/domain/tool"
 )
 
 // SandboxMiddleware creates middleware that executes tools requiring sandboxing

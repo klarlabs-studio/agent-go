@@ -1,10 +1,10 @@
 # Package `application`
 
-**Import path:** `github.com/felixgeelhaar/agent-go/application`
+**Import path:** `go.klarlabs.de/agent/application`
 
 ## Overview
 
-package application // import "github.com/felixgeelhaar/agent-go/application"
+package application // import "go.klarlabs.de/agent/application"
 
 Package application provides application services.
 
@@ -17,7 +17,7 @@ Package application provides application services.
 ## Full API Reference
 
 ```
-package application // import "github.com/felixgeelhaar/agent-go/application"
+package application // import "go.klarlabs.de/agent/application"
 
 Package application provides application services.
 

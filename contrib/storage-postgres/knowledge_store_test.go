@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/domain/knowledge"
+	"go.klarlabs.de/agent/domain/knowledge"
 )
 
 func TestKnowledgeStore_tableName(t *testing.T) {

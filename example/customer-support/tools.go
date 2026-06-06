@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/tool"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 // MockDataStore simulates a customer support backend.

@@ -3,8 +3,8 @@ package api_test
 import (
 	"testing"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/domain/agent"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 func TestNewProposalStore(t *testing.T) {

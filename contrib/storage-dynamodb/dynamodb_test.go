@@ -12,9 +12,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/cache"
-	"github.com/felixgeelhaar/agent-go/domain/run"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/cache"
+	"go.klarlabs.de/agent/domain/run"
 )
 
 // mockDynamoDBClient is a mock implementation of dynamoDBAPI for testing.

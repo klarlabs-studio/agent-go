@@ -5,7 +5,7 @@ Thank you for your interest in contributing to agent-go!
 ## Getting Started
 
 ```bash
-git clone https://github.com/felixgeelhaar/agent-go.git
+git clone https://github.com/klarlabs-studio/agent-go.git
 cd agent-go
 go work sync
 go build ./...

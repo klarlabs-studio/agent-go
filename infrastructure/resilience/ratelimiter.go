@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/felixgeelhaar/fortify/ratelimit"
+	"go.klarlabs.de/fortify/ratelimit"
 )
 
 // RateLimiterConfig configures rate limiting for the executor pipeline.

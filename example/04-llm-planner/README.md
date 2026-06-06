@@ -55,7 +55,7 @@ Result: {"answer": 105, "explanation": "15 × 7 = 105"}
 ### Anthropic (Claude)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/planner-llm/providers/anthropic"
+import "go.klarlabs.de/agent/contrib/planner-llm/providers/anthropic"
 
 provider, _ := anthropic.New(
     anthropic.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
@@ -66,7 +66,7 @@ provider, _ := anthropic.New(
 ### OpenAI (GPT-4)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/planner-llm/providers/openai"
+import "go.klarlabs.de/agent/contrib/planner-llm/providers/openai"
 
 provider, _ := openai.New(
     openai.WithAPIKey(os.Getenv("OPENAI_API_KEY")),
@@ -77,7 +77,7 @@ provider, _ := openai.New(
 ### Google Gemini
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/planner-llm/providers/gemini"
+import "go.klarlabs.de/agent/contrib/planner-llm/providers/gemini"
 
 provider, _ := gemini.New(
     gemini.WithAPIKey(os.Getenv("GEMINI_API_KEY")),
@@ -88,7 +88,7 @@ provider, _ := gemini.New(
 ### Ollama (Local)
 
 ```go
-import "github.com/felixgeelhaar/agent-go/contrib/planner-llm/providers/ollama"
+import "go.klarlabs.de/agent/contrib/planner-llm/providers/ollama"
 
 provider, _ := ollama.New(
     ollama.WithBaseURL("http://localhost:11434"),
@@ -99,7 +99,7 @@ provider, _ := ollama.New(
 ## Creating an LLM Planner
 
 ```go
-import llmplanner "github.com/felixgeelhaar/agent-go/contrib/planner-llm"
+import llmplanner "go.klarlabs.de/agent/contrib/planner-llm"
 
 llmPlanner := llmplanner.NewLLMPlanner(llmplanner.LLMPlannerConfig{
     Provider:     provider,

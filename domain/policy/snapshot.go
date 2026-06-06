@@ -2,7 +2,7 @@
 package policy
 
 import (
-	"github.com/felixgeelhaar/agent-go/domain/agent"
+	"go.klarlabs.de/agent/domain/agent"
 )
 
 // EligibilitySnapshot captures tool eligibility at a point in time.

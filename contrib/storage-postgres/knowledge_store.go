@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/felixgeelhaar/agent-go/domain/knowledge"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.klarlabs.de/agent/domain/knowledge"
 )
 
 // KnowledgeStore is a PostgreSQL-backed implementation of knowledge.Store.

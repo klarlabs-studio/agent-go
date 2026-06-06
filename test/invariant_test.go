@@ -11,17 +11,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felixgeelhaar/agent-go/application"
-	"github.com/felixgeelhaar/agent-go/domain/agent"
-	"github.com/felixgeelhaar/agent-go/domain/artifact"
-	"github.com/felixgeelhaar/agent-go/domain/cache"
-	"github.com/felixgeelhaar/agent-go/domain/event"
-	"github.com/felixgeelhaar/agent-go/domain/ledger"
-	"github.com/felixgeelhaar/agent-go/domain/policy"
-	"github.com/felixgeelhaar/agent-go/domain/tool"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/filesystem"
-	"github.com/felixgeelhaar/agent-go/infrastructure/storage/memory"
-	api "github.com/felixgeelhaar/agent-go/interfaces/api"
+	"go.klarlabs.de/agent/application"
+	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/artifact"
+	"go.klarlabs.de/agent/domain/cache"
+	"go.klarlabs.de/agent/domain/event"
+	"go.klarlabs.de/agent/domain/ledger"
+	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/domain/tool"
+	"go.klarlabs.de/agent/infrastructure/storage/filesystem"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
+	api "go.klarlabs.de/agent/interfaces/api"
 )
 
 // =============================================================================

@@ -17,7 +17,7 @@ Complete API documentation for agent-go.
 ### Creating an Engine
 
 ```go
-import agent "github.com/felixgeelhaar/agent-go/interfaces/api"
+import agent "go.klarlabs.de/agent/interfaces/api"
 
 engine, err := agent.NewEngine(
     agent.WithTool(readFileTool),
@@ -133,8 +133,8 @@ Fluent builder for creating tools.
 
 ```go
 import (
-    "github.com/felixgeelhaar/agent-go/interfaces/api"
-    "github.com/felixgeelhaar/agent-go/domain/tool"
+    "go.klarlabs.de/agent/interfaces/api"
+    "go.klarlabs.de/agent/domain/tool"
 )
 
 myTool := api.NewToolBuilder("my_tool").
@@ -323,7 +323,7 @@ decision := agent.Decision{
 For testing with predetermined decisions:
 
 ```go
-import "github.com/felixgeelhaar/agent-go/infrastructure/planner"
+import "go.klarlabs.de/agent/infrastructure/planner"
 
 scripted := planner.NewScriptedPlanner([]agent.Decision{
     {
@@ -371,7 +371,7 @@ mock := planner.NewMockPlanner(agent.Decision{
 Track and limit resource consumption:
 
 ```go
-import "github.com/felixgeelhaar/agent-go/domain/policy"
+import "go.klarlabs.de/agent/domain/policy"
 
 budget := policy.NewBudget(map[string]int{
     "tool_calls": 100,
@@ -542,7 +542,7 @@ raw := schema.Raw()
 ### Tool Errors
 
 ```go
-import "github.com/felixgeelhaar/agent-go/domain/tool"
+import "go.klarlabs.de/agent/domain/tool"
 
 tool.ErrToolNotFound    // Tool not in registry
 tool.ErrToolExists      // Tool already registered
@@ -554,7 +554,7 @@ tool.ErrApprovalDenied  // Approval was denied
 ### Policy Errors
 
 ```go
-import "github.com/felixgeelhaar/agent-go/domain/policy"
+import "go.klarlabs.de/agent/domain/policy"
 
 policy.ErrBudgetExceeded // Budget limit reached
 ```
@@ -562,7 +562,7 @@ policy.ErrBudgetExceeded // Budget limit reached
 ### Artifact Errors
 
 ```go
-import "github.com/felixgeelhaar/agent-go/domain/artifact"
+import "go.klarlabs.de/agent/domain/artifact"
 
 artifact.ErrArtifactNotFound // Artifact doesn't exist
 artifact.ErrInvalidRef       // Invalid artifact reference
@@ -581,9 +581,9 @@ import (
     "fmt"
     "log"
 
-    agent "github.com/felixgeelhaar/agent-go/interfaces/api"
-    "github.com/felixgeelhaar/agent-go/domain/tool"
-    "github.com/felixgeelhaar/agent-go/infrastructure/planner"
+    agent "go.klarlabs.de/agent/interfaces/api"
+    "go.klarlabs.de/agent/domain/tool"
+    "go.klarlabs.de/agent/infrastructure/planner"
 )
 
 func main() {
