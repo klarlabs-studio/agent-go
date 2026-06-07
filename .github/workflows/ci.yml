@@ -69,7 +69,7 @@ jobs:
 
       - name: Check coverage threshold
         run: |
-          go install github.com/felixgeelhaar/coverctl@latest
+          go install go.klarlabs.de/coverctl@v1.17.0
           coverctl check --profile=coverage.out --fail-under=60
 
   benchmark:
