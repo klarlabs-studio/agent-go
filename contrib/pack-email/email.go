@@ -514,7 +514,7 @@ func (ep *emailPack) send(ctx context.Context, from string, to []string, msg []b
 	// STARTTLS
 	tlsCfg := &tls.Config{
 		ServerName:         ep.cfg.Host,
-		InsecureSkipVerify: ep.cfg.TLSInsecure, //nolint:gosec // Configurable for testing.
+		InsecureSkipVerify: ep.cfg.TLSInsecure,
 	}
 	if ok, _ := client.Extension("STARTTLS"); ok {
 		if err := client.StartTLS(tlsCfg); err != nil {

@@ -657,7 +657,7 @@ func (p *sqlPack) insertTool() tool.Tool {
 			}
 
 			// Table and column names are validated above; placeholders use parameterized values
-			query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", // #nosec G201 -- identifiers validated
+			query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
 				p.quoteIdentifier(in.Table),
 				strings.Join(columns, ", "),
 				strings.Join(placeholders, ", "))
@@ -732,7 +732,7 @@ func (p *sqlPack) updateTool() tool.Tool {
 			values = append(values, in.Params...)
 
 			// Table and column names validated; WHERE uses parameterized values via in.Params
-			query := fmt.Sprintf("UPDATE %s SET %s WHERE %s", // #nosec G201 -- identifiers validated, WHERE uses params
+			query := fmt.Sprintf("UPDATE %s SET %s WHERE %s",
 				p.quoteIdentifier(in.Table),
 				strings.Join(setClauses, ", "),
 				in.Where)
@@ -782,7 +782,7 @@ func (p *sqlPack) deleteTool() tool.Tool {
 			}
 
 			// Table name validated; WHERE uses parameterized values via in.Params
-			query := fmt.Sprintf("DELETE FROM %s WHERE %s", p.quoteIdentifier(in.Table), in.Where) // #nosec G201 -- table validated, WHERE uses params
+			query := fmt.Sprintf("DELETE FROM %s WHERE %s", p.quoteIdentifier(in.Table), in.Where)
 
 			result, err := db.ExecContext(ctx, query, in.Params...)
 			if err != nil {
@@ -826,7 +826,7 @@ func (p *sqlPack) countTool() tool.Tool {
 			}
 
 			// Table name validated; WHERE uses parameterized values via in.Params
-			query := fmt.Sprintf("SELECT COUNT(*) FROM %s", p.quoteIdentifier(in.Table)) // #nosec G201 -- table validated
+			query := fmt.Sprintf("SELECT COUNT(*) FROM %s", p.quoteIdentifier(in.Table))
 			if in.Where != "" {
 				query += " WHERE " + in.Where
 			}
@@ -876,7 +876,7 @@ func (p *sqlPack) transactionTool() tool.Tool {
 			for i, stmt := range in.Statements {
 				result, err := tx.ExecContext(ctx, stmt.Query, stmt.Params...)
 				if err != nil {
-					_ = tx.Rollback() // #nosec G104 -- best-effort rollback, original error takes precedence
+					_ = tx.Rollback()
 					return tool.Result{}, fmt.Errorf("statement %d failed: %w", i, err)
 				}
 

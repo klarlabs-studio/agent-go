@@ -43,7 +43,6 @@ func (s *ArtifactStore) Store(ctx context.Context, content io.Reader, opts artif
 
 	// Write content to file
 	contentPath := filepath.Join(artifactPath, "content")
-	// #nosec G304 -- path is constructed from internally generated artifact ID, not user input
 	file, err := os.Create(contentPath)
 	if err != nil {
 		return artifact.Ref{}, fmt.Errorf("failed to create content file: %w", err)
@@ -55,14 +54,14 @@ func (s *ArtifactStore) Store(ctx context.Context, content io.Reader, opts artif
 
 	size, err := io.Copy(writer, content)
 	if err != nil {
-		file.Close()               // #nosec G104 -- best-effort cleanup in error path
-		os.RemoveAll(artifactPath) // #nosec G104 -- best-effort cleanup in error path
+		file.Close()
+		os.RemoveAll(artifactPath)
 		return artifact.Ref{}, fmt.Errorf("failed to write content: %w", err)
 	}
 
 	// Close content file and check for write errors (G104 fix)
 	if err := file.Close(); err != nil {
-		os.RemoveAll(artifactPath) // #nosec G104 -- best-effort cleanup in error path
+		os.RemoveAll(artifactPath)
 		return artifact.Ref{}, fmt.Errorf("failed to close content file: %w", err)
 	}
 
@@ -87,22 +86,21 @@ func (s *ArtifactStore) Store(ctx context.Context, content io.Reader, opts artif
 
 	// Write metadata file
 	metaPath := filepath.Join(artifactPath, "metadata.json")
-	// #nosec G304 -- path is constructed from internally generated artifact ID, not user input
 	metaFile, err := os.Create(metaPath)
 	if err != nil {
-		os.RemoveAll(artifactPath) // #nosec G104 -- best-effort cleanup in error path
+		os.RemoveAll(artifactPath)
 		return artifact.Ref{}, fmt.Errorf("failed to create metadata file: %w", err)
 	}
 
 	if err := json.NewEncoder(metaFile).Encode(ref); err != nil {
-		metaFile.Close()           // #nosec G104 -- best-effort cleanup in error path
-		os.RemoveAll(artifactPath) // #nosec G104 -- best-effort cleanup in error path
+		metaFile.Close()
+		os.RemoveAll(artifactPath)
 		return artifact.Ref{}, fmt.Errorf("failed to write metadata: %w", err)
 	}
 
 	// Close metadata file and check for write errors (G104 fix)
 	if err := metaFile.Close(); err != nil {
-		os.RemoveAll(artifactPath) // #nosec G104 -- best-effort cleanup in error path
+		os.RemoveAll(artifactPath)
 		return artifact.Ref{}, fmt.Errorf("failed to close metadata file: %w", err)
 	}
 
@@ -116,7 +114,6 @@ func (s *ArtifactStore) Retrieve(_ context.Context, ref artifact.Ref) (io.ReadCl
 	}
 
 	contentPath := filepath.Join(s.artifactPath(ref.ID), "content")
-	// #nosec G304 -- path is constructed from validated artifact ref, not user input
 	file, err := os.Open(contentPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -170,7 +167,6 @@ func (s *ArtifactStore) Metadata(_ context.Context, ref artifact.Ref) (artifact.
 	}
 
 	metaPath := filepath.Join(s.artifactPath(ref.ID), "metadata.json")
-	// #nosec G304 -- path is constructed from validated artifact ref, not user input
 	file, err := os.Open(metaPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -178,7 +174,7 @@ func (s *ArtifactStore) Metadata(_ context.Context, ref artifact.Ref) (artifact.
 		}
 		return artifact.Ref{}, fmt.Errorf("failed to open metadata: %w", err)
 	}
-	defer file.Close() // #nosec G104 -- read-only operation, close error is non-critical
+	defer file.Close()
 
 	var storedRef artifact.Ref
 	if err := json.NewDecoder(file).Decode(&storedRef); err != nil {

@@ -195,7 +195,7 @@ func (s *Sender) getBreaker(url string) circuitbreaker.CircuitBreaker[*http.Resp
 		Interval:    s.config.CircuitBreakerTimeout,
 		Timeout:     s.config.CircuitBreakerTimeout,
 		ReadyToTrip: func(counts circuitbreaker.Counts) bool {
-			return counts.ConsecutiveFailures >= uint32(threshold) // #nosec G115 -- threshold is validated
+			return counts.ConsecutiveFailures >= uint32(threshold)
 		},
 	})
 	s.breakers[url] = breaker

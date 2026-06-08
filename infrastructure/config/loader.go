@@ -84,7 +84,7 @@ func (l *Loader) LoadFile(path string) (*config.AgentConfig, error) {
 	}
 
 	// Open file with cleaned path
-	f, err := os.Open(cleanPath) // #nosec G304 - path is cleaned above
+	f, err := os.Open(cleanPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open config file: %w", err)
 	}

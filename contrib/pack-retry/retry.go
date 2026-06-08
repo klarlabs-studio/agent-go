@@ -556,7 +556,6 @@ func calculateDelay(baseDelay int, attempt int, multiplier float64, maxDelay int
 
 	if jitter > 0 {
 		jitterAmount := delay * jitter
-		// #nosec G404 -- math/rand is sufficient for jitter, no cryptographic security needed
 		delay += (rand.Float64()*2 - 1) * jitterAmount
 	}
 

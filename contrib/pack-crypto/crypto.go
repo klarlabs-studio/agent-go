@@ -6,10 +6,10 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hmac"
-	"crypto/md5" // #nosec G501 -- MD5 is used for checksum/fingerprinting purposes, not for security
+	"crypto/md5"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha1" // #nosec G505 -- SHA1 is used for checksum/fingerprinting purposes, not for security
+	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
 	"crypto/x509"
@@ -98,9 +98,9 @@ func (p *cryptoPack) hashTool() tool.Tool {
 			var h hash.Hash
 			switch algorithm {
 			case "md5":
-				h = md5.New() // #nosec G401 -- MD5 is used for checksum/fingerprinting purposes, not for security
+				h = md5.New()
 			case "sha1":
-				h = sha1.New() // #nosec G401 -- SHA1 is used for checksum/fingerprinting purposes, not for security
+				h = sha1.New()
 			case "sha256":
 				h = sha256.New()
 			case "sha512":
@@ -165,9 +165,9 @@ func (p *cryptoPack) hashFileTool() tool.Tool {
 			var h hash.Hash
 			switch algorithm {
 			case "md5":
-				h = md5.New() // #nosec G401 -- MD5 is used for checksum/fingerprinting purposes, not for security
+				h = md5.New()
 			case "sha1":
-				h = sha1.New() // #nosec G401 -- SHA1 is used for checksum/fingerprinting purposes, not for security
+				h = sha1.New()
 			case "sha256":
 				h = sha256.New()
 			case "sha512":
@@ -176,7 +176,7 @@ func (p *cryptoPack) hashFileTool() tool.Tool {
 				return tool.Result{}, fmt.Errorf("unsupported algorithm: %s", algorithm)
 			}
 
-			file, err := os.Open(params.Path) // #nosec G304 -- This is a file hashing tool; path is provided by user input
+			file, err := os.Open(params.Path)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to open file: %w", err)
 			}
@@ -859,9 +859,9 @@ func (p *cryptoPack) checksumTool() tool.Tool {
 				var h hash.Hash
 				switch algorithm {
 				case "md5":
-					h = md5.New() // #nosec G401 -- MD5 is used for checksum/fingerprinting purposes, not for security
+					h = md5.New()
 				case "sha1":
-					h = sha1.New() // #nosec G401 -- SHA1 is used for checksum/fingerprinting purposes, not for security
+					h = sha1.New()
 				case "sha256":
 					h = sha256.New()
 				case "sha512":
@@ -870,18 +870,18 @@ func (p *cryptoPack) checksumTool() tool.Tool {
 					return tool.Result{}, fmt.Errorf("unsupported algorithm: %s", algorithm)
 				}
 
-				file, err := os.Open(path) // #nosec G304 -- This is a checksum tool; path is provided by user input
+				file, err := os.Open(path)
 				if err != nil {
 					checksums[path] = fmt.Sprintf("error: %v", err)
 					continue
 				}
 
 				if _, err := io.Copy(h, file); err != nil {
-					_ = file.Close() // #nosec G104 -- Error logged in checksum result, best effort close
+					_ = file.Close()
 					checksums[path] = fmt.Sprintf("error: %v", err)
 					continue
 				}
-				_ = file.Close() // #nosec G104 -- Best effort close after successful read
+				_ = file.Close()
 
 				checksums[path] = hex.EncodeToString(h.Sum(nil))
 			}
@@ -924,9 +924,9 @@ func (p *cryptoPack) verifyChecksumTool() tool.Tool {
 			var h hash.Hash
 			switch algorithm {
 			case "md5":
-				h = md5.New() // #nosec G401 -- MD5 is used for checksum/fingerprinting purposes, not for security
+				h = md5.New()
 			case "sha1":
-				h = sha1.New() // #nosec G401 -- SHA1 is used for checksum/fingerprinting purposes, not for security
+				h = sha1.New()
 			case "sha256":
 				h = sha256.New()
 			case "sha512":
@@ -935,7 +935,7 @@ func (p *cryptoPack) verifyChecksumTool() tool.Tool {
 				return tool.Result{}, fmt.Errorf("unsupported algorithm: %s", algorithm)
 			}
 
-			file, err := os.Open(params.Path) // #nosec G304 -- This is a checksum verification tool; path is provided by user input
+			file, err := os.Open(params.Path)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to open file: %w", err)
 			}

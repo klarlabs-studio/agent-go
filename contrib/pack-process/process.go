@@ -229,7 +229,7 @@ func currentTool() tool.Tool {
 		ReadOnly().
 		Idempotent().
 		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
-			pid := int32(os.Getpid()) // #nosec G115 -- PID values are bounded by OS limits (max 2^22 on Linux)
+			pid := int32(os.Getpid())
 			p, err := process.NewProcessWithContext(ctx, pid)
 			if err != nil {
 				return tool.Result{}, err
@@ -279,7 +279,7 @@ func parentTool() tool.Tool {
 
 			pid := params.PID
 			if pid == 0 {
-				pid = int32(os.Getpid()) // #nosec G115 -- PID values are bounded by OS limits (max 2^22 on Linux)
+				pid = int32(os.Getpid())
 			}
 
 			p, err := process.NewProcessWithContext(ctx, pid)
@@ -322,7 +322,7 @@ func childrenTool() tool.Tool {
 
 			pid := params.PID
 			if pid == 0 {
-				pid = int32(os.Getpid()) // #nosec G115 -- PID values are bounded by OS limits (max 2^22 on Linux)
+				pid = int32(os.Getpid())
 			}
 
 			p, err := process.NewProcessWithContext(ctx, pid)
@@ -370,7 +370,7 @@ func memoryUsageTool() tool.Tool {
 
 			pid := params.PID
 			if pid == 0 {
-				pid = int32(os.Getpid()) // #nosec G115 -- PID values are bounded by OS limits (max 2^22 on Linux)
+				pid = int32(os.Getpid())
 			}
 
 			p, err := process.NewProcessWithContext(ctx, pid)
@@ -414,7 +414,7 @@ func cpuUsageTool() tool.Tool {
 
 			pid := params.PID
 			if pid == 0 {
-				pid = int32(os.Getpid()) // #nosec G115 -- PID values are bounded by OS limits (max 2^22 on Linux)
+				pid = int32(os.Getpid())
 			}
 
 			p, err := process.NewProcessWithContext(ctx, pid)
@@ -460,7 +460,7 @@ func connectionsTool() tool.Tool {
 
 			pid := params.PID
 			if pid == 0 {
-				pid = int32(os.Getpid()) // #nosec G115 -- PID values are bounded by OS limits (max 2^22 on Linux)
+				pid = int32(os.Getpid())
 			}
 
 			p, err := process.NewProcessWithContext(ctx, pid)
@@ -511,7 +511,7 @@ func openFilesTool() tool.Tool {
 
 			pid := params.PID
 			if pid == 0 {
-				pid = int32(os.Getpid()) // #nosec G115 -- PID values are bounded by OS limits (max 2^22 on Linux)
+				pid = int32(os.Getpid())
 			}
 
 			p, err := process.NewProcessWithContext(ctx, pid)

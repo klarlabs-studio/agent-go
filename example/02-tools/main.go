@@ -30,7 +30,7 @@ func run() error {
 
 	// Create test file
 	testFile := filepath.Join(tmpDir, "test.txt")
-	_ = os.WriteFile(testFile, []byte("Hello from the test file!"), 0600) // #nosec G306
+	_ = os.WriteFile(testFile, []byte("Hello from the test file!"), 0600)
 
 	// ============================================
 	// Tool 1: read_file (ReadOnly, Idempotent, Cacheable)
@@ -84,7 +84,7 @@ func run() error {
 				return tool.Result{}, err
 			}
 
-			if err := os.WriteFile(in.Path, []byte(in.Content), 0600); err != nil { // #nosec G306
+			if err := os.WriteFile(in.Path, []byte(in.Content), 0600); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to write file: %w", err)
 			}
 
@@ -208,7 +208,6 @@ func run() error {
 	fmt.Println()
 
 	// Verify output was written
-	// #nosec G304 -- example code reading known output file in controlled temp directory
 	if content, err := os.ReadFile(outputFile); err == nil {
 		fmt.Printf("Output file contents: %s\n", string(content))
 	}

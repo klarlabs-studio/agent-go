@@ -126,11 +126,11 @@ func NewExecutor(config ExecutorConfig) *Executor {
 			MaxConcurrent: maxConcurrent,
 		}),
 		breaker: circuitbreaker.New[tool.Result](circuitbreaker.Config{
-			MaxRequests: uint32(maxConcurrent), // #nosec G115 -- bounds checked above
+			MaxRequests: uint32(maxConcurrent),
 			Interval:    config.CircuitBreakerTimeout,
 			Timeout:     config.CircuitBreakerTimeout,
 			ReadyToTrip: func(counts circuitbreaker.Counts) bool {
-				return counts.ConsecutiveFailures >= uint32(threshold) // #nosec G115 -- bounds checked above
+				return counts.ConsecutiveFailures >= uint32(threshold)
 			},
 		}),
 		retry: retry.New[tool.Result](retry.Config{

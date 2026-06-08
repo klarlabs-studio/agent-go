@@ -200,7 +200,6 @@ func runExample(workDir string) error {
 
 	// Verify the file was actually created
 	filePath := filepath.Join(workDir, "hello.txt")
-	// #nosec G304 -- example code reading known file in controlled temp directory
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("file verification failed: %w", err)

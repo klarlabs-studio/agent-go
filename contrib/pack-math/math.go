@@ -487,9 +487,9 @@ func randomTool() tool.Tool {
 			// Create random source
 			var rng *rand.Rand
 			if params.Seed != 0 {
-				rng = rand.New(rand.NewSource(params.Seed)) // #nosec G404 -- math/rand sufficient for general random
+				rng = rand.New(rand.NewSource(params.Seed))
 			} else {
-				rng = rand.New(rand.NewSource(time.Now().UnixNano())) // #nosec G404 -- math/rand sufficient for general random
+				rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 			}
 
 			values := make([]float64, count)

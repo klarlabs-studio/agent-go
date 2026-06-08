@@ -264,7 +264,7 @@ func decodeTool() tool.Tool {
 				return tool.Result{}, err
 			}
 			var header map[string]any
-			_ = json.Unmarshal(headerJSON, &header) // #nosec G104 -- headerJSON already validated via base64 decode
+			_ = json.Unmarshal(headerJSON, &header)
 
 			// Decode payload
 			payloadJSON, err := base64.RawURLEncoding.DecodeString(parts[1])
@@ -272,7 +272,7 @@ func decodeTool() tool.Tool {
 				return tool.Result{}, err
 			}
 			var payload map[string]any
-			_ = json.Unmarshal(payloadJSON, &payload) // #nosec G104 -- payloadJSON already validated via base64 decode
+			_ = json.Unmarshal(payloadJSON, &payload)
 
 			result := map[string]any{
 				"header":    header,
@@ -307,7 +307,7 @@ func inspectTool() tool.Tool {
 			// Decode header
 			headerJSON, _ := base64.RawURLEncoding.DecodeString(parts[0])
 			var header map[string]any
-			_ = json.Unmarshal(headerJSON, &header) // #nosec G104 -- header parsing is best-effort for inspection
+			_ = json.Unmarshal(headerJSON, &header)
 
 			// Decode payload
 			payloadJSON, err := base64.RawURLEncoding.DecodeString(parts[1])

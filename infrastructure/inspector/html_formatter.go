@@ -61,7 +61,7 @@ func (f *HTMLFormatter) Format(data any) ([]byte, error) {
 	err = tmpl.Execute(&buf, map[string]any{
 		"Title": f.title,
 		"Theme": f.theme,
-		"Data":  template.JS(jsonData), // #nosec G203 -- Data is marshaled JSON, safe for embedding
+		"Data":  template.JS(jsonData),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute template: %w", err)

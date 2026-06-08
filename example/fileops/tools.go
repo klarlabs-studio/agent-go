@@ -99,7 +99,6 @@ func NewReadFileTool(baseDir string) tool.Tool {
 				return tool.Result{}, fmt.Errorf("path traversal attempt: %s", in.Path)
 			}
 
-			// #nosec G304 -- path is sanitized above with filepath.Clean and isSubPath check
 			content, err := os.ReadFile(fullPath)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to read file: %w", err)

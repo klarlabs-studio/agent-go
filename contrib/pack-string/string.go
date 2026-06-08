@@ -3,8 +3,8 @@ package stringutil
 
 import (
 	"context"
-	"crypto/md5"  // #nosec G501 -- MD5 used for checksums/fingerprinting, not cryptographic security
-	"crypto/sha1" // #nosec G505 -- SHA1 used for checksums/fingerprinting, not cryptographic security
+	"crypto/md5"
+	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -578,11 +578,11 @@ func hashTool() tool.Tool {
 
 			switch strings.ToLower(algorithm) {
 			case "md5":
-				hash := md5.Sum(data) // #nosec G401 -- MD5 used for checksums/fingerprinting, not cryptographic security
+				hash := md5.Sum(data)
 				hashHex = hex.EncodeToString(hash[:])
 				algorithm = "md5"
 			case "sha1":
-				hash := sha1.Sum(data) // #nosec G401 -- SHA1 used for checksums/fingerprinting, not cryptographic security
+				hash := sha1.Sum(data)
 				hashHex = hex.EncodeToString(hash[:])
 				algorithm = "sha1"
 			default:

@@ -415,7 +415,7 @@ func detectTool() tool.Tool {
 					// Try deflate
 					reader := flate.NewReader(bytes.NewReader(data))
 					_, err := io.ReadAll(reader)
-					_ = reader.Close() // #nosec G104 -- best-effort close
+					_ = reader.Close()
 					if err == nil {
 						format = "deflate"
 						valid = true
@@ -495,22 +495,22 @@ func compareTool() tool.Tool {
 			// Try gzip
 			var gzipBuf bytes.Buffer
 			gzipWriter := gzip.NewWriter(&gzipBuf)
-			_, _ = gzipWriter.Write([]byte(params.Data)) // #nosec G104 -- comparison tool, errors don't affect result validity
-			_ = gzipWriter.Close()                       // #nosec G104
+			_, _ = gzipWriter.Write([]byte(params.Data))
+			_ = gzipWriter.Close()
 			gzipSize := gzipBuf.Len()
 
 			// Try zlib
 			var zlibBuf bytes.Buffer
 			zlibWriter := zlib.NewWriter(&zlibBuf)
-			_, _ = zlibWriter.Write([]byte(params.Data)) // #nosec G104 -- comparison tool, errors don't affect result validity
-			_ = zlibWriter.Close()                       // #nosec G104
+			_, _ = zlibWriter.Write([]byte(params.Data))
+			_ = zlibWriter.Close()
 			zlibSize := zlibBuf.Len()
 
 			// Try deflate
 			var deflateBuf bytes.Buffer
 			deflateWriter, _ := flate.NewWriter(&deflateBuf, flate.DefaultCompression)
-			_, _ = deflateWriter.Write([]byte(params.Data)) // #nosec G104 -- comparison tool, errors don't affect result validity
-			_ = deflateWriter.Close()                       // #nosec G104
+			_, _ = deflateWriter.Write([]byte(params.Data))
+			_ = deflateWriter.Close()
 			deflateSize := deflateBuf.Len()
 
 			// Find best
@@ -579,22 +579,22 @@ func benchmarkTool() tool.Tool {
 					var w *gzip.Writer
 					w, err = gzip.NewWriterLevel(&buf, level)
 					if err == nil {
-						_, _ = w.Write([]byte(params.Data)) // #nosec G104 -- benchmark tool, errors don't affect result validity
-						_ = w.Close()                       // #nosec G104
+						_, _ = w.Write([]byte(params.Data))
+						_ = w.Close()
 					}
 				case "zlib":
 					var w *zlib.Writer
 					w, err = zlib.NewWriterLevel(&buf, level)
 					if err == nil {
-						_, _ = w.Write([]byte(params.Data)) // #nosec G104 -- benchmark tool, errors don't affect result validity
-						_ = w.Close()                       // #nosec G104
+						_, _ = w.Write([]byte(params.Data))
+						_ = w.Close()
 					}
 				case "deflate":
 					var w *flate.Writer
 					w, err = flate.NewWriter(&buf, level)
 					if err == nil {
-						_, _ = w.Write([]byte(params.Data)) // #nosec G104 -- benchmark tool, errors don't affect result validity
-						_ = w.Close()                       // #nosec G104
+						_, _ = w.Write([]byte(params.Data))
+						_ = w.Close()
 					}
 				}
 

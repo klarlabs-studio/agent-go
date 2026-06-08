@@ -22,7 +22,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
-	"crypto/md5" // #nosec G501 -- MD5 used for non-security checksum only
+	"crypto/md5"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
@@ -241,7 +241,6 @@ func fileopsRead(baseDir string) tool.Tool {
 				return tool.Result{}, err
 			}
 
-			// #nosec G304 -- path is sanitized via safePath
 			data, err := os.ReadFile(fullPath)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to read file: %w", err)
@@ -307,7 +306,6 @@ func fileopsWrite(baseDir string) tool.Tool {
 			// Create backup if requested and file exists
 			if in.Backup && !created {
 				backupPath = fullPath + ".bak"
-				// #nosec G304 -- path is sanitized via safePath
 				existing, readErr := os.ReadFile(fullPath)
 				if readErr != nil {
 					return tool.Result{}, fmt.Errorf("failed to read file for backup: %w", readErr)
@@ -367,7 +365,6 @@ func fileopsAppend(baseDir string) tool.Tool {
 				return tool.Result{}, fmt.Errorf("failed to create directory: %w", err)
 			}
 
-			// #nosec G304 -- path is sanitized via safePath
 			f, err := os.OpenFile(fullPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to open file: %w", err)
@@ -496,7 +493,6 @@ func fileopsSearch(baseDir string) tool.Tool {
 
 // searchFile searches a single file for regex matches.
 func searchFile(filePath string, re *regexp.Regexp, maxMatches int, baseDir string) ([]searchMatch, error) {
-	// #nosec G304 -- caller validates path via safePath
 	f, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -554,7 +550,6 @@ func fileopsReplace(baseDir string) tool.Tool {
 				return tool.Result{}, fmt.Errorf("invalid regex pattern: %w", err)
 			}
 
-			// #nosec G304 -- path is sanitized via safePath
 			data, err := os.ReadFile(fullPath)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to read file: %w", err)
@@ -627,12 +622,10 @@ func fileopsDiff(baseDir string) tool.Tool {
 				return tool.Result{}, err
 			}
 
-			// #nosec G304 -- paths are sanitized via safePath
 			dataA, err := os.ReadFile(pathA)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to read file A: %w", err)
 			}
-			// #nosec G304 -- paths are sanitized via safePath
 			dataB, err := os.ReadFile(pathB)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to read file B: %w", err)
@@ -805,7 +798,6 @@ func createZipArchive(outputPath string, paths []string, baseDir string) (int, e
 				return createErr
 			}
 
-			// #nosec G304 -- path validated via safePath above
 			data, readErr := os.ReadFile(filePath)
 			if readErr != nil {
 				return readErr
@@ -861,7 +853,6 @@ func createTarArchive(outputPath string, paths []string, baseDir string, compres
 				return writeErr
 			}
 
-			// #nosec G304 -- path validated via safePath above
 			data, readErr := os.ReadFile(filePath)
 			if readErr != nil {
 				return readErr
@@ -986,7 +977,6 @@ func extractZip(archivePath, outputDir, baseDir string) (int, error) {
 }
 
 func extractTar(archivePath, outputDir, baseDir string, compressed bool) (int, error) {
-	// #nosec G304 -- path validated via safePath by caller
 	f, err := os.Open(archivePath)
 	if err != nil {
 		return 0, fmt.Errorf("failed to open archive: %w", err)
@@ -1076,7 +1066,7 @@ func fileopsChecksum(baseDir string) tool.Tool {
 			var h hash.Hash
 			switch algorithm {
 			case "md5":
-				h = md5.New() // #nosec G401 -- MD5 used for non-security checksum only
+				h = md5.New()
 			case "sha256":
 				h = sha256.New()
 			case "sha512":
@@ -1085,7 +1075,6 @@ func fileopsChecksum(baseDir string) tool.Tool {
 				return tool.Result{}, fmt.Errorf("unsupported algorithm: %s", algorithm)
 			}
 
-			// #nosec G304 -- path is sanitized via safePath
 			f, err := os.Open(fullPath)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to open file: %w", err)

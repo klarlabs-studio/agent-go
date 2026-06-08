@@ -3,8 +3,8 @@ package hash
 
 import (
 	"context"
-	"crypto/md5"  // #nosec G501 -- MD5 provided for checksum/fingerprinting, not cryptographic security
-	"crypto/sha1" // #nosec G505 -- SHA1 provided for checksum/fingerprinting, not cryptographic security
+	"crypto/md5"
+	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base64"
@@ -62,7 +62,7 @@ func md5Tool() tool.Tool {
 				data = params.Bytes
 			}
 
-			h := md5.Sum(data) // #nosec G401 -- MD5 provided for checksum/fingerprinting, not cryptographic security
+			h := md5.Sum(data)
 			hashHex := hex.EncodeToString(h[:])
 			hashB64 := base64.StdEncoding.EncodeToString(h[:])
 
@@ -96,7 +96,7 @@ func sha1Tool() tool.Tool {
 				data = params.Bytes
 			}
 
-			h := sha1.Sum(data) // #nosec G401 -- SHA1 provided for checksum/fingerprinting, not cryptographic security
+			h := sha1.Sum(data)
 			hashHex := hex.EncodeToString(h[:])
 			hashB64 := base64.StdEncoding.EncodeToString(h[:])
 
@@ -275,8 +275,8 @@ func multiTool() tool.Tool {
 
 			data := []byte(params.Text)
 
-			md5Sum := md5.Sum(data)   // #nosec G401 -- MD5 provided for checksum/fingerprinting, not cryptographic security
-			sha1Sum := sha1.Sum(data) // #nosec G401 -- SHA1 provided for checksum/fingerprinting, not cryptographic security
+			md5Sum := md5.Sum(data)
+			sha1Sum := sha1.Sum(data)
 			sha256Sum := sha256.Sum256(data)
 			sha512Sum := sha512.Sum512(data)
 			crc32Sum := crc32.ChecksumIEEE(data)
@@ -315,10 +315,10 @@ func verifyTool() tool.Tool {
 
 			switch strings.ToLower(params.Algorithm) {
 			case "md5":
-				h := md5.Sum(data) // #nosec G401 -- MD5 provided for checksum/fingerprinting, not cryptographic security
+				h := md5.Sum(data)
 				computed = hex.EncodeToString(h[:])
 			case "sha1":
-				h := sha1.Sum(data) // #nosec G401 -- SHA1 provided for checksum/fingerprinting, not cryptographic security
+				h := sha1.Sum(data)
 				computed = hex.EncodeToString(h[:])
 			case "sha256":
 				h := sha256.Sum256(data)

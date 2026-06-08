@@ -94,7 +94,7 @@ func connectTool() tool.Tool {
 
 			pool.mu.Lock()
 			if existing, ok := pool.conns[id]; ok {
-				_ = existing.Close() // #nosec G104 -- best-effort close
+				_ = existing.Close()
 			}
 			pool.conns[id] = conn
 			pool.mu.Unlock()
@@ -125,7 +125,7 @@ func disconnectTool() tool.Tool {
 			pool.mu.Lock()
 			conn, ok := pool.conns[params.ID]
 			if ok {
-				_ = conn.Close() // #nosec G104 -- best-effort close
+				_ = conn.Close()
 				delete(pool.conns, params.ID)
 			}
 			pool.mu.Unlock()
@@ -206,7 +206,7 @@ func callTool() tool.Tool {
 			}
 
 			var response map[string]any
-			_ = json.Unmarshal(respBytes, &response) // #nosec G104 -- best-effort parse, empty response is acceptable
+			_ = json.Unmarshal(respBytes, &response)
 
 			result := map[string]any{
 				"id":       params.ID,
@@ -252,7 +252,7 @@ func closeAllTool() tool.Tool {
 			pool.mu.Lock()
 			count := len(pool.conns)
 			for id, conn := range pool.conns {
-				_ = conn.Close() // #nosec G104 -- best-effort close
+				_ = conn.Close()
 				delete(pool.conns, id)
 			}
 			pool.mu.Unlock()

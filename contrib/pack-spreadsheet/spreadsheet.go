@@ -617,7 +617,7 @@ func (p *spreadsheetPack) writeExcelTool() tool.Tool {
 			if len(params.Headers) > 0 {
 				for col, header := range params.Headers {
 					cell, _ := excelize.CoordinatesToCellName(col+1, rowNum)
-					_ = f.SetCellValue(sheet, cell, header) // #nosec G104 -- best-effort write, errors handled at save
+					_ = f.SetCellValue(sheet, cell, header)
 				}
 				rowNum++
 			}
@@ -628,7 +628,7 @@ func (p *spreadsheetPack) writeExcelTool() tool.Tool {
 				case []interface{}:
 					for col, val := range v {
 						cell, _ := excelize.CoordinatesToCellName(col+1, rowNum)
-						_ = f.SetCellValue(sheet, cell, val) // #nosec G104 -- best-effort write, errors handled at save
+						_ = f.SetCellValue(sheet, cell, val)
 					}
 				case map[string]interface{}:
 					if len(params.Headers) == 0 {
@@ -637,14 +637,14 @@ func (p *spreadsheetPack) writeExcelTool() tool.Tool {
 						}
 						for col, header := range params.Headers {
 							cell, _ := excelize.CoordinatesToCellName(col+1, 1)
-							_ = f.SetCellValue(sheet, cell, header) // #nosec G104 -- best-effort write, errors handled at save
+							_ = f.SetCellValue(sheet, cell, header)
 						}
 						rowNum = 2
 					}
 					for col, h := range params.Headers {
 						if val, ok := v[h]; ok {
 							cell, _ := excelize.CoordinatesToCellName(col+1, rowNum)
-							_ = f.SetCellValue(sheet, cell, val) // #nosec G104 -- best-effort write, errors handled at save
+							_ = f.SetCellValue(sheet, cell, val)
 						}
 					}
 				}

@@ -155,7 +155,6 @@ func (p *archivePack) createZipTool() tool.Tool {
 						return fmt.Errorf("failed to create entry: %w", err)
 					}
 
-					// #nosec G304 -- File path from user input is intentional for archive tool
 					f, err := os.Open(path)
 					if err != nil {
 						return fmt.Errorf("failed to open file: %w", err)
@@ -182,7 +181,7 @@ func (p *archivePack) createZipTool() tool.Tool {
 				"total_size": totalSize,
 				"success":    true,
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -211,7 +210,6 @@ func (p *archivePack) extractZipTool() tool.Tool {
 			}
 			defer reader.Close()
 
-			// #nosec G301 -- Directory permissions 0755 are intentional for user-accessible directories
 			if err := os.MkdirAll(params.Output, 0755); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to create output dir: %w", err)
 			}
@@ -225,13 +223,13 @@ func (p *archivePack) extractZipTool() tool.Tool {
 				}
 
 				// Validate path to prevent zip slip attacks
-				destPath := filepath.Join(params.Output, filepath.Clean(file.Name)) // #nosec G305 -- Path validated by isPathSafe using filepath.Rel
+				destPath := filepath.Join(params.Output, filepath.Clean(file.Name))
 				if !isPathSafe(params.Output, destPath) {
 					continue // Skip files that would escape the output directory
 				}
 
 				if file.FileInfo().IsDir() {
-					_ = os.MkdirAll(destPath, file.Mode()) // #nosec G104 -- Best effort directory creation
+					_ = os.MkdirAll(destPath, file.Mode())
 					continue
 				}
 
@@ -239,17 +237,14 @@ func (p *archivePack) extractZipTool() tool.Tool {
 				if file.UncompressedSize64 > math.MaxInt64 {
 					continue // Skip files with size that would overflow int64
 				}
-				// #nosec G115 -- Overflow checked above with math.MaxInt64 comparison
 				if p.cfg.MaxFileSize > 0 && int64(file.UncompressedSize64) > p.cfg.MaxFileSize {
 					continue // Skip files that are too large
 				}
 
-				// #nosec G301 -- Directory permissions 0755 are intentional for user-accessible directories
 				if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 					return tool.Result{}, fmt.Errorf("failed to create dir: %w", err)
 				}
 
-				// #nosec G304 -- destPath is validated by isPathSafe to prevent traversal
 				destFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
 				if err != nil {
 					return tool.Result{}, fmt.Errorf("failed to create file: %w", err)
@@ -257,14 +252,13 @@ func (p *archivePack) extractZipTool() tool.Tool {
 
 				srcFile, err := file.Open()
 				if err != nil {
-					_ = destFile.Close() // #nosec G104 -- Best effort cleanup
+					_ = destFile.Close()
 					return tool.Result{}, fmt.Errorf("failed to open zip entry: %w", err)
 				}
 
-				// #nosec G110 -- Decompression size is bounded by MaxFileSize config and header size check above
 				written, err := io.Copy(destFile, srcFile)
-				_ = srcFile.Close()  // #nosec G104 -- Best effort cleanup
-				_ = destFile.Close() // #nosec G104 -- Best effort cleanup
+				_ = srcFile.Close()
+				_ = destFile.Close()
 				if err != nil {
 					return tool.Result{}, fmt.Errorf("failed to extract file: %w", err)
 				}
@@ -279,7 +273,7 @@ func (p *archivePack) extractZipTool() tool.Tool {
 				"total_size": totalSize,
 				"success":    true,
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -327,7 +321,7 @@ func (p *archivePack) listZipTool() tool.Tool {
 				"file_count": len(files),
 				"total_size": totalSize,
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -360,7 +354,7 @@ func (p *archivePack) addToZipTool() tool.Tool {
 			// Create temp file for new archive
 			tempFile, err := os.CreateTemp(p.cfg.TempDir, "archive-*.zip")
 			if err != nil {
-				_ = existingReader.Close() // #nosec G104 -- Best effort cleanup
+				_ = existingReader.Close()
 				return tool.Result{}, fmt.Errorf("failed to create temp file: %w", err)
 			}
 			tempPath := tempFile.Name()
@@ -372,34 +366,33 @@ func (p *archivePack) addToZipTool() tool.Tool {
 				header := file.FileHeader
 				writer, err := zipWriter.CreateHeader(&header)
 				if err != nil {
-					_ = zipWriter.Close()      // #nosec G104 -- Best effort cleanup
-					_ = tempFile.Close()       // #nosec G104 -- Best effort cleanup
-					_ = existingReader.Close() // #nosec G104 -- Best effort cleanup
-					_ = os.Remove(tempPath)    // #nosec G104 -- Best effort cleanup
+					_ = zipWriter.Close()
+					_ = tempFile.Close()
+					_ = existingReader.Close()
+					_ = os.Remove(tempPath)
 					return tool.Result{}, fmt.Errorf("failed to create header: %w", err)
 				}
 
 				reader, err := file.Open()
 				if err != nil {
-					_ = zipWriter.Close()      // #nosec G104 -- Best effort cleanup
-					_ = tempFile.Close()       // #nosec G104 -- Best effort cleanup
-					_ = existingReader.Close() // #nosec G104 -- Best effort cleanup
-					_ = os.Remove(tempPath)    // #nosec G104 -- Best effort cleanup
+					_ = zipWriter.Close()
+					_ = tempFile.Close()
+					_ = existingReader.Close()
+					_ = os.Remove(tempPath)
 					return tool.Result{}, fmt.Errorf("failed to open file: %w", err)
 				}
 
-				// #nosec G110 -- Copying existing archive entries - size bounded by original archive
 				_, err = io.Copy(writer, reader)
-				_ = reader.Close() // #nosec G104 -- Best effort cleanup
+				_ = reader.Close()
 				if err != nil {
-					_ = zipWriter.Close()      // #nosec G104 -- Best effort cleanup
-					_ = tempFile.Close()       // #nosec G104 -- Best effort cleanup
-					_ = existingReader.Close() // #nosec G104 -- Best effort cleanup
-					_ = os.Remove(tempPath)    // #nosec G104 -- Best effort cleanup
+					_ = zipWriter.Close()
+					_ = tempFile.Close()
+					_ = existingReader.Close()
+					_ = os.Remove(tempPath)
 					return tool.Result{}, fmt.Errorf("failed to copy file: %w", err)
 				}
 			}
-			_ = existingReader.Close() // #nosec G104 -- Best effort cleanup
+			_ = existingReader.Close()
 
 			// Add new files
 			addedCount := 0
@@ -436,26 +429,25 @@ func (p *archivePack) addToZipTool() tool.Tool {
 					continue
 				}
 
-				// #nosec G304 -- File path from user input is intentional for archive tool
 				f, err := os.Open(file)
 				if err != nil {
 					continue
 				}
 
 				_, err = io.Copy(writer, f)
-				_ = f.Close() // #nosec G104 -- Best effort cleanup
+				_ = f.Close()
 				if err != nil {
 					continue
 				}
 				addedCount++
 			}
 
-			_ = zipWriter.Close() // #nosec G104 -- Best effort cleanup
-			_ = tempFile.Close()  // #nosec G104 -- Best effort cleanup
+			_ = zipWriter.Close()
+			_ = tempFile.Close()
 
 			// Replace original with temp
 			if err := os.Rename(tempPath, params.Archive); err != nil {
-				_ = os.Remove(tempPath) // #nosec G104 -- Best effort cleanup
+				_ = os.Remove(tempPath)
 				return tool.Result{}, fmt.Errorf("failed to replace archive: %w", err)
 			}
 
@@ -464,7 +456,7 @@ func (p *archivePack) addToZipTool() tool.Tool {
 				"files_added": addedCount,
 				"success":     true,
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -502,7 +494,6 @@ func (p *archivePack) extractZipFileTool() tool.Tool {
 						return tool.Result{}, fmt.Errorf("unsafe output path: %s", params.Output)
 					}
 
-					// #nosec G301 -- Directory permissions 0755 are intentional for user-accessible directories
 					if err := os.MkdirAll(filepath.Dir(params.Output), 0755); err != nil {
 						return tool.Result{}, fmt.Errorf("failed to create dir: %w", err)
 					}
@@ -519,7 +510,6 @@ func (p *archivePack) extractZipFileTool() tool.Tool {
 					}
 					defer srcFile.Close()
 
-					// #nosec G110 -- Single file extraction - size bounded by MaxFileSize if configured
 					written, err := io.Copy(destFile, srcFile)
 					if err != nil {
 						return tool.Result{}, fmt.Errorf("failed to extract: %w", err)
@@ -530,7 +520,7 @@ func (p *archivePack) extractZipFileTool() tool.Tool {
 						"size":    written,
 						"success": true,
 					}
-					output, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+					output, _ := json.Marshal(result)
 					return tool.Result{Output: output}, nil
 				}
 			}
@@ -602,7 +592,6 @@ func (p *archivePack) createTarTool() tool.Tool {
 						return nil
 					}
 
-					// #nosec G304 -- File path from user input is intentional for archive tool
 					f, err := os.Open(path)
 					if err != nil {
 						return fmt.Errorf("failed to open file: %w", err)
@@ -629,7 +618,7 @@ func (p *archivePack) createTarTool() tool.Tool {
 				"total_size": totalSize,
 				"success":    true,
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -660,7 +649,6 @@ func (p *archivePack) extractTarTool() tool.Tool {
 
 			tarReader := tar.NewReader(tarFile)
 
-			// #nosec G301 -- Directory permissions 0755 are intentional for user-accessible directories
 			if err := os.MkdirAll(params.Output, 0755); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to create output dir: %w", err)
 			}
@@ -682,14 +670,13 @@ func (p *archivePack) extractTarTool() tool.Tool {
 				}
 
 				// Validate path to prevent path traversal attacks
-				destPath := filepath.Join(params.Output, filepath.Clean(header.Name)) // #nosec G305 -- Path validated by isPathSafe using filepath.Rel
+				destPath := filepath.Join(params.Output, filepath.Clean(header.Name))
 				if !isPathSafe(params.Output, destPath) {
 					continue
 				}
 
 				switch header.Typeflag {
 				case tar.TypeDir:
-					// #nosec G115 -- header.Mode is int64, masking with 0777 ensures safe conversion to uint32
 					if err := os.MkdirAll(destPath, os.FileMode(header.Mode&0777)); err != nil {
 						return tool.Result{}, fmt.Errorf("failed to create dir: %w", err)
 					}
@@ -698,20 +685,17 @@ func (p *archivePack) extractTarTool() tool.Tool {
 						continue
 					}
 
-					// #nosec G301 -- Directory permissions 0755 are intentional for user-accessible directories
 					if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 						return tool.Result{}, fmt.Errorf("failed to create dir: %w", err)
 					}
 
-					// #nosec G115 G304 -- Mode masked with 0777; destPath validated by isPathSafe
 					destFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(header.Mode&0777))
 					if err != nil {
 						return tool.Result{}, fmt.Errorf("failed to create file: %w", err)
 					}
 
-					// #nosec G110 -- Decompression size is bounded by MaxFileSize config check above
 					written, err := io.Copy(destFile, tarReader)
-					_ = destFile.Close() // #nosec G104 -- Best effort cleanup
+					_ = destFile.Close()
 					if err != nil {
 						return tool.Result{}, fmt.Errorf("failed to extract file: %w", err)
 					}
@@ -727,7 +711,7 @@ func (p *archivePack) extractTarTool() tool.Tool {
 				"total_size": totalSize,
 				"success":    true,
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -795,7 +779,7 @@ func (p *archivePack) listTarTool() tool.Tool {
 				"file_count": len(files),
 				"total_size": totalSize,
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -840,7 +824,6 @@ func (p *archivePack) gzipCompressTool() tool.Tool {
 				return tool.Result{}, fmt.Errorf("failed to stat input: %w", err)
 			}
 
-			// #nosec G304 -- Output path from user input is intentional for archive tool
 			outputFile, err := os.Create(output)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to create output: %w", err)
@@ -854,10 +837,10 @@ func (p *archivePack) gzipCompressTool() tool.Tool {
 			gzipWriter.Name = filepath.Base(params.Input)
 
 			if _, err := io.Copy(gzipWriter, inputFile); err != nil {
-				_ = gzipWriter.Close() // #nosec G104 -- Best effort cleanup
+				_ = gzipWriter.Close()
 				return tool.Result{}, fmt.Errorf("failed to compress: %w", err)
 			}
-			_ = gzipWriter.Close() // #nosec G104 -- Best effort cleanup
+			_ = gzipWriter.Close()
 
 			outputInfo, err := os.Stat(output)
 			if err != nil {
@@ -873,7 +856,7 @@ func (p *archivePack) gzipCompressTool() tool.Tool {
 				"compression_ratio": fmt.Sprintf("%.1f%%", ratio),
 				"success":           true,
 			}
-			resultOutput, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+			resultOutput, _ := json.Marshal(result)
 			return tool.Result{Output: resultOutput}, nil
 		}).
 		MustBuild()
@@ -916,14 +899,12 @@ func (p *archivePack) gzipDecompressTool() tool.Tool {
 			}
 			defer gzipReader.Close()
 
-			// #nosec G304 -- Output path from user input is intentional for archive tool
 			outputFile, err := os.Create(output)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to create output: %w", err)
 			}
 			defer outputFile.Close()
 
-			// #nosec G110 -- Decompression size is bounded by MaxFileSize if configured, tool intentionally handles large files
 			written, err := io.Copy(outputFile, gzipReader)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to decompress: %w", err)
@@ -934,7 +915,7 @@ func (p *archivePack) gzipDecompressTool() tool.Tool {
 				"size":    written,
 				"success": true,
 			}
-			resultOutput, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+			resultOutput, _ := json.Marshal(result)
 			return tool.Result{Output: resultOutput}, nil
 		}).
 		MustBuild()
@@ -1014,7 +995,6 @@ func (p *archivePack) createTarGzTool() tool.Tool {
 						return nil
 					}
 
-					// #nosec G304 -- File path from user input is intentional for archive tool
 					f, err := os.Open(path)
 					if err != nil {
 						return fmt.Errorf("failed to open file: %w", err)
@@ -1041,7 +1021,7 @@ func (p *archivePack) createTarGzTool() tool.Tool {
 				"total_size": totalSize,
 				"success":    true,
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -1078,7 +1058,6 @@ func (p *archivePack) extractTarGzTool() tool.Tool {
 
 			tarReader := tar.NewReader(gzipReader)
 
-			// #nosec G301 -- Directory permissions 0755 are intentional for user-accessible directories
 			if err := os.MkdirAll(params.Output, 0755); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to create output dir: %w", err)
 			}
@@ -1100,14 +1079,13 @@ func (p *archivePack) extractTarGzTool() tool.Tool {
 				}
 
 				// Validate path to prevent path traversal attacks
-				destPath := filepath.Join(params.Output, filepath.Clean(header.Name)) // #nosec G305 -- Path validated by isPathSafe using filepath.Rel
+				destPath := filepath.Join(params.Output, filepath.Clean(header.Name))
 				if !isPathSafe(params.Output, destPath) {
 					continue
 				}
 
 				switch header.Typeflag {
 				case tar.TypeDir:
-					// #nosec G115 -- header.Mode is int64, masking with 0777 ensures safe conversion to uint32
 					if err := os.MkdirAll(destPath, os.FileMode(header.Mode&0777)); err != nil {
 						return tool.Result{}, fmt.Errorf("failed to create dir: %w", err)
 					}
@@ -1116,20 +1094,17 @@ func (p *archivePack) extractTarGzTool() tool.Tool {
 						continue
 					}
 
-					// #nosec G301 -- Directory permissions 0755 are intentional for user-accessible directories
 					if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 						return tool.Result{}, fmt.Errorf("failed to create dir: %w", err)
 					}
 
-					// #nosec G115 G304 -- Mode masked with 0777; destPath validated by isPathSafe
 					destFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(header.Mode&0777))
 					if err != nil {
 						return tool.Result{}, fmt.Errorf("failed to create file: %w", err)
 					}
 
-					// #nosec G110 -- Decompression size is bounded by MaxFileSize config check above
 					written, err := io.Copy(destFile, tarReader)
-					_ = destFile.Close() // #nosec G104 -- Best effort cleanup
+					_ = destFile.Close()
 					if err != nil {
 						return tool.Result{}, fmt.Errorf("failed to extract file: %w", err)
 					}
@@ -1145,7 +1120,7 @@ func (p *archivePack) extractTarGzTool() tool.Tool {
 				"total_size": totalSize,
 				"success":    true,
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -1219,7 +1194,7 @@ func (p *archivePack) listTarGzTool() tool.Tool {
 				"file_count": len(files),
 				"total_size": totalSize,
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- Marshal of simple map cannot fail
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()

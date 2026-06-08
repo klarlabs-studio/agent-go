@@ -108,7 +108,7 @@ func connectTool() tool.Tool {
 						home, _ := os.UserHomeDir()
 						keyPath = filepath.Join(home, keyPath[1:])
 					}
-					keyData, err = os.ReadFile(keyPath) // #nosec G304 -- intentional file read for SSH key tool
+					keyData, err = os.ReadFile(keyPath)
 					if err != nil {
 						return tool.Result{}, err
 					}
@@ -134,7 +134,6 @@ func connectTool() tool.Tool {
 					return tool.Result{}, fmt.Errorf("failed to load known_hosts: %w", khErr)
 				}
 			} else {
-				// #nosec G106 -- InsecureIgnoreHostKey used when no known_hosts_file is provided; callers should supply known_hosts_file in production
 				hostKeyCallback = ssh.InsecureIgnoreHostKey()
 			}
 
@@ -153,7 +152,7 @@ func connectTool() tool.Tool {
 
 			pool.mu.Lock()
 			if existing, ok := pool.conns[id]; ok {
-				_ = existing.Close() // #nosec G104 -- best-effort close of existing connection
+				_ = existing.Close()
 			}
 			pool.conns[id] = client
 			pool.mu.Unlock()
@@ -185,7 +184,7 @@ func disconnectTool() tool.Tool {
 			pool.mu.Lock()
 			client, ok := pool.conns[params.ID]
 			if ok {
-				_ = client.Close() // #nosec G104 -- best-effort close
+				_ = client.Close()
 				delete(pool.conns, params.ID)
 			}
 			pool.mu.Unlock()
@@ -313,7 +312,7 @@ func shellTool() tool.Tool {
 					"exit_code": exitCode,
 				})
 
-				_ = session.Close() // #nosec G104 -- best-effort close
+				_ = session.Close()
 			}
 
 			result := map[string]any{
@@ -375,9 +374,9 @@ func scpUploadTool() tool.Tool {
 			// SCP protocol
 			go func() {
 				w, _ := session.StdinPipe()
-				defer func() { _ = w.Close() }() // #nosec G104 -- best-effort close
+				defer func() { _ = w.Close() }()
 				fmt.Fprintf(w, "C0644 %d %s\n", len(data), filepath.Base(params.RemotePath))
-				_, _ = w.Write(data) // #nosec G104 -- write error handled by session.Run
+				_, _ = w.Write(data)
 				fmt.Fprint(w, "\x00")
 			}()
 
@@ -442,7 +441,7 @@ func scpDownloadTool() tool.Tool {
 			content := stdout.Bytes()
 
 			if params.LocalPath != "" {
-				err = os.WriteFile(params.LocalPath, content, 0600) // #nosec G306 -- restrictive permissions for downloaded files
+				err = os.WriteFile(params.LocalPath, content, 0600)
 				if err != nil {
 					return tool.Result{}, err
 				}
@@ -508,7 +507,7 @@ func tunnelTool() tool.Tool {
 
 					remote, err := client.Dial("tcp", remoteAddr)
 					if err != nil {
-						_ = local.Close() // #nosec G104 -- best-effort close on dial failure
+						_ = local.Close()
 						continue
 					}
 
@@ -524,7 +523,7 @@ func tunnelTool() tool.Tool {
 								if err != nil {
 									return
 								}
-								_, _ = remote.Write(buf[:n]) // #nosec G104 -- best-effort tunnel write
+								_, _ = remote.Write(buf[:n])
 							}
 						}()
 
@@ -534,7 +533,7 @@ func tunnelTool() tool.Tool {
 							if err != nil {
 								return
 							}
-							_, _ = local.Write(buf[:n]) // #nosec G104 -- best-effort tunnel write
+							_, _ = local.Write(buf[:n])
 						}
 					}()
 				}
@@ -583,7 +582,7 @@ func closeAllTool() tool.Tool {
 			pool.mu.Lock()
 			count := len(pool.conns)
 			for id, client := range pool.conns {
-				_ = client.Close() // #nosec G104 -- best-effort close
+				_ = client.Close()
 				delete(pool.conns, id)
 			}
 			pool.mu.Unlock()
@@ -691,7 +690,6 @@ func hostKeyTool() tool.Tool {
 
 			var hostKey ssh.PublicKey
 			config := &ssh.ClientConfig{
-				// #nosec G106 -- intentional to capture host key before verification
 				HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 					hostKey = key
 					return nil
@@ -702,7 +700,7 @@ func hostKeyTool() tool.Tool {
 			addr := fmt.Sprintf("%s:%d", params.Host, port)
 			conn, err := ssh.Dial("tcp", addr, config)
 			if conn != nil {
-				_ = conn.Close() // #nosec G104 -- best-effort close
+				_ = conn.Close()
 			}
 
 			// We expect an error (no auth), but we captured the host key

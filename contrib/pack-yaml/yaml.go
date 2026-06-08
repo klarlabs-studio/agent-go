@@ -145,12 +145,12 @@ func (p *yamlPack) stringifyTool() tool.Tool {
 			if err := encoder.Encode(params.Data); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to encode YAML: %w", err)
 			}
-			_ = encoder.Close() // #nosec G104 -- best-effort close
+			_ = encoder.Close()
 
 			result := map[string]interface{}{
 				"yaml": buf.String(),
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- marshaling simple map
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -185,7 +185,7 @@ func (p *yamlPack) writeFileTool() tool.Tool {
 			if err := encoder.Encode(params.Data); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to encode YAML: %w", err)
 			}
-			_ = encoder.Close() // #nosec G104 -- best-effort close
+			_ = encoder.Close()
 
 			if err := os.WriteFile(params.Path, buf.Bytes(), 0600); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to write file: %w", err)
@@ -279,12 +279,12 @@ func (p *yamlPack) fromJSONTool() tool.Tool {
 			if err := encoder.Encode(data); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to encode YAML: %w", err)
 			}
-			_ = encoder.Close() // #nosec G104 -- best-effort close
+			_ = encoder.Close()
 
 			result := map[string]interface{}{
 				"yaml": buf.String(),
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- marshaling simple map
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -334,7 +334,7 @@ func (p *yamlPack) mergeTool() tool.Tool {
 			if err := encoder.Encode(result); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to encode YAML: %w", err)
 			}
-			_ = encoder.Close() // #nosec G104 -- best-effort close
+			_ = encoder.Close()
 
 			output, _ := json.Marshal(map[string]interface{}{
 				"yaml":   buf.String(),
@@ -470,14 +470,14 @@ func (p *yamlPack) setTool() tool.Tool {
 			if err := encoder.Encode(dataMap); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to encode YAML: %w", err)
 			}
-			_ = encoder.Close() // #nosec G104 -- best-effort close
+			_ = encoder.Close()
 
 			result := map[string]interface{}{
 				"yaml":    buf.String(),
 				"path":    params.Path,
 				"success": true,
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- marshaling simple map
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -537,14 +537,14 @@ func (p *yamlPack) deleteTool() tool.Tool {
 			if err := encoder.Encode(dataMap); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to encode YAML: %w", err)
 			}
-			_ = encoder.Close() // #nosec G104 -- best-effort close
+			_ = encoder.Close()
 
 			result := map[string]interface{}{
 				"yaml":    buf.String(),
 				"deleted": true,
 				"path":    params.Path,
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- marshaling simple map
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()
@@ -664,13 +664,13 @@ func (p *yamlPack) multiDocStringifyTool() tool.Tool {
 					return tool.Result{}, fmt.Errorf("failed to encode document: %w", err)
 				}
 			}
-			_ = encoder.Close() // #nosec G104 -- best-effort close
+			_ = encoder.Close()
 
 			result := map[string]interface{}{
 				"yaml":  buf.String(),
 				"count": len(params.Documents),
 			}
-			output, _ := json.Marshal(result) // #nosec G104 -- marshaling simple map
+			output, _ := json.Marshal(result)
 			return tool.Result{Output: output}, nil
 		}).
 		MustBuild()

@@ -194,7 +194,7 @@ func (b *JitteredBackoff) Next(attempt int) (time.Duration, bool) {
 	}
 
 	// Backoff jitter is not security-sensitive; a weak PRNG is appropriate.
-	jitter := time.Duration(rand.Float64() * factor * float64(delay)) //nolint:gosec // G404: jitter does not require crypto-strength randomness
+	jitter := time.Duration(rand.Float64() * factor * float64(delay))
 	return delay + jitter, true
 }
 
