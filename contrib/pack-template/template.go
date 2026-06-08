@@ -606,19 +606,21 @@ func (p *templatePack) trimTool() tool.Tool {
 			result := params.Text
 
 			if params.Chars == "" {
-				if params.Left && !params.Right {
+				switch {
+				case params.Left && !params.Right:
 					result = strings.TrimLeft(result, " \t\n\r")
-				} else if params.Right && !params.Left {
+				case params.Right && !params.Left:
 					result = strings.TrimRight(result, " \t\n\r")
-				} else {
+				default:
 					result = strings.TrimSpace(result)
 				}
 			} else {
-				if params.Left && !params.Right {
+				switch {
+				case params.Left && !params.Right:
 					result = strings.TrimLeft(result, params.Chars)
-				} else if params.Right && !params.Left {
+				case params.Right && !params.Left:
 					result = strings.TrimRight(result, params.Chars)
-				} else {
+				default:
 					result = strings.Trim(result, params.Chars)
 				}
 			}
@@ -662,7 +664,7 @@ func (p *templatePack) padTool() tool.Tool {
 				if params.Left {
 					result = padChar + result
 				} else {
-					result = result + padChar
+					result += padChar
 				}
 			}
 

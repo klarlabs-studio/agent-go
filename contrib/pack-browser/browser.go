@@ -316,11 +316,12 @@ func (p *browserPack) screenshotTool() tool.Tool {
 			}
 
 			var buf []byte
-			if params.Selector != "" {
+			switch {
+			case params.Selector != "":
 				actions = append(actions, chromedp.Screenshot(params.Selector, &buf))
-			} else if params.FullPage {
+			case params.FullPage:
 				actions = append(actions, chromedp.FullScreenshot(&buf, 90))
-			} else {
+			default:
 				actions = append(actions, chromedp.CaptureScreenshot(&buf))
 			}
 
@@ -525,11 +526,12 @@ func (p *browserPack) waitForTool() tool.Tool {
 			defer cancelTimeout()
 
 			var action chromedp.Action
-			if params.Hidden {
+			switch {
+			case params.Hidden:
 				action = chromedp.WaitNotPresent(params.Selector)
-			} else if params.Visible {
+			case params.Visible:
 				action = chromedp.WaitVisible(params.Selector)
-			} else {
+			default:
 				action = chromedp.WaitReady(params.Selector)
 			}
 

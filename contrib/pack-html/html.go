@@ -475,7 +475,8 @@ func prettifyTool() tool.Tool {
 			var buf bytes.Buffer
 			var render func(*html.Node, int)
 			render = func(n *html.Node, depth int) {
-				if n.Type == html.ElementNode {
+				switch n.Type {
+				case html.ElementNode:
 					indent := strings.Repeat(params.Indent, depth)
 					buf.WriteString(indent + "<" + n.Data)
 					for _, attr := range n.Attr {
@@ -497,13 +498,13 @@ func prettifyTool() tool.Tool {
 						render(c, depth+1)
 					}
 					buf.WriteString(indent + "</" + n.Data + ">\n")
-				} else if n.Type == html.TextNode {
+				case html.TextNode:
 					text := strings.TrimSpace(n.Data)
 					if text != "" {
 						indent := strings.Repeat(params.Indent, depth)
 						buf.WriteString(indent + text + "\n")
 					}
-				} else if n.Type == html.DocumentNode {
+				case html.DocumentNode:
 					for c := n.FirstChild; c != nil; c = c.NextSibling {
 						render(c, depth)
 					}

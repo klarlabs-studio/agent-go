@@ -345,11 +345,12 @@ func shouldRetryTool() tool.Tool {
 
 			shouldRetry := rc.Attempts < rc.MaxAttempts && !rc.Success
 			var reason string
-			if rc.Success {
+			switch {
+			case rc.Success:
 				reason = "already succeeded"
-			} else if rc.Attempts >= rc.MaxAttempts {
+			case rc.Attempts >= rc.MaxAttempts:
 				reason = "max attempts reached"
-			} else {
+			default:
 				reason = "can retry"
 			}
 

@@ -70,11 +70,8 @@ func NewFailureDetector(eventStore EventStore, runStore RunStore) pattern.Detect
 
 // NewPerformanceDetector creates a detector for performance patterns.
 func NewPerformanceDetector(eventStore EventStore, runStore RunStore, opts ...PerformanceDetectorOption) pattern.Detector {
-	var infraOpts []infraPattern.PerformanceOption
-	for _, opt := range opts {
-		infraOpts = append(infraOpts, infraPattern.PerformanceOption(opt))
-	}
-	return infraPattern.NewPerformanceDetector(eventStore, runStore, infraOpts...)
+	// PerformanceDetectorOption is an alias of infraPattern.PerformanceOption.
+	return infraPattern.NewPerformanceDetector(eventStore, runStore, opts...)
 }
 
 // PerformanceDetectorOption configures the performance detector.

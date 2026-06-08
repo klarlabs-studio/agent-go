@@ -251,12 +251,13 @@ func ttlTool() tool.Tool {
 			var expired bool
 
 			if ok {
-				if item.TTL == 0 {
+				switch {
+				case item.TTL == 0:
 					ttlSeconds = -1 // No expiry
-				} else if item.isExpired() {
+				case item.isExpired():
 					expired = true
 					ttlSeconds = 0
-				} else {
+				default:
 					ttlSeconds = int(time.Until(item.ExpiresAt).Seconds())
 				}
 			}
@@ -298,17 +299,18 @@ func keysTool() tool.Tool {
 				}
 				if params.Pattern != "" {
 					// Simple prefix/suffix matching
-					if params.Pattern[0] == '*' {
+					switch {
+					case params.Pattern[0] == '*':
 						suffix := params.Pattern[1:]
 						if len(key) < len(suffix) || key[len(key)-len(suffix):] != suffix {
 							continue
 						}
-					} else if params.Pattern[len(params.Pattern)-1] == '*' {
+					case params.Pattern[len(params.Pattern)-1] == '*':
 						prefix := params.Pattern[:len(params.Pattern)-1]
 						if len(key) < len(prefix) || key[:len(prefix)] != prefix {
 							continue
 						}
-					} else if key != params.Pattern {
+					case key != params.Pattern:
 						continue
 					}
 				}
@@ -346,13 +348,14 @@ func clearTool() tool.Tool {
 			} else {
 				for key := range store.items {
 					match := false
-					if params.Pattern[0] == '*' {
+					switch {
+					case params.Pattern[0] == '*':
 						suffix := params.Pattern[1:]
 						match = len(key) >= len(suffix) && key[len(key)-len(suffix):] == suffix
-					} else if params.Pattern[len(params.Pattern)-1] == '*' {
+					case params.Pattern[len(params.Pattern)-1] == '*':
 						prefix := params.Pattern[:len(params.Pattern)-1]
 						match = len(key) >= len(prefix) && key[:len(prefix)] == prefix
-					} else {
+					default:
 						match = key == params.Pattern
 					}
 					if match {
@@ -384,11 +387,12 @@ func statsTool() tool.Tool {
 
 			for _, item := range store.items {
 				totalAccess += item.AccessCount
-				if item.TTL == 0 {
+				switch {
+				case item.TTL == 0:
 					permanent++
-				} else if item.isExpired() {
+				case item.isExpired():
 					expired++
-				} else {
+				default:
 					withTTL++
 				}
 			}

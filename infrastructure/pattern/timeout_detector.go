@@ -167,7 +167,7 @@ func (d *TimeoutDetector) Detect(ctx context.Context, opts pattern.DetectionOpti
 		avgDuration := stats.totalDuration / time.Duration(stats.totalCalls)
 
 		// Calculate confidence based on timeout rate and sample size
-		confidence := calculateTimeoutConfidence(stats.timeouts, stats.totalCalls, timeoutRate)
+		confidence := calculateTimeoutConfidence(stats.totalCalls, timeoutRate)
 		if opts.MinConfidence > 0 && confidence < opts.MinConfidence {
 			continue
 		}
@@ -226,7 +226,7 @@ func (d *TimeoutDetector) isTimeoutError(errMsg string) bool {
 	return false
 }
 
-func calculateTimeoutConfidence(timeouts, totalCalls int, rate float64) float64 {
+func calculateTimeoutConfidence(totalCalls int, rate float64) float64 {
 	// Base confidence on sample size
 	sampleConfidence := 0.5 + float64(totalCalls)*0.02
 	if sampleConfidence > 0.8 {

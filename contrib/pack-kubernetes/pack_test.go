@@ -134,7 +134,7 @@ func TestEligibility(t *testing.T) {
 
 	// Act state: all tools except port_forward should be usable
 	act := p.AllowedInState(agent.StateAct)
-	actTools := append(readOnlyTools, "kubectl_apply", "kubectl_delete", "kubectl_exec")
+	actTools := append(append([]string{}, readOnlyTools...), "kubectl_apply", "kubectl_delete", "kubectl_exec")
 	for _, name := range actTools {
 		if !contains(act, name) {
 			t.Errorf("expected %q allowed in act state", name)

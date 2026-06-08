@@ -535,11 +535,12 @@ func statusTool() tool.Tool {
 			total := len(scheduler.tasks)
 			var enabled, expired, paused int
 			for _, task := range scheduler.tasks {
-				if task.isExpired() {
+				switch {
+				case task.isExpired():
 					expired++
-				} else if task.Enabled {
+				case task.Enabled:
 					enabled++
-				} else {
+				default:
 					paused++
 				}
 			}

@@ -357,7 +357,7 @@ func fromShortcodeTool() tool.Tool {
 				shortcode = ":" + shortcode
 			}
 			if !strings.HasSuffix(shortcode, ":") {
-				shortcode = shortcode + ":"
+				shortcode += ":"
 			}
 
 			emoji, found := shortcodeToEmoji[shortcode]

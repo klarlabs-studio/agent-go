@@ -90,14 +90,10 @@ func (b *Builder) Build() (*BuildResult, error) {
 	}
 
 	// Build policy settings
-	if err := b.buildPolicy(result); err != nil {
-		return nil, fmt.Errorf("building policy: %w", err)
-	}
+	b.buildPolicy(result)
 
 	// Build notification
-	if err := b.buildNotification(result); err != nil {
-		return nil, fmt.Errorf("building notification: %w", err)
-	}
+	b.buildNotification(result)
 
 	// Build tool packs
 	b.buildToolPacks(result)
@@ -167,7 +163,7 @@ func (b *Builder) buildTransitions(result *BuildResult) error {
 	return nil
 }
 
-func (b *Builder) buildPolicy(result *BuildResult) error {
+func (b *Builder) buildPolicy(result *BuildResult) {
 	// Copy budgets
 	for name, limit := range b.config.Policy.Budgets {
 		result.Budgets[name] = limit
@@ -189,13 +185,11 @@ func (b *Builder) buildPolicy(result *BuildResult) error {
 			}
 		}
 	}
-
-	return nil
 }
 
-func (b *Builder) buildNotification(result *BuildResult) error {
+func (b *Builder) buildNotification(result *BuildResult) {
 	if !b.config.Notification.Enabled {
-		return nil
+		return
 	}
 
 	// Build endpoints
@@ -235,7 +229,6 @@ func (b *Builder) buildNotification(result *BuildResult) error {
 	}
 
 	result.Notifier = infranotif.NewWebhookNotifier(notifierConfig)
-	return nil
 }
 
 func (b *Builder) buildToolPacks(result *BuildResult) {

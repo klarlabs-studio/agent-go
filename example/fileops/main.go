@@ -36,9 +36,9 @@ func main() {
 		fmt.Printf("Failed to create temp directory: %v\n", err)
 		os.Exit(1)
 	}
-	// Use explicit cleanup to ensure it runs even on error
+	// Use explicit cleanup so it runs on every exit path, including os.Exit
+	// (a deferred cleanup would be skipped by os.Exit).
 	cleanup := func() { _ = os.RemoveAll(workDir) } // Ignore cleanup errors
-	defer cleanup()
 
 	fmt.Printf("=== FileOps Agent Example ===\n")
 	fmt.Printf("Workspace: %s\n\n", workDir)
@@ -46,10 +46,11 @@ func main() {
 	// Run the example
 	if err := runExample(workDir); err != nil {
 		fmt.Printf("Example failed: %v\n", err)
-		cleanup() // Explicit cleanup before exit
+		cleanup()
 		os.Exit(1)
 	}
 
+	cleanup()
 	fmt.Printf("\n=== Example completed successfully! ===\n")
 }
 

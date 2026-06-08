@@ -808,7 +808,9 @@ func unionTool() tool.Tool {
 				return tool.Result{}, err
 			}
 
-			rows := append(params.First.Rows, params.Second.Rows...)
+			rows := make([]map[string]any, 0, len(params.First.Rows)+len(params.Second.Rows))
+			rows = append(rows, params.First.Rows...)
+			rows = append(rows, params.Second.Rows...)
 			df := DataFrame{Columns: params.First.Columns, Rows: rows}
 			output, _ := json.Marshal(df)
 			return tool.Result{Output: output}, nil
@@ -868,7 +870,7 @@ func addColumnTool() tool.Tool {
 				return tool.Result{}, err
 			}
 
-			columns := append(params.Columns, params.Name)
+			columns := append(append([]string{}, params.Columns...), params.Name)
 			rows := make([]map[string]any, len(params.Rows))
 			for i, row := range params.Rows {
 				rows[i] = make(map[string]any)

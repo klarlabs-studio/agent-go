@@ -175,11 +175,12 @@ func (d *ToolPreferenceDetector) Detect(ctx context.Context, opts pattern.Detect
 	// Create patterns for over/under-used tools
 	var patterns []pattern.Pattern
 	for toolName, stats := range usageByTool {
-		if stats.calls < d.minCalls && stats.calls > 0 {
+		switch {
+		case stats.calls < d.minCalls && stats.calls > 0:
 			// Too few calls but some usage - might still be underused
-		} else if stats.calls == 0 && totalCalls > d.minCalls*numTools {
+		case stats.calls == 0 && totalCalls > d.minCalls*numTools:
 			// Tool never used but others are being used - underused
-		} else if stats.calls < d.minCalls {
+		case stats.calls < d.minCalls:
 			continue
 		}
 
@@ -266,11 +267,12 @@ func (d *ToolPreferenceDetector) Types() []pattern.PatternType {
 func calculatePreferenceConfidence(calls int, ratio, overThreshold, underThreshold float64) float64 {
 	// Base confidence on how extreme the ratio is
 	var extremity float64
-	if ratio >= overThreshold {
+	switch {
+	case ratio >= overThreshold:
 		extremity = ratio / overThreshold
-	} else if ratio <= underThreshold && ratio > 0 {
+	case ratio <= underThreshold && ratio > 0:
 		extremity = underThreshold / ratio
-	} else if ratio == 0 {
+	case ratio == 0:
 		extremity = 3.0 // Never used is significant
 	}
 
