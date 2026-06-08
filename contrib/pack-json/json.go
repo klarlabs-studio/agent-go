@@ -353,19 +353,20 @@ func computeDiff(path string, a, b interface{}) []map[string]interface{} {
 
 		for i := 0; i < maxLen; i++ {
 			elemPath := fmt.Sprintf("%s[%d]", path, i)
-			if i >= len(aVal) {
+			switch {
+			case i >= len(aVal):
 				diffs = append(diffs, map[string]interface{}{
 					"path":  elemPath,
 					"type":  "added",
 					"after": bVal[i],
 				})
-			} else if i >= len(bVal) {
+			case i >= len(bVal):
 				diffs = append(diffs, map[string]interface{}{
 					"path":   elemPath,
 					"type":   "removed",
 					"before": aVal[i],
 				})
-			} else {
+			default:
 				diffs = append(diffs, computeDiff(elemPath, aVal[i], bVal[i])...)
 			}
 		}

@@ -177,7 +177,8 @@ func connectTool() tool.Tool {
 						continue
 					}
 
-					if strings.HasPrefix(line, "data:") {
+					switch {
+					case strings.HasPrefix(line, "data:"):
 						data := strings.TrimPrefix(line, "data:")
 						data = strings.TrimSpace(data)
 						if currentEvent.Data != "" {
@@ -185,9 +186,9 @@ func connectTool() tool.Tool {
 						} else {
 							currentEvent.Data = data
 						}
-					} else if strings.HasPrefix(line, "event:") {
+					case strings.HasPrefix(line, "event:"):
 						currentEvent.Event = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
-					} else if strings.HasPrefix(line, "id:") {
+					case strings.HasPrefix(line, "id:"):
 						currentEvent.ID = strings.TrimSpace(strings.TrimPrefix(line, "id:"))
 					}
 				}
@@ -583,16 +584,17 @@ func parseTool() tool.Tool {
 					continue
 				}
 
-				if strings.HasPrefix(line, "data:") {
+				switch {
+				case strings.HasPrefix(line, "data:"):
 					data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
 					if currentEvent.Data != "" {
 						currentEvent.Data += "\n" + data
 					} else {
 						currentEvent.Data = data
 					}
-				} else if strings.HasPrefix(line, "event:") {
+				case strings.HasPrefix(line, "event:"):
 					currentEvent.Event = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
-				} else if strings.HasPrefix(line, "id:") {
+				case strings.HasPrefix(line, "id:"):
 					currentEvent.ID = strings.TrimSpace(strings.TrimPrefix(line, "id:"))
 				}
 			}

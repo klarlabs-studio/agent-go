@@ -4,10 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"time"
 
-	"go.klarlabs.de/agent/contrib/storage-sqlite"
+	sqlite "go.klarlabs.de/agent/contrib/storage-sqlite"
 	"go.klarlabs.de/agent/domain/agent"
 	"go.klarlabs.de/agent/domain/cache"
 	_ "modernc.org/sqlite"
@@ -18,7 +17,8 @@ func Example() {
 	// Open database connection (use :memory: for testing)
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 	defer db.Close()
 
@@ -27,7 +27,8 @@ func Example() {
 	// Create and initialize cache
 	cacheStore := sqlite.NewCache(db)
 	if err := cacheStore.EnsureSchema(ctx); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	// Store and retrieve cached data
@@ -37,12 +38,14 @@ func Example() {
 		TTL: 5 * time.Minute,
 	})
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	retrieved, found, err := cacheStore.Get(ctx, key)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 	if found {
 		fmt.Printf("Cache hit: %s\n", retrieved)
@@ -51,13 +54,15 @@ func Example() {
 	// Create and initialize event store
 	eventStore := sqlite.NewEventStore(db)
 	if err := eventStore.EnsureSchema(ctx); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	// Create and initialize run store
 	runStore := sqlite.NewRunStore(db)
 	if err := runStore.EnsureSchema(ctx); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	// Save a run
@@ -72,13 +77,15 @@ func Example() {
 	}
 
 	if err := runStore.Save(ctx, run); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	// Retrieve the run
 	saved, err := runStore.Get(ctx, run.ID)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	fmt.Printf("Run ID: %s, Goal: %s, Status: %s\n", saved.ID, saved.Goal, saved.Status)

@@ -1,3 +1,7 @@
+# klarlabs-studio Go lint bar (golangci-lint v2). Tracks the org golden
+# config (.github/golangci.reference.yml): gocritic + gosec are mandatory
+# and the formatters (gofmt/goimports) are part of the gate. Repo-specific
+# exclusions live under exclusions.rules.
 version: "2"
 
 run:
@@ -10,9 +14,14 @@ linters:
   enable:
     - errcheck
     - govet
-    - staticcheck
     - ineffassign
+    - staticcheck
     - unused
+    - misspell
+    - unconvert
+    - unparam
+    - gocritic     # org engineering bar — do not drop
+    - gosec
 
   settings:
     errcheck:
@@ -32,11 +41,16 @@ linters:
 
   exclusions:
     rules:
-      # Exclude errcheck in test files - test setup code commonly ignores errors
+      # Tests legitimately use math/rand (deterministic fixtures, fuzz
+      # seeds) and commonly ignore setup errors. unparam is noise on test
+      # helpers (constant-valued params, goroutine-id params kept for
+      # readability).
       - path: _test\.go
         linters:
+          - gosec
           - errcheck
-      # Exclude examples from errcheck - examples prioritize readability
+          - unparam
+      # Examples prioritize readability over exhaustive error handling.
       - path: example/
         linters:
           - errcheck
@@ -50,7 +64,15 @@ linters:
         linters:
           - staticcheck
         text: SA1019
-    # Exclude common cleanup patterns
     paths:
       - third_party
       - vendor
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

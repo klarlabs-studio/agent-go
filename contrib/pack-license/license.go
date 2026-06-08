@@ -300,15 +300,16 @@ func compareTool() tool.Tool {
 			}
 
 			var compatibility string
-			if permissive[l1] && permissive[l2] {
+			switch {
+			case permissive[l1] && permissive[l2]:
 				compatibility = "compatible"
-			} else if copyleft[l1] && copyleft[l2] && l1 == l2 {
+			case copyleft[l1] && copyleft[l2] && l1 == l2:
 				compatibility = "compatible"
-			} else if permissive[l1] && (copyleft[l2] || weakCopyleft[l2]) {
+			case permissive[l1] && (copyleft[l2] || weakCopyleft[l2]):
 				compatibility = "compatible"
-			} else if (copyleft[l1] || weakCopyleft[l1]) && permissive[l2] {
+			case (copyleft[l1] || weakCopyleft[l1]) && permissive[l2]:
 				compatibility = "may-require-relicense"
-			} else {
+			default:
 				compatibility = "potentially-incompatible"
 			}
 

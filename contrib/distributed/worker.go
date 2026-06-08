@@ -418,7 +418,7 @@ func (w *Worker) processLoop(ctx context.Context) {
 				return
 			}
 			// Exponential backoff with cap
-			backoff = backoff * 2
+			backoff *= 2
 			if backoff > maxBackoff {
 				backoff = maxBackoff
 			}

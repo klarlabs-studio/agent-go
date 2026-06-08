@@ -682,7 +682,7 @@ func TestCalculateTimeoutConfidence(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			confidence := calculateTimeoutConfidence(tt.timeouts, tt.totalCalls, tt.rate)
+			confidence := calculateTimeoutConfidence(tt.totalCalls, tt.rate)
 
 			if confidence < tt.minExpected || confidence > tt.maxExpected {
 				t.Errorf("expected confidence in [%f, %f], got %f", tt.minExpected, tt.maxExpected, confidence)

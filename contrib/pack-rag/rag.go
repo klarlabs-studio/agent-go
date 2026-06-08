@@ -550,7 +550,7 @@ func (c *sentenceChunker) Chunk(_ context.Context, text string, opts ChunkOption
 				if overlapStart < 0 {
 					overlapStart = 0
 				}
-				startPos = startPos + overlapStart
+				startPos += overlapStart
 				current.Reset()
 				current.WriteString(full[overlapStart:])
 			} else {

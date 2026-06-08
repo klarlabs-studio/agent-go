@@ -263,7 +263,7 @@ func TestCostAnomalyDetector_Detect_FiltersByRunIDs(t *testing.T) {
 	anomalyRunID := createTestRunWithToolCallCount(ctx, t, eventStore, runStore, 100, 50)
 
 	// Include anomaly in filter
-	filterIDs := append(runIDs, anomalyRunID)
+	filterIDs := append(append([]string{}, runIDs...), anomalyRunID)
 
 	detector := NewCostAnomalyDetector(
 		eventStore,
@@ -390,7 +390,7 @@ func TestCalculateRunCosts_CountsToolCalls(t *testing.T) {
 		{Type: event.TypeToolCalled, Payload: payload2Bytes},
 	}
 
-	costs := calculateRunCosts("run-1", events)
+	costs := calculateRunCosts(events)
 
 	if costs["tool_calls"] != 2 {
 		t.Errorf("expected 2 tool_calls, got %f", costs["tool_calls"])
@@ -408,7 +408,7 @@ func TestCalculateRunCosts_CountsAPICalls(t *testing.T) {
 		{Type: event.TypeToolFailed, Payload: failBytes},
 	}
 
-	costs := calculateRunCosts("run-1", events)
+	costs := calculateRunCosts(events)
 
 	if costs["api_calls"] != 2 {
 		t.Errorf("expected 2 api_calls (1 success + 1 failure), got %f", costs["api_calls"])
@@ -423,7 +423,7 @@ func TestCalculateRunCosts_TokensAlwaysZero(t *testing.T) {
 		{Type: event.TypeToolCalled, Payload: payloadBytes},
 	}
 
-	costs := calculateRunCosts("run-1", events)
+	costs := calculateRunCosts(events)
 
 	if costs["tokens"] != 0 {
 		t.Errorf("expected tokens to be 0, got %f", costs["tokens"])
@@ -431,7 +431,7 @@ func TestCalculateRunCosts_TokensAlwaysZero(t *testing.T) {
 }
 
 func TestCalculateRunCosts_EmptyEvents(t *testing.T) {
-	costs := calculateRunCosts("run-1", []event.Event{})
+	costs := calculateRunCosts([]event.Event{})
 
 	if costs["tool_calls"] != 0 {
 		t.Errorf("expected 0 tool_calls, got %f", costs["tool_calls"])

@@ -346,12 +346,13 @@ func metaphone(s string) string {
 			}
 			result.WriteByte('B')
 		case 'C':
-			if i+1 < len(s) && (s[i+1] == 'I' || s[i+1] == 'E' || s[i+1] == 'Y') {
+			switch {
+			case i+1 < len(s) && (s[i+1] == 'I' || s[i+1] == 'E' || s[i+1] == 'Y'):
 				result.WriteByte('S')
-			} else if i+1 < len(s) && s[i+1] == 'H' {
+			case i+1 < len(s) && s[i+1] == 'H':
 				result.WriteByte('X')
 				i++
-			} else {
+			default:
 				result.WriteByte('K')
 			}
 		case 'D':
@@ -398,12 +399,13 @@ func metaphone(s string) string {
 				result.WriteByte('S')
 			}
 		case 'T':
-			if i+1 < len(s) && s[i+1] == 'H' {
+			switch {
+			case i+1 < len(s) && s[i+1] == 'H':
 				result.WriteByte('0')
 				i++
-			} else if i+2 < len(s) && s[i+1] == 'I' && (s[i+2] == 'O' || s[i+2] == 'A') {
+			case i+2 < len(s) && s[i+1] == 'I' && (s[i+2] == 'O' || s[i+2] == 'A'):
 				result.WriteByte('X')
-			} else {
+			default:
 				result.WriteByte('T')
 			}
 		case 'V':

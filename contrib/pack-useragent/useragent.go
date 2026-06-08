@@ -599,13 +599,14 @@ func categoryTool() tool.Tool {
 			for _, bp := range botPatterns {
 				if bp.MatchString(ua) {
 					category = "bot"
-					if regexp.MustCompile(`(?i)search|google|bing`).MatchString(ua) {
+					switch {
+					case regexp.MustCompile(`(?i)search|google|bing`).MatchString(ua):
 						subcategory = "search_engine"
-					} else if regexp.MustCompile(`(?i)social|facebook|twitter`).MatchString(ua) {
+					case regexp.MustCompile(`(?i)social|facebook|twitter`).MatchString(ua):
 						subcategory = "social"
-					} else if regexp.MustCompile(`(?i)curl|wget|python`).MatchString(ua) {
+					case regexp.MustCompile(`(?i)curl|wget|python`).MatchString(ua):
 						subcategory = "tool"
-					} else {
+					default:
 						subcategory = "crawler"
 					}
 					break

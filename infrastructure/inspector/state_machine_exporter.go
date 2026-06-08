@@ -68,7 +68,7 @@ func (e *StateMachineExporter) Export(ctx context.Context) (*inspector.StateMach
 				export.Transitions = append(export.Transitions, inspector.StateMachineTransition{
 					From:  from,
 					To:    to,
-					Label: getTransitionLabel(from, to),
+					Label: getTransitionLabel(to),
 				})
 			}
 		}
@@ -101,7 +101,7 @@ func getStateDescription(state agent.State) string {
 	}
 }
 
-func getTransitionLabel(from, to agent.State) string {
+func getTransitionLabel(to agent.State) string {
 	if to == agent.StateFailed {
 		return "on error"
 	}

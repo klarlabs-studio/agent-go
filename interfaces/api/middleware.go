@@ -123,11 +123,8 @@ func LoggingMiddleware(cfg *LoggingMiddlewareConfig) Middleware {
 // Only tools marked as cacheable (via annotations) will be cached.
 // Accepts any cache.Cache implementation (memory, Redis, etc).
 func CachingMiddleware(c Cache, opts ...CacheOption) Middleware {
-	var mwOpts []inframw.CacheOption
-	for _, opt := range opts {
-		mwOpts = append(mwOpts, inframw.CacheOption(opt))
-	}
-	return inframw.Caching(c, mwOpts...)
+	// CacheOption is an alias of inframw.CacheOption, so opts pass through.
+	return inframw.Caching(c, opts...)
 }
 
 // CacheOption configures the caching middleware.
