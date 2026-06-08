@@ -93,9 +93,11 @@ jobs:
           if [ "$count" -gt 0 ]; then any=true; else any=false; fi
 
           echo "Selected $count contrib module(s) for event '$EVENT'."
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          echo "any=$any" >> "$GITHUB_OUTPUT"
-          echo "count=$count" >> "$GITHUB_OUTPUT"
+          {
+            echo "matrix=$matrix"
+            echo "any=$any"
+            echo "count=$count"
+          } >> "$GITHUB_OUTPUT"
 
   test:
     name: Test ${{ matrix.module }}

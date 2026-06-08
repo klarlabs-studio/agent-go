@@ -33,6 +33,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      pull-requests: write # reusable Security job annotates PRs via nox
     secrets: inherit
     with:
       coverage: true
