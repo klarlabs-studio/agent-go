@@ -24,6 +24,21 @@ scan:
     # Generated artifacts.
     - "nox-out/"
     - "release-artifacts/"
+    # Dependency lockfiles: dense package-integrity hashes trip the
+    # entropy/secret rules (SEC-455/659/680/...), not real secrets.
+    - "**/package-lock.json"
+    - "**/pnpm-lock.yaml"
+    - "**/yarn.lock"
+    - "**/Cargo.lock"
+    # Agent OS / release tooling state: append-only event logs and JSON
+    # snapshots are hash-dense identifiers, not application code.
+    - ".roady/"
+    - ".relicta/"
+    # nox's own scan output: finding fingerprints are SHA-256 hex that the
+    # secret/entropy rules re-flag on the next scan (self-referential noise).
+    - "findings.json"
+    - "**/findings.json"
+    - "nox-results/"
 
 # Activate nox code-level taint SAST (source-to-sink: SSRF, injection,
 # path traversal). nox scan auto-installs (cosign-verified) + runs it.
