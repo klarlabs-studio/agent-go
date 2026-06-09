@@ -1,6 +1,7 @@
 # klarlabs-studio Go lint bar (golangci-lint v2). Tracks the org golden
-# config (.github/golangci.reference.yml): gocritic + gosec are mandatory
-# and the formatters (gofmt/goimports) are part of the gate. Repo-specific
+# config (.github/golangci.reference.yml): gocritic is mandatory and the
+# formatters (gofmt/goimports) are part of the gate. Code-level security is
+# owned by nox (taint-analysis + core ruleset), not gosec. Repo-specific
 # exclusions live under exclusions.rules.
 version: "2"
 
@@ -21,7 +22,6 @@ linters:
     - unconvert
     - unparam
     - gocritic     # org engineering bar — do not drop
-    - gosec
 
   settings:
     errcheck:
@@ -47,7 +47,6 @@ linters:
       # readability).
       - path: _test\.go
         linters:
-          - gosec
           - errcheck
           - unparam
       # Examples prioritize readability over exhaustive error handling.
