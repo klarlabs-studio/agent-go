@@ -30,6 +30,9 @@ scan:
     - "**/pnpm-lock.yaml"
     - "**/yarn.lock"
     - "**/Cargo.lock"
+    # go workspace checksum file: same module-digest noise as go.sum.
+    - "go.work.sum"
+    - "**/go.work.sum"
     # Agent OS / release tooling state: append-only event logs and JSON
     # snapshots are hash-dense identifiers, not application code.
     - ".roady/"
