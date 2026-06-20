@@ -68,9 +68,10 @@ type EngineConfig struct {
 	RunStore     run.Store
 	EventStore   event.Store
 	TaskContext  *task.Context
-	// Governance selects the governance backend (budget + approval). When
-	// nil, an axi-backed factory is used: the destructive-tool approval gate
-	// is delegated to an axi.Kernel.
+	// Governance selects the governance backend (budget + approval +
+	// evidence). When nil, the full-delegation KernelFactory is used: each run
+	// is ONE axi session, so budget, the destructive-tool approval gate, and
+	// the evidence chain are all axi-native.
 	Governance governance.Factory
 }
 
@@ -117,10 +118,14 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 		e.maxSteps = 100
 	}
 	if e.govFactory == nil {
-		// Default governance: delegate the destructive-tool approval gate to
-		// an axi.Kernel (spec § Changes Required #1). Budget stays run-level
-		// in agent-go; see infrastructure/governance.
-		f, err := governance.NewAxiFactory(e.approver)
+		// Default governance: FULL axi delegation (spec § Changes Required #1,
+		// Track F). Each run executes as ONE axi session, so budget, the
+		// destructive-tool approval gate, AND the tamper-evident evidence chain
+		// are all axi-native — the only tier that satisfies the spec
+		// non-negotiable "budget AND approval always through axi". AxiFactory
+		// (approval-only) and PassthroughFactory remain selectable via
+		// api.WithGovernance. See infrastructure/governance.
+		f, err := governance.NewKernelFactory(e.approver)
 		if err != nil {
 			return nil, fmt.Errorf("init governance: %w", err)
 		}
