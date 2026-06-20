@@ -6,8 +6,8 @@ require (
 	github.com/google/uuid v1.6.0
 	go.klarlabs.de/axi v1.4.0
 	go.klarlabs.de/bolt v1.5.2
-	go.klarlabs.de/fortify v1.6.0
-	go.klarlabs.de/statekit v1.8.0
+	go.klarlabs.de/fortify v1.7.0
+	go.klarlabs.de/statekit v1.9.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
