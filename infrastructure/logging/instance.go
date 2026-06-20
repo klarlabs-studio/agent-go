@@ -34,6 +34,22 @@ func NewLoggerFromConfig(config Config) *Logger {
 	return &Logger{bolt: buildLogger(config)}
 }
 
+// SetGlobalSinkForTest replaces the package-level default logger (the singleton
+// returned by Get and used by the package-level Info/Error/Debug/Warn helpers)
+// with the given bolt.Logger, returning a function that restores the previous
+// default. It exists so tests can deterministically capture whether ANYTHING
+// reaches the global sink — the production non-negotiable is that the execution
+// path never does. It is a test-only seam; production code must never call it.
+//
+// It also marks the init sync.Once as consumed so a later Get does not rebuild
+// over the test sink.
+func SetGlobalSinkForTest(b *bolt.Logger) (restore func()) {
+	once.Do(func() {}) // consume the Once so Get won't overwrite the test sink
+	prev := defaultLogger
+	defaultLogger = b
+	return func() { defaultLogger = prev }
+}
+
 // event returns a LogEvent for the given level, or a no-op LogEvent when the
 // logger has no underlying bolt.Logger.
 func (l *Logger) event(level bolt.Level) *LogEvent {

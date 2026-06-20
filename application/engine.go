@@ -181,10 +181,13 @@ func (e *Engine) defaultMiddlewareChain() *middleware.Registry {
 		}))
 	}
 
-	// Logging (execution timing and results)
+	// Logging (execution timing and results). The engine's injected logger is
+	// threaded in so tool-execution logs flow to the configured sink — the
+	// default chain NEVER reaches the package-level logging singleton.
 	registry.Use(inframw.Logging(inframw.LoggingConfig{
 		LogInput:  false,
 		LogOutput: false,
+		Logger:    e.logger,
 	}))
 
 	return registry

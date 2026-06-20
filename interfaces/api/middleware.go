@@ -9,6 +9,7 @@ import (
 	"go.klarlabs.de/agent/domain/middleware"
 	"go.klarlabs.de/agent/domain/policy"
 	"go.klarlabs.de/agent/domain/tool"
+	"go.klarlabs.de/agent/infrastructure/logging"
 	inframw "go.klarlabs.de/agent/infrastructure/middleware"
 	"go.klarlabs.de/agent/infrastructure/storage/memory"
 )
@@ -105,6 +106,10 @@ type LoggingMiddlewareConfig struct {
 	LogInput bool
 	// LogOutput logs the tool output (may be large).
 	LogOutput bool
+	// Logger is the injected structured logger. When nil, the middleware uses
+	// a no-op logger and emits nothing — it never falls back to the
+	// package-level logging singleton. Build one with NewLogger.
+	Logger *logging.Logger
 }
 
 // LoggingMiddleware returns middleware that logs tool execution.
@@ -116,6 +121,7 @@ func LoggingMiddleware(cfg *LoggingMiddlewareConfig) Middleware {
 	return inframw.Logging(inframw.LoggingConfig{
 		LogInput:  cfg.LogInput,
 		LogOutput: cfg.LogOutput,
+		Logger:    cfg.Logger,
 	})
 }
 

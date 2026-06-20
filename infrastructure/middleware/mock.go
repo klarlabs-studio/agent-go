@@ -43,17 +43,22 @@ type MockConfig struct {
 
 	// OnMockHit is called when a mock is matched.
 	OnMockHit func(toolName string, input json.RawMessage)
+
+	// Logger is the injected structured logger. When nil, a no-op logger is
+	// used — never the package-level logging singleton.
+	Logger *logging.Logger
 }
 
 // Mock returns middleware that injects mock responses for tool executions.
 // This is useful for testing agent behavior without calling real tools.
 func Mock(cfg MockConfig) middleware.Middleware {
+	log := resolveLogger(cfg.Logger)
 	// Compile pattern regexes
 	compiledPatterns := make(map[*regexp.Regexp]MockResponse)
 	for pattern, response := range cfg.PatternMocks {
 		re, err := regexp.Compile(pattern)
 		if err != nil {
-			logging.Warn().
+			log.Warn().
 				Add(logging.Str("pattern", pattern)).
 				Add(logging.ErrorField(err)).
 				Msg("invalid mock pattern regex")
@@ -74,7 +79,7 @@ func Mock(cfg MockConfig) middleware.Middleware {
 						cfg.OnMockHit(toolName, execCtx.Input)
 					}
 
-					logging.Debug().
+					log.Debug().
 						Add(logging.RunID(execCtx.RunID)).
 						Add(logging.ToolName(toolName)).
 						Msg("mock response returned")
@@ -91,7 +96,7 @@ func Mock(cfg MockConfig) middleware.Middleware {
 							cfg.OnMockHit(toolName, execCtx.Input)
 						}
 
-						logging.Debug().
+						log.Debug().
 							Add(logging.RunID(execCtx.RunID)).
 							Add(logging.ToolName(toolName)).
 							Add(logging.Str("pattern", pattern.String())).
@@ -109,7 +114,7 @@ func Mock(cfg MockConfig) middleware.Middleware {
 
 			// Return default response if configured
 			if cfg.DefaultResponse != nil {
-				logging.Debug().
+				log.Debug().
 					Add(logging.RunID(execCtx.RunID)).
 					Add(logging.ToolName(toolName)).
 					Msg("default mock response returned")
@@ -118,7 +123,7 @@ func Mock(cfg MockConfig) middleware.Middleware {
 			}
 
 			// Return empty result for non-mocked tools
-			logging.Warn().
+			log.Warn().
 				Add(logging.RunID(execCtx.RunID)).
 				Add(logging.ToolName(toolName)).
 				Msg("no mock found for tool")
