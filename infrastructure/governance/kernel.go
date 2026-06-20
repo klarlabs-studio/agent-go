@@ -170,35 +170,63 @@ type kernelGovernor struct {
 	evidence *axidomain.ExecutionSession
 
 	mu       sync.Mutex
+	consumed int
 	startErr error
 	runErr   error
 	closed   bool
 }
 
-// Authorize gates a tool: it drives one capability invocation through the
-// in-flight run session so axi's per-session budget counts the call, then —
-// for approval-requiring tools — runs the kernel's effect-gated pause.
+// Authorize gates a tool. Precedence matches the in-process Governors:
+// budget exhaustion is reported before approval. The run-level budget is
+// enforced by the in-flight axi session — each authorized call drives one
+// caps.Invoke, and the (limit+1)th invocation fails natively. The local
+// policy.Budget mirror provides the non-consuming precedence check and keeps
+// BudgetSnapshot in lockstep with axi's session count.
 func (g *kernelGovernor) Authorize(ctx context.Context, req ToolRequest) (Authorization, error) {
 	if g.startErr != nil {
 		return Authorization{}, g.startErr
 	}
 
-	// Run-level budget: one capability invocation against the run session.
-	// axi's enforcer fails the (limit+1)th invocation natively.
+	// Budget precedence: a non-consuming check so an exhausted budget is
+	// reported before (and instead of) prompting for approval.
+	if !g.budget.CanConsume(budgetKey, 1) {
+		return Authorization{Decision: DecisionBudgetExhausted}, nil
+	}
+
+	// Approval gate next, so a denied tool consumes no budget — mirroring the
+	// in-process Governors.
+	approver := ""
+	if req.RequireApproval {
+		if g.approver == nil {
+			return Authorization{}, ErrNoApprover
+		}
+		auth, err := g.gateApproval(ctx, req)
+		if err != nil || auth.Decision != DecisionAllow {
+			return auth, err
+		}
+		approver = auth.Approver
+	}
+
+	// Authoritative consume: one capability invocation against the run
+	// session. axi's enforcer counts it and fails the (limit+1)th natively.
 	if err := g.invokeStep(ctx, req); err != nil {
 		if isBudgetExceeded(err) {
 			return Authorization{Decision: DecisionBudgetExhausted}, nil
 		}
 		return Authorization{}, fmt.Errorf("governance: run session step: %w", err)
 	}
+	g.consumeStep()
 
-	if !req.RequireApproval {
-		return Authorization{Decision: DecisionAllow}, nil
-	}
-	if g.approver == nil {
-		return Authorization{}, ErrNoApprover
-	}
-	return g.gateApproval(ctx, req)
+	return Authorization{Decision: DecisionAllow, Approver: approver}, nil
+}
+
+// consumeStep advances the local budget mirror to track the run session's
+// axi-enforced invocation count.
+func (g *kernelGovernor) consumeStep() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.consumed++
+	_ = g.budget.Consume(budgetKey, 1)
 }
 
 // invokeStep sends one tool call into the in-flight run session and waits for
@@ -263,12 +291,12 @@ func (g *kernelGovernor) gateApproval(ctx context.Context, req ToolRequest) (Aut
 	return Authorization{Decision: DecisionAllow, Approver: resp.Approver}, nil
 }
 
-// Commit accounts a completed tool call: it consumes the local budget mirror
-// (so snapshots agree with the engine's ledger and run results) and appends
-// one EvidenceRecord to the run's single axi-native evidence chain.
+// Commit records a completed tool call's evidence on the run's single
+// axi-native chain. The budget slot was already consumed (authoritatively by
+// axi) at Authorize time — axi gates the call attempt, so Commit does not
+// double-count. It returns the remaining tool-call budget for the ledger.
 func (g *kernelGovernor) Commit(_ context.Context, req ToolRequest, out Outcome) (Commit, error) {
 	if out.Success {
-		_ = g.budget.Consume(budgetKey, 1)
 		g.evidence.AppendEvidence(axidomain.EvidenceRecord{
 			Kind:      "tool_result",
 			Source:    req.ToolName,

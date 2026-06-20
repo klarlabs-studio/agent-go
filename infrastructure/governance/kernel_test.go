@@ -65,6 +65,30 @@ func TestKernel_RunBudgetIsOneAxiSession(t *testing.T) {
 	}
 }
 
+// axi (not the local mirror) is the authoritative budget enforcer: driving
+// the run session directly past its MaxCapabilityInvocations limit returns
+// axi's native budget-exceeded error from CapabilityInvoker.Invoke.
+func TestKernel_AxiSessionIsAuthoritativeBudgetEnforcer(t *testing.T) {
+	_, g := kernelGov(t, 1, nil)
+	defer closeGov(t, g)
+	kg := g.(*kernelGovernor)
+	ctx := context.Background()
+
+	// First invocation within budget.
+	if err := kg.invokeStep(ctx, ToolRequest{ToolName: "read"}); err != nil {
+		t.Fatalf("step 1 must succeed: %v", err)
+	}
+	// Second invocation exceeds MaxCapabilityInvocations=1 — axi's session
+	// enforcer fails it natively, independent of the local mirror.
+	err := kg.invokeStep(ctx, ToolRequest{ToolName: "read"})
+	if err == nil {
+		t.Fatal("step 2 must be rejected by axi budget enforcer")
+	}
+	if !isBudgetExceeded(err) {
+		t.Fatalf("want axi budget-exceeded, got: %v", err)
+	}
+}
+
 // Approval gating still fires for destructive tools, granted via the kernel.
 func TestKernel_ApprovalGatedGranted(t *testing.T) {
 	_, g := kernelGov(t, 5, policy.NewAutoApprover("ci"))
