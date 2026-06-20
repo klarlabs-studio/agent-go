@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/storage-etcd
 
-go 1.25.0
+go 1.26.2
 
 require (
 	go.etcd.io/etcd/api/v3 v3.5.21

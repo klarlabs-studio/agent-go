@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/pack-browser
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/chromedp/cdproto v0.0.0-20250222051814-50c6cb17f10a

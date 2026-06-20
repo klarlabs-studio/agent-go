@@ -79,3 +79,23 @@ func (p *Passthrough) BudgetSnapshot() policy.BudgetSnapshot { return p.budget.S
 
 // OwnsApproval reports false: approval stays with the engine middleware.
 func (p *Passthrough) OwnsApproval() bool { return false }
+
+// PassthroughFactory builds Passthrough Governors. Use it to keep approval
+// in the engine's middleware (e.g. in tests, or LLM-free scripted runs that
+// do not need the axi kernel).
+type PassthroughFactory struct {
+	approver policy.Approver
+}
+
+// NewPassthroughFactory builds a Factory of Passthrough Governors.
+func NewPassthroughFactory(approver policy.Approver) *PassthroughFactory {
+	return &PassthroughFactory{approver: approver}
+}
+
+// Governor returns a Passthrough Governor over the given budget.
+func (f *PassthroughFactory) Governor(budget *policy.Budget) Governor {
+	return NewPassthrough(budget, f.approver)
+}
+
+// OwnsApproval reports false: approval stays with the engine middleware.
+func (f *PassthroughFactory) OwnsApproval() bool { return false }

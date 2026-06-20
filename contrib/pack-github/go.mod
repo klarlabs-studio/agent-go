@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/pack-github
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/google/go-github/v68 v68.0.0

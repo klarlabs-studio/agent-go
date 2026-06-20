@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/pack-sysinfo
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/shirou/gopsutil/v3 v3.24.5

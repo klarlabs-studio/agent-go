@@ -132,3 +132,15 @@ type Governor interface {
 	// gate; when false, approval stays with the middleware.
 	OwnsApproval() bool
 }
+
+// Factory builds a per-run Governor bound to that run's budget. The engine
+// holds one Factory (so shared state like an axi.Kernel is built once) and
+// asks it for a Governor at the start of each run.
+type Factory interface {
+	// Governor returns a Governor for one run over the given budget.
+	Governor(budget *policy.Budget) Governor
+	// OwnsApproval reports whether Governors from this Factory enforce
+	// approval, so the engine can drop its approval middleware once, at
+	// construction, rather than per run.
+	OwnsApproval() bool
+}

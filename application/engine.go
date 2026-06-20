@@ -47,6 +47,7 @@ type Engine struct {
 	runStore     run.Store
 	eventStore   event.Store
 	taskCtx      *task.Context
+	govFactory   governance.Factory
 }
 
 // EngineConfig contains configuration for the engine.
@@ -67,6 +68,10 @@ type EngineConfig struct {
 	RunStore     run.Store
 	EventStore   event.Store
 	TaskContext  *task.Context
+	// Governance selects the governance backend (budget + approval). When
+	// nil, an axi-backed factory is used: the destructive-tool approval gate
+	// is delegated to an axi.Kernel.
+	Governance governance.Factory
 }
 
 // NewEngine creates a new engine with the given configuration.
@@ -95,6 +100,7 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 		runStore:     config.RunStore,
 		eventStore:   config.EventStore,
 		taskCtx:      config.TaskContext,
+		govFactory:   config.Governance,
 	}
 
 	// Set defaults
@@ -109,6 +115,16 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 	}
 	if e.maxSteps == 0 {
 		e.maxSteps = 100
+	}
+	if e.govFactory == nil {
+		// Default governance: delegate the destructive-tool approval gate to
+		// an axi.Kernel (spec § Changes Required #1). Budget stays run-level
+		// in agent-go; see infrastructure/governance.
+		f, err := governance.NewAxiFactory(e.approver)
+		if err != nil {
+			return nil, fmt.Errorf("init governance: %w", err)
+		}
+		e.govFactory = f
 	}
 	if e.middleware == nil {
 		e.middleware = e.defaultMiddlewareChain()
@@ -130,10 +146,14 @@ func (e *Engine) defaultMiddlewareChain() *middleware.Registry {
 		Eligibility: e.eligibility,
 	}))
 
-	// Approval check (for destructive/high-risk tools)
-	registry.Use(inframw.Approval(inframw.ApprovalConfig{
-		Approver: e.approver,
-	}))
+	// Approval check (for destructive/high-risk tools). Skipped when the
+	// governance factory owns approval (axi): the kernel enforces the gate
+	// during Authorize, so a middleware gate would double-prompt.
+	if !e.govFactory.OwnsApproval() {
+		registry.Use(inframw.Approval(inframw.ApprovalConfig{
+			Approver: e.approver,
+		}))
+	}
 
 	// Logging (execution timing and results)
 	registry.Use(inframw.Logging(inframw.LoggingConfig{
@@ -207,7 +227,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	machineCtx := statemachine.NewContext(r, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
-	machineCtx.Governor = governance.NewPassthrough(budget, e.approver)
+	machineCtx.Governor = e.govFactory.Governor(budget)
 
 	// Create state machine
 	machine, err := statemachine.NewAgentMachine()
@@ -403,7 +423,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	machineCtx := statemachine.NewContext(run, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
-	machineCtx.Governor = governance.NewPassthrough(budget, e.approver)
+	machineCtx.Governor = e.govFactory.Governor(budget)
 
 	// Create state machine
 	machine, err := statemachine.NewAgentMachine()
@@ -601,6 +621,11 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 	}
 	auth, authErr := gov.Authorize(ctx, govReq)
 	if authErr != nil {
+		// A tool that needs approval with no approver configured is the
+		// engine-level "approval required" invariant.
+		if errors.Is(authErr, governance.ErrNoApprover) {
+			return fmt.Errorf("%w: %s", tool.ErrApprovalRequired, decision.ToolName)
+		}
 		return fmt.Errorf("governance authorization failed: %w", authErr)
 	}
 	switch auth.Decision {

@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/pack-markdown
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/yuin/goldmark v1.7.8
