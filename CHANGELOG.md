@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-06-20
+
+### Added
+- `infrastructure/governance` — the `Governor` seam for act-state tool
+  authorization (budget, approval-ownership switch, evidence accounting),
+  with a behaviour-identical `Passthrough` implementation and an
+  `axi`-build-tagged `axiGovernor` route-through target for delegating
+  governance to axi-go (activation deferred behind the go 1.26.2 / axi
+  dependency bump — see `infrastructure/governance/doc.go`).
+- `contrib/ai` and `contrib/aiplugin` modules, moved out of statekit:
+  provider-agnostic LLM→event helpers (`Decider`/`Drive`) and statekit
+  plugins (`TokenCounter`, `PromptRecorder`, `TransitionBudget`).
+
+### Changed
+- The engine now routes act-state tool budget through the per-run
+  `Governor` (`domain/policy` interfaces retained, not forked).
+
+### Removed
+- Dead, reimplemented backoff in `infrastructure/resilience` (`Backoff`
+  interface and the Exponential/Linear/Fixed/Jittered types); retry and
+  circuit breaking are fully delegated to fortify.
+
+### Security
+- Resolved all `website-astro` dependabot advisories (astro → 6.4.x,
+  vite → 7.3.x, esbuild pinned 0.28.1 via override). `npm audit`: 0
+  vulnerabilities.
+
 ## [0.7.0] - 2026-02-26
 
 ### Added
