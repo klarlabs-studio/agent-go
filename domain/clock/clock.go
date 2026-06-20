@@ -7,7 +7,10 @@
 // satisfies this interface) so replayed and forked runs are reproducible.
 package clock
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 // Clock abstracts the source of the current wall-clock time.
 //
@@ -30,21 +33,36 @@ func System() Clock { return systemClock{} }
 
 // FixedClock is a deterministic Clock that always returns the same instant.
 // It is useful for tests that assert exact timestamps.
+//
+// All access to the held instant is guarded by an RWMutex so a single
+// FixedClock may be shared across concurrent runs (Now reads while another
+// goroutine calls Set/Advance) without a data race.
 type FixedClock struct {
-	t time.Time
+	mu sync.RWMutex
+	t  time.Time
 }
 
 // Fixed returns a Clock that always reports t.
 func Fixed(t time.Time) *FixedClock { return &FixedClock{t: t} }
 
 // Now returns the fixed instant.
-func (c *FixedClock) Now() time.Time { return c.t }
+func (c *FixedClock) Now() time.Time {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.t
+}
 
 // Set updates the instant the clock reports.
-func (c *FixedClock) Set(t time.Time) { c.t = t }
+func (c *FixedClock) Set(t time.Time) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.t = t
+}
 
 // Advance moves the fixed clock forward by d and returns the new instant.
 func (c *FixedClock) Advance(d time.Duration) time.Time {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.t = c.t.Add(d)
 	return c.t
 }
