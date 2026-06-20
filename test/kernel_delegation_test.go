@@ -7,9 +7,11 @@ import (
 	"testing"
 
 	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/event"
 	"go.klarlabs.de/agent/domain/policy"
 	"go.klarlabs.de/agent/domain/tool"
 	"go.klarlabs.de/agent/infrastructure/governance"
+	"go.klarlabs.de/agent/infrastructure/storage/memory"
 	api "go.klarlabs.de/agent/interfaces/api"
 )
 
@@ -119,6 +121,67 @@ func TestKernelDelegation_RunBudgetWithinLimit(t *testing.T) {
 	}
 	if run.Status != agent.RunStatusCompleted {
 		t.Fatalf("expected completed, got %s", run.Status)
+	}
+}
+
+// Full delegation preserves the existing event types: a budget-exhausted run
+// under the kernel governor still emits TypeBudgetExhausted, mapping axi's
+// BUDGET_EXCEEDED back into agent-go's event surface.
+func TestKernelDelegation_BudgetExhaustedEmitsEvent(t *testing.T) {
+	readTool := api.NewToolBuilder("read_file").
+		WithDescription("Reads a file").
+		WithAnnotations(api.Annotations{ReadOnly: true}).
+		WithHandler(func(_ context.Context, _ json.RawMessage) (tool.Result, error) {
+			return tool.Result{Output: json.RawMessage(`{}`)}, nil
+		}).
+		MustBuild()
+
+	registry := api.NewToolRegistry()
+	if err := registry.Register(readTool); err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	eligibility := api.NewToolEligibility()
+	eligibility.Allow(agent.StateExplore, "read_file")
+
+	scripted := api.NewScriptedPlanner(
+		api.ScriptStep{ExpectState: agent.StateIntake, Decision: api.NewTransitionDecision(agent.StateExplore, "to explore")},
+		api.ScriptStep{ExpectState: agent.StateExplore, Decision: api.NewCallToolDecision("read_file", json.RawMessage(`{}`), "first")},
+		api.ScriptStep{ExpectState: agent.StateExplore, Decision: api.NewCallToolDecision("read_file", json.RawMessage(`{}`), "second")},
+	)
+
+	store := memory.NewEventStore()
+	engine, err := api.New(
+		api.WithRegistry(registry),
+		api.WithPlanner(scripted),
+		api.WithToolEligibility(eligibility),
+		api.WithTransitions(api.DefaultTransitions()),
+		api.WithBudgets(map[string]int{"tool_calls": 1}),
+		api.WithGovernance(kernelFactory(t, nil)),
+		api.WithEventStore(store),
+		api.WithMaxSteps(10),
+	)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	ctx := context.Background()
+	run, runErr := engine.Run(ctx, "budget exhausts")
+	if !errors.Is(runErr, policy.ErrBudgetExceeded) {
+		t.Fatalf("expected ErrBudgetExceeded, got: %v", runErr)
+	}
+
+	events, err := store.LoadEvents(ctx, run.ID)
+	if err != nil {
+		t.Fatalf("LoadEvents: %v", err)
+	}
+	var sawBudgetExhausted bool
+	for _, e := range events {
+		if e.Type == event.TypeBudgetExhausted {
+			sawBudgetExhausted = true
+		}
+	}
+	if !sawBudgetExhausted {
+		t.Fatal("expected a budget.exhausted event under full axi delegation")
 	}
 }
 
