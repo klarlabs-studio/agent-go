@@ -228,6 +228,9 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
 	machineCtx.Governor = e.govFactory.Governor(budget)
+	// Some Governors (full axi delegation) hold a per-run axi session that
+	// must be released when the run ends. Close it on every exit path.
+	defer closeGovernor(machineCtx.Governor)
 
 	// Create state machine
 	machine, err := statemachine.NewAgentMachine()
@@ -424,6 +427,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
 	machineCtx.Governor = e.govFactory.Governor(budget)
+	defer closeGovernor(machineCtx.Governor)
 
 	// Create state machine
 	machine, err := statemachine.NewAgentMachine()
@@ -827,6 +831,20 @@ func (e *Engine) publishEvent(ctx context.Context, runID string, eventType event
 	}
 	if err := e.eventStore.Append(ctx, evt); err != nil {
 		logging.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to publish event")
+	}
+}
+
+// closeGovernor releases a per-run Governor that holds resources (e.g. the
+// full-delegation kernel governor's in-flight axi session). Governors without
+// a Close method are left untouched. Errors are logged, not propagated — a
+// run's success does not hinge on session teardown.
+func closeGovernor(gov governance.Governor) {
+	closer, ok := gov.(interface{ Close() error })
+	if !ok {
+		return
+	}
+	if err := closer.Close(); err != nil {
+		logging.Error().Add(logging.ErrorField(err)).Msg("failed to close run governor")
 	}
 }
 
