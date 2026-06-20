@@ -324,6 +324,22 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 		return r, errors.New("max steps exceeded")
 	}
 
+	// Verify the run's evidence chain before declaring success. Under full
+	// axi delegation the Governor accumulates one tamper-evident chain per
+	// run; a broken chain means the audit trail was tampered with, which is
+	// a run failure, not a silent success.
+	if r.Status == agent.RunStatusCompleted {
+		if err := verifyRunEvidence(machineCtx.Governor); err != nil {
+			r.Fail(err.Error())
+			runLedger.RecordRunFailed(r.CurrentState, err.Error())
+			e.publishEvent(ctx, runID, event.TypeRunFailed, event.RunFailedPayload{
+				Error: err.Error(), State: r.CurrentState, Duration: r.Duration(),
+			})
+			e.updateRun(ctx, r)
+			return r, err
+		}
+	}
+
 	// Log completion
 	logging.Info().
 		Add(logging.RunID(runID)).
@@ -832,6 +848,21 @@ func (e *Engine) publishEvent(ctx context.Context, runID string, eventType event
 	if err := e.eventStore.Append(ctx, evt); err != nil {
 		logging.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to publish event")
 	}
+}
+
+// verifyRunEvidence verifies the run's axi-native evidence chain when the
+// Governor exposes one (full axi delegation). Governors without an evidence
+// chain (passthrough, approval-only axi) verify trivially. A broken chain is
+// returned as an error so the engine fails the run.
+func verifyRunEvidence(gov governance.Governor) error {
+	verifier, ok := gov.(governance.EvidenceVerifier)
+	if !ok {
+		return nil
+	}
+	if err := verifier.VerifyEvidenceChain(); err != nil {
+		return fmt.Errorf("run evidence chain verification failed: %w", err)
+	}
+	return nil
 }
 
 // closeGovernor releases a per-run Governor that holds resources (e.g. the
