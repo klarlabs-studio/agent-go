@@ -22,15 +22,16 @@ const (
 
 // AxiFactory builds per-run axi-backed Governors that share one kernel.
 //
-// Governance split (axi v1.4.0): the destructive-tool approval gate is
-// delegated to axi — its native, effect-gated pause is the spec's headline
-// safety primitive. Run-level tool-call budget stays in agent-go: axi's
-// ExecutionBudget is per-session (one action's capability fan-out) and
-// cannot express a run-spanning tool count without a held-session API axi
-// does not yet expose. The evidence trail likewise stays on the engine's
-// run ledger, which is one chain per run rather than the fragmented
-// per-call chains axi would produce. See doc.go for the path to full
-// budget/evidence delegation (axi held-session API).
+// Governance split: the destructive-tool approval gate is delegated to axi —
+// its native, effect-gated pause is the spec's headline safety primitive —
+// while run-level tool-call budget stays in agent-go and the evidence trail
+// stays on the engine's run ledger. This is the approval-only delegation tier
+// and the engine default.
+//
+// For FULL delegation — budget, approval, and the evidence chain all routed
+// through ONE axi session per run — use KernelFactory instead (see kernel.go
+// and doc.go). AxiFactory remains available for callers that want only the
+// approval gate delegated.
 type AxiFactory struct {
 	kernel   *axi.Kernel
 	approver policy.Approver
@@ -48,8 +49,10 @@ func NewAxiFactory(approver policy.Approver) (*AxiFactory, error) {
 	return &AxiFactory{kernel: kernel, approver: approver}, nil
 }
 
-// Governor returns a Governor for one run, bound to that run's budget.
-func (f *AxiFactory) Governor(budget *policy.Budget) Governor {
+// Governor returns a Governor for one run, bound to that run's budget. The
+// approval-only axi governor holds no per-run session, so ctx is unused (each
+// gate Execute carries its own ctx from Authorize).
+func (f *AxiFactory) Governor(_ context.Context, budget *policy.Budget) Governor {
 	return &axiGovernor{budget: budget, approver: f.approver, kernel: f.kernel}
 }
 

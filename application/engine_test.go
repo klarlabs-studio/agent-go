@@ -2020,3 +2020,184 @@ func TestNewEngineWithOptions_AllOptions(t *testing.T) {
 		t.Errorf("expected budget limit 50, got %d", engine.budgetLimits["tool_calls"])
 	}
 }
+
+// --- Full axi delegation (KernelFactory default) integration tests ---
+
+// Under the full-delegation default, a run-level tool_calls budget must
+// survive a human-input pause: the budget consumed before the pause is not
+// reset to full on resume (P1-1). With a budget of 1, the pre-pause tool call
+// consumes it; the post-resume tool call must be denied as budget-exhausted.
+func TestResume_BudgetSurvivesPause_KernelDefault(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	registry := newTestRegistry(readTool)
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		// Pre-pause: explore, call tool (consumes the only budget slot), ask human.
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "first call before pause"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision: agent.Decision{
+				Type:     agent.DecisionAskHuman,
+				AskHuman: &agent.AskHumanDecision{Question: "continue?", Options: []string{"yes"}},
+			},
+		},
+		// Post-resume: try another tool call — must be budget-exhausted (no reset).
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "second call after resume - must be denied"),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:     registry,
+		Planner:      scriptedPlanner,
+		Eligibility:  eligibility,
+		BudgetLimits: map[string]int{"tool_calls": 1},
+	})
+	if err != nil {
+		t.Fatalf("NewEngine: %v", err)
+	}
+
+	ctx := context.Background()
+	run, err := engine.Run(ctx, "budget across pause")
+	if !errors.Is(err, agent.ErrAwaitingHumanInput) {
+		t.Fatalf("expected pause, got %v", err)
+	}
+	if run.ConsumedToolCalls() != 1 {
+		t.Fatalf("expected 1 tool call consumed before pause, got %d", run.ConsumedToolCalls())
+	}
+
+	run, err = engine.ResumeWithInput(ctx, run, "yes")
+	if !errors.Is(err, policy.ErrBudgetExceeded) {
+		t.Fatalf("budget must NOT reset across pause: expected ErrBudgetExceeded on resume, got %v", err)
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Fatalf("expected failed run after budget exhaustion, got %s", run.Status)
+	}
+}
+
+// Under the full-delegation default, the evidence chain is continuous across a
+// human-input pause and verifies end-to-end at completion (P1-1): a tool call
+// before the pause and one after both land on ONE chain, and the run completes
+// successfully (which only happens if verifyRunEvidence passes).
+func TestResume_EvidenceChainContinuousAcrossPause_KernelDefault(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	registry := newTestRegistry(readTool)
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("read_file", json.RawMessage(`{"n":1}`), "pre-pause call"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision: agent.Decision{
+				Type:     agent.DecisionAskHuman,
+				AskHuman: &agent.AskHumanDecision{Question: "continue?", Options: []string{"yes"}},
+			},
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("read_file", json.RawMessage(`{"n":2}`), "post-resume call"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewTransitionDecision(agent.StateDecide, "decide"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateDecide,
+			Decision:    agent.NewFinishDecision("done", json.RawMessage(`{"ok":true}`)),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:     registry,
+		Planner:      scriptedPlanner,
+		Eligibility:  eligibility,
+		BudgetLimits: map[string]int{"tool_calls": 5},
+	})
+	if err != nil {
+		t.Fatalf("NewEngine: %v", err)
+	}
+
+	ctx := context.Background()
+	run, err := engine.Run(ctx, "evidence across pause")
+	if !errors.Is(err, agent.ErrAwaitingHumanInput) {
+		t.Fatalf("expected pause, got %v", err)
+	}
+	if len(run.GovernanceEvidence) == 0 {
+		t.Fatal("expected governance evidence snapshot captured at pause")
+	}
+
+	run, err = engine.ResumeWithInput(ctx, run, "yes")
+	if err != nil {
+		t.Fatalf("ResumeWithInput: %v", err)
+	}
+	if run.Status != agent.RunStatusCompleted {
+		t.Fatalf("expected completed run (evidence chain must verify), got %s err=%v", run.Status, run.Error)
+	}
+	// Two tool results plus the human-input evidence on the run aggregate.
+	if run.ConsumedToolCalls() != 2 {
+		t.Fatalf("expected 2 tool calls across the run, got %d", run.ConsumedToolCalls())
+	}
+}
+
+// Context cancellation mid-run releases the held axi session cleanly (no hang,
+// no leaked goroutine — caught by goleak) and fails the run.
+func TestRun_ContextCancelMidRun_KernelDefault(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	registry := newTestRegistry(readTool)
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "call before cancel"),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:     registry,
+		Planner:      scriptedPlanner,
+		Eligibility:  eligibility,
+		BudgetLimits: map[string]int{"tool_calls": 5},
+		MaxSteps:     10,
+	})
+	if err != nil {
+		t.Fatalf("NewEngine: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel before the run starts stepping
+
+	run, runErr := engine.Run(ctx, "cancel mid-run")
+	if runErr == nil {
+		t.Fatal("expected an error from a cancelled run")
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Fatalf("expected failed run on cancel, got %s", run.Status)
+	}
+}

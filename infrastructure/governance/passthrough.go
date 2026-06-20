@@ -92,8 +92,9 @@ func NewPassthroughFactory(approver policy.Approver) *PassthroughFactory {
 	return &PassthroughFactory{approver: approver}
 }
 
-// Governor returns a Passthrough Governor over the given budget.
-func (f *PassthroughFactory) Governor(budget *policy.Budget) Governor {
+// Governor returns a Passthrough Governor over the given budget. The
+// Passthrough holds no per-run resource, so ctx is unused.
+func (f *PassthroughFactory) Governor(_ context.Context, budget *policy.Budget) Governor {
 	return NewPassthrough(budget, f.approver)
 }
 

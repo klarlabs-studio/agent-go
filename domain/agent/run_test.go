@@ -176,6 +176,22 @@ func TestRun_AddEvidence(t *testing.T) {
 	}
 }
 
+func TestRun_ConsumedToolCalls(t *testing.T) {
+	run := NewRun("test", "goal")
+	if got := run.ConsumedToolCalls(); got != 0 {
+		t.Fatalf("fresh run consumed = %d, want 0", got)
+	}
+
+	run.AddEvidence(NewToolEvidence("read", json.RawMessage(`{}`)))
+	run.AddEvidence(NewHumanEvidence(json.RawMessage(`{"q":"?"}`))) // not a tool call
+	run.AddEvidence(NewToolEvidence("write", json.RawMessage(`{}`)))
+	run.AddEvidence(NewSystemEvidence("note")) // not a tool call
+
+	if got := run.ConsumedToolCalls(); got != 2 {
+		t.Fatalf("ConsumedToolCalls = %d, want 2 (only tool results count)", got)
+	}
+}
+
 func TestRun_Variables(t *testing.T) {
 	run := NewRun("test", "goal")
 

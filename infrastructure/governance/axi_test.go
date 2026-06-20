@@ -13,7 +13,7 @@ func axiGov(t *testing.T, limit int, approver policy.Approver) Governor {
 	if err != nil {
 		t.Fatalf("NewAxiFactory: %v", err)
 	}
-	return f.Governor(policy.NewBudget(map[string]int{budgetKey: limit}))
+	return f.Governor(context.Background(), policy.NewBudget(map[string]int{budgetKey: limit}))
 }
 
 func TestAxi_NonApprovalToolAllowed(t *testing.T) {

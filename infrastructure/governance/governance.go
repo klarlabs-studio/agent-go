@@ -8,27 +8,20 @@
 // The domain/policy package keeps its interfaces (Budget, Approval,
 // Eligibility); this package binds them to an implementation.
 //
-// Two implementations satisfy Governor:
+// Three implementations satisfy Governor (see doc.go):
 //
-//   - Passthrough — the in-process implementation backed by domain/policy
-//     (Budget, Approver). Behaviour-identical to the pre-delegation engine.
-//     Built by default. Approval is left to the engine's approval
-//     middleware (OwnsApproval reports false).
+//   - Passthrough — in-process, backed by domain/policy (Budget, Approver).
+//     Approval is left to the engine's approval middleware (OwnsApproval
+//     reports false).
 //
-//   - axiGovernor (build tag "axi") — routes every act-state tool call
-//     through an axi.Kernel, so budget, approval, and the evidence trail
-//     all come from the single axi governance kernel (OwnsApproval reports
-//     true; the engine drops its approval middleware).
+//   - axiGovernor — delegates only the destructive-tool approval gate to a
+//     shared axi.Kernel; run-level budget stays in agent-go (OwnsApproval
+//     reports true). The default.
 //
-// Activation is deferred until the toolchain bump that axi-go requires:
-//
-//  1. bump the agent-go module go directive to 1.26.2 (axi-go's floor)
-//  2. add `require go.klarlabs.de/axi v1.4.0` to go.mod
-//  3. build and test with `-tags axi`
-//  4. construct the engine's per-run Governor with NewAxi(...) instead of
-//     NewPassthrough(...)
-//
-// See doc.go for the full migration checklist.
+//   - kernelGovernor — full delegation: each run is ONE axi session, so
+//     budget, approval, and the evidence chain are all axi-native
+//     (OwnsApproval reports true). Select via api.WithGovernance(
+//     NewKernelFactory(approver)).
 package governance
 
 import (
@@ -137,8 +130,11 @@ type Governor interface {
 // holds one Factory (so shared state like an axi.Kernel is built once) and
 // asks it for a Governor at the start of each run.
 type Factory interface {
-	// Governor returns a Governor for one run over the given budget.
-	Governor(budget *policy.Budget) Governor
+	// Governor returns a Governor for one run over the given budget, scoped to
+	// ctx. Governors that hold a per-run resource (the full-delegation kernel
+	// governor's in-flight axi session) bind it to ctx so the run's
+	// cancellation and MaxDuration propagate into the held session.
+	Governor(ctx context.Context, budget *policy.Budget) Governor
 	// OwnsApproval reports whether Governors from this Factory enforce
 	// approval, so the engine can drop its approval middleware once, at
 	// construction, rather than per run.

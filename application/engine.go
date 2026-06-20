@@ -68,9 +68,10 @@ type EngineConfig struct {
 	RunStore     run.Store
 	EventStore   event.Store
 	TaskContext  *task.Context
-	// Governance selects the governance backend (budget + approval). When
-	// nil, an axi-backed factory is used: the destructive-tool approval gate
-	// is delegated to an axi.Kernel.
+	// Governance selects the governance backend (budget + approval +
+	// evidence). When nil, the full-delegation KernelFactory is used: each run
+	// is ONE axi session, so budget, the destructive-tool approval gate, and
+	// the evidence chain are all axi-native.
 	Governance governance.Factory
 }
 
@@ -117,10 +118,14 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 		e.maxSteps = 100
 	}
 	if e.govFactory == nil {
-		// Default governance: delegate the destructive-tool approval gate to
-		// an axi.Kernel (spec § Changes Required #1). Budget stays run-level
-		// in agent-go; see infrastructure/governance.
-		f, err := governance.NewAxiFactory(e.approver)
+		// Default governance: FULL axi delegation (spec § Changes Required #1,
+		// Track F). Each run executes as ONE axi session, so budget, the
+		// destructive-tool approval gate, AND the tamper-evident evidence chain
+		// are all axi-native — the only tier that satisfies the spec
+		// non-negotiable "budget AND approval always through axi". AxiFactory
+		// (approval-only) and PassthroughFactory remain selectable via
+		// api.WithGovernance. See infrastructure/governance.
+		f, err := governance.NewKernelFactory(e.approver)
 		if err != nil {
 			return nil, fmt.Errorf("init governance: %w", err)
 		}
@@ -227,7 +232,10 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	machineCtx := statemachine.NewContext(r, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
-	machineCtx.Governor = e.govFactory.Governor(budget)
+	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
+	// Some Governors (full axi delegation) hold a per-run axi session that
+	// must be released when the run ends. Close it on every exit path.
+	defer closeGovernor(machineCtx.Governor)
 
 	// Create state machine
 	machine, err := statemachine.NewAgentMachine()
@@ -276,6 +284,10 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 					Add(logging.RunID(runID)).
 					Add(logging.State(r.CurrentState)).
 					Msg("run paused for human input")
+				// Capture the governor's evidence-chain snapshot onto the run
+				// so the resumed segment continues ONE physical chain across
+				// the pause (the deferred closeGovernor tears the session down).
+				captureGovernorEvidence(r, machineCtx.Governor)
 				e.publishEvent(ctx, runID, event.TypeRunPaused, nil)
 				e.updateRun(ctx, r)
 				return r, err
@@ -319,6 +331,22 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 		})
 		e.updateRun(ctx, r)
 		return r, errors.New("max steps exceeded")
+	}
+
+	// Verify the run's evidence chain before declaring success. Under full
+	// axi delegation the Governor accumulates one tamper-evident chain per
+	// run; a broken chain means the audit trail was tampered with, which is
+	// a run failure, not a silent success.
+	if r.Status == agent.RunStatusCompleted {
+		if err := verifyRunEvidence(machineCtx.Governor); err != nil {
+			r.Fail(err.Error())
+			runLedger.RecordRunFailed(r.CurrentState, err.Error())
+			e.publishEvent(ctx, runID, event.TypeRunFailed, event.RunFailedPayload{
+				Error: err.Error(), State: r.CurrentState, Duration: r.Duration(),
+			})
+			e.updateRun(ctx, r)
+			return r, err
+		}
 	}
 
 	// Log completion
@@ -412,8 +440,14 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	run.ClearPendingQuestion()
 	run.Resume()
 
-	// Create supporting components (fresh for this segment)
+	// Create supporting components for this segment. The budget is SEEDED with
+	// the tool calls already consumed before the pause (the persisted count of
+	// tool-result evidence), so the run-spanning tool_calls limit survives the
+	// pause instead of silently resetting to full.
 	budget := policy.NewBudget(e.budgetLimits)
+	if consumed := run.ConsumedToolCalls(); consumed > 0 {
+		_ = budget.Consume("tool_calls", consumed)
+	}
 	runLedger := ledger.New(run.ID)
 
 	// Record human input response in ledger
@@ -423,7 +457,14 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	machineCtx := statemachine.NewContext(run, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
-	machineCtx.Governor = e.govFactory.Governor(budget)
+	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
+	defer closeGovernor(machineCtx.Governor)
+
+	// Rehydrate the evidence chain from the snapshot captured at pause time so
+	// the resumed run continues ONE continuous, tamper-evident chain.
+	if err := rehydrateGovernorEvidence(machineCtx.Governor, run.GovernanceEvidence); err != nil {
+		return nil, fmt.Errorf("failed to rehydrate evidence chain: %w", err)
+	}
 
 	// Create state machine
 	machine, err := statemachine.NewAgentMachine()
@@ -464,6 +505,10 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 					Add(logging.RunID(run.ID)).
 					Add(logging.State(run.CurrentState)).
 					Msg("run paused for human input")
+				// Re-capture the (now-extended) evidence chain so a further
+				// resume continues the same continuous chain.
+				captureGovernorEvidence(run, machineCtx.Governor)
+				e.updateRun(ctx, run)
 				return run, err
 			}
 
@@ -485,6 +530,17 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 		run.Fail("max steps exceeded")
 		runLedger.RecordRunFailed(run.CurrentState, "max steps exceeded")
 		return run, errors.New("max steps exceeded")
+	}
+
+	// Verify the run's evidence chain before declaring success — the resumed
+	// run carries ONE continuous chain across the pause, so a broken chain is
+	// a run failure, exactly as on the initial path (parity with executeRun).
+	if run.Status == agent.RunStatusCompleted {
+		if err := verifyRunEvidence(machineCtx.Governor); err != nil {
+			run.Fail(err.Error())
+			runLedger.RecordRunFailed(run.CurrentState, err.Error())
+			return run, err
+		}
 	}
 
 	// Log completion
@@ -827,6 +883,69 @@ func (e *Engine) publishEvent(ctx context.Context, runID string, eventType event
 	}
 	if err := e.eventStore.Append(ctx, evt); err != nil {
 		logging.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to publish event")
+	}
+}
+
+// verifyRunEvidence verifies the run's axi-native evidence chain when the
+// Governor exposes one (full axi delegation). Governors without an evidence
+// chain (passthrough, approval-only axi) verify trivially. A broken chain is
+// returned as an error so the engine fails the run.
+func verifyRunEvidence(gov governance.Governor) error {
+	verifier, ok := gov.(governance.EvidenceVerifier)
+	if !ok {
+		return nil
+	}
+	if err := verifier.VerifyEvidenceChain(); err != nil {
+		return fmt.Errorf("run evidence chain verification failed: %w", err)
+	}
+	return nil
+}
+
+// captureGovernorEvidence persists the Governor's evidence-chain snapshot onto
+// the run so a human-input pause does not discard it: the resumed segment
+// rehydrates from it to continue ONE continuous chain. Governors without an
+// evidence chain (passthrough, approval-only axi) leave the run untouched.
+// Best-effort — a snapshot error is logged, not fatal to the pause.
+func captureGovernorEvidence(r *agent.Run, gov governance.Governor) {
+	snapshotter, ok := gov.(governance.EvidenceSnapshotter)
+	if !ok {
+		return
+	}
+	data, err := snapshotter.EvidenceSnapshot()
+	if err != nil {
+		logging.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).
+			Msg("failed to snapshot governance evidence at pause")
+		return
+	}
+	r.GovernanceEvidence = data
+}
+
+// rehydrateGovernorEvidence restores a previously captured evidence-chain
+// snapshot into the resumed run's Governor so the chain is continuous across
+// the pause. Governors without rehydration support (or an empty snapshot) are
+// a no-op.
+func rehydrateGovernorEvidence(gov governance.Governor, data json.RawMessage) error {
+	if len(data) == 0 {
+		return nil
+	}
+	rehydrator, ok := gov.(governance.EvidenceRehydrator)
+	if !ok {
+		return nil
+	}
+	return rehydrator.RehydrateEvidence(data)
+}
+
+// closeGovernor releases a per-run Governor that holds resources (e.g. the
+// full-delegation kernel governor's in-flight axi session). Governors without
+// a Close method are left untouched. Errors are logged, not propagated — a
+// run's success does not hinge on session teardown.
+func closeGovernor(gov governance.Governor) {
+	closer, ok := gov.(interface{ Close() error })
+	if !ok {
+		return
+	}
+	if err := closer.Close(); err != nil {
+		logging.Error().Add(logging.ErrorField(err)).Msg("failed to close run governor")
 	}
 }
 

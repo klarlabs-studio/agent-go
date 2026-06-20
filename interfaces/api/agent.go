@@ -104,6 +104,7 @@ import (
 	"go.klarlabs.de/agent/domain/task"
 	"go.klarlabs.de/agent/domain/telemetry"
 	"go.klarlabs.de/agent/domain/tool"
+	"go.klarlabs.de/agent/infrastructure/governance"
 	inframw "go.klarlabs.de/agent/infrastructure/middleware"
 	"go.klarlabs.de/agent/infrastructure/planner"
 	"go.klarlabs.de/agent/infrastructure/resilience"
@@ -278,6 +279,7 @@ func New(opts ...Option) (*Engine, error) {
 		RunStore:     config.runStore,
 		EventStore:   config.eventStore,
 		TaskContext:  config.taskCtx,
+		Governance:   config.governance,
 	}
 
 	engine, err := application.NewEngine(appConfig)
@@ -374,6 +376,7 @@ type engineConfig struct {
 	runStore    run.Store
 	eventStore  event.Store
 	taskCtx     *task.Context
+	governance  governance.Factory
 }
 
 // Option configures the Engine.
@@ -451,6 +454,21 @@ func WithApprover(a policy.Approver) Option {
 func WithBudgets(budgets map[string]int) Option {
 	return func(c *engineConfig) {
 		c.budgets = budgets
+	}
+}
+
+// WithGovernance selects the governance backend that enforces act-state tool
+// budget, approval, and the evidence trail. When unset, the engine delegates
+// the destructive-tool approval gate to an axi.Kernel (AxiFactory) while the
+// run-level budget stays in agent-go.
+//
+// Use governance.NewKernelFactory(approver) for full delegation — each run
+// executes as one axi session so budget, approval, and evidence are all
+// axi-native. Use governance.NewPassthroughFactory(approver) to keep budget
+// and approval fully in-process (approval via the engine middleware).
+func WithGovernance(f governance.Factory) Option {
+	return func(c *engineConfig) {
+		c.governance = f
 	}
 }
 
