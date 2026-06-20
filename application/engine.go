@@ -21,6 +21,7 @@ import (
 	"go.klarlabs.de/agent/domain/task"
 	"go.klarlabs.de/agent/domain/telemetry"
 	"go.klarlabs.de/agent/domain/tool"
+	"go.klarlabs.de/agent/infrastructure/governance"
 	"go.klarlabs.de/agent/infrastructure/logging"
 	inframw "go.klarlabs.de/agent/infrastructure/middleware"
 	"go.klarlabs.de/agent/infrastructure/planner"
@@ -206,6 +207,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	machineCtx := statemachine.NewContext(r, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
+	machineCtx.Governor = governance.NewPassthrough(budget, e.approver)
 
 	// Create state machine
 	machine, err := statemachine.NewAgentMachine()
@@ -401,6 +403,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	machineCtx := statemachine.NewContext(run, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
+	machineCtx.Governor = governance.NewPassthrough(budget, e.approver)
 
 	// Create state machine
 	machine, err := statemachine.NewAgentMachine()
@@ -576,6 +579,7 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 	run := machineCtx.Run
 	runLedger := machineCtx.Ledger
 	budget := machineCtx.Budget
+	gov := machineCtx.Governor
 
 	// Get tool from registry
 	t, ok := e.registry.Get(decision.ToolName)
@@ -583,13 +587,34 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 		return fmt.Errorf("%w: %s", tool.ErrToolNotFound, decision.ToolName)
 	}
 
-	// Check budget before execution
-	if !budget.CanConsume("tool_calls", 1) {
+	// Authorize the tool call through the governance seam: budget always,
+	// and the approval gate when the Governor owns approval (axi). When it
+	// does not (passthrough), approval stays with the middleware below.
+	govReq := governance.ToolRequest{
+		RunID:           run.ID,
+		State:           string(run.CurrentState),
+		ToolName:        decision.ToolName,
+		Input:           decision.Input,
+		Reason:          decision.Reason,
+		RiskLevel:       t.Annotations().RiskLevel.String(),
+		RequireApproval: gov.OwnsApproval() && t.Annotations().ShouldRequireApproval(),
+	}
+	auth, authErr := gov.Authorize(ctx, govReq)
+	if authErr != nil {
+		return fmt.Errorf("governance authorization failed: %w", authErr)
+	}
+	switch auth.Decision {
+	case governance.DecisionBudgetExhausted:
 		runLedger.RecordBudgetExhausted(run.CurrentState, "tool_calls")
 		e.publishEvent(ctx, run.ID, event.TypeBudgetExhausted, event.BudgetExhaustedPayload{
 			BudgetName: "tool_calls",
 		})
 		return policy.ErrBudgetExceeded
+	case governance.DecisionDenied:
+		e.publishEvent(ctx, run.ID, event.TypeApprovalDenied, event.ApprovalResultPayload{
+			ToolName: decision.ToolName, Approver: auth.Approver, Reason: auth.Reason,
+		})
+		return fmt.Errorf("%w: %s", tool.ErrApprovalDenied, auth.Reason)
 	}
 
 	// Build execution context for middleware
@@ -652,14 +677,21 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 		return fmt.Errorf("tool execution failed: %w", err)
 	}
 
-	// Consume budget on success
-	_ = budget.Consume("tool_calls", 1)
-	runLedger.RecordBudgetConsumed(run.CurrentState, "tool_calls", 1, budget.Remaining("tool_calls"))
+	// Account the successful tool call against the budget via the Governor.
+	commit, commitErr := gov.Commit(ctx, govReq, governance.Outcome{
+		Success:  true,
+		Output:   result.Output,
+		Duration: result.Duration,
+	})
+	if commitErr != nil {
+		return fmt.Errorf("governance commit failed: %w", commitErr)
+	}
+	runLedger.RecordBudgetConsumed(run.CurrentState, "tool_calls", 1, commit.Remaining)
 	runLedger.RecordToolResult(run.CurrentState, decision.ToolName, result.Output, result.Duration, result.Cached)
 
 	// Publish budget consumed event
 	e.publishEvent(ctx, run.ID, event.TypeBudgetConsumed, event.BudgetConsumedPayload{
-		BudgetName: "tool_calls", Amount: 1, Remaining: budget.Remaining("tool_calls"),
+		BudgetName: "tool_calls", Amount: 1, Remaining: commit.Remaining,
 	})
 
 	// Publish tool.succeeded event

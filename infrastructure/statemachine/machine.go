@@ -10,6 +10,7 @@ import (
 	"go.klarlabs.de/agent/domain/agent"
 	"go.klarlabs.de/agent/domain/ledger"
 	"go.klarlabs.de/agent/domain/policy"
+	"go.klarlabs.de/agent/infrastructure/governance"
 )
 
 // Context carries run state through the state machine.
@@ -20,6 +21,9 @@ type Context struct {
 	Eligibility   *policy.ToolEligibility
 	Transitions   *policy.StateTransitions
 	StateRegistry *agent.StateRegistry
+	// Governor enforces budget (and, under axi, approval + evidence) for
+	// act-state tool execution. Set by the engine per run.
+	Governor governance.Governor
 }
 
 // NewContext creates a new machine context.
