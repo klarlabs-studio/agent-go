@@ -3,6 +3,8 @@ go 1.25.0
 use (
 	.
 	./cmd/agentctl
+	./contrib/ai
+	./contrib/aiplugin
 	./contrib/approval-cli
 	./contrib/approval-slack
 	./contrib/approval-webhook
