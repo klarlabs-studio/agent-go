@@ -1620,3 +1620,89 @@ func TestReplay_ApplyEvents_MultipleEvidence(t *testing.T) {
 		}
 	})
 }
+
+func TestReplay_ReconstructRunAtStep(t *testing.T) {
+	t.Parallel()
+
+	// Build a 3-step run history:
+	//   step1: decision -> transition intake->explore
+	//   step2: decision -> transition explore->decide
+	//   step3: decision -> transition decide->done (+ evidence in step2)
+	buildEvents := func(runID string) []event.Event {
+		return []event.Event{
+			createTestEvent(runID, event.TypeRunStarted, event.RunStartedPayload{Goal: "g", Vars: map[string]any{"k": "v"}}, 1),
+			createTestEvent(runID, event.TypeDecisionMade, event.DecisionMadePayload{DecisionType: "transition", ToState: agent.StateExplore}, 2),
+			createTestEvent(runID, event.TypeStateTransitioned, event.StateTransitionedPayload{FromState: agent.StateIntake, ToState: agent.StateExplore}, 3),
+			createTestEvent(runID, event.TypeDecisionMade, event.DecisionMadePayload{DecisionType: "transition", ToState: agent.StateDecide}, 4),
+			createTestEvent(runID, event.TypeEvidenceAdded, event.EvidenceAddedPayload{Type: "tool_result", Source: "t", Content: json.RawMessage(`{}`)}, 5),
+			createTestEvent(runID, event.TypeStateTransitioned, event.StateTransitionedPayload{FromState: agent.StateExplore, ToState: agent.StateDecide}, 6),
+			createTestEvent(runID, event.TypeDecisionMade, event.DecisionMadePayload{DecisionType: "transition", ToState: agent.StateDone}, 7),
+			createTestEvent(runID, event.TypeStateTransitioned, event.StateTransitionedPayload{FromState: agent.StateDecide, ToState: agent.StateDone}, 8),
+		}
+	}
+
+	store := &mockEventStore{
+		loadEventsFn: func(_ context.Context, runID string) ([]event.Event, error) {
+			return buildEvents(runID), nil
+		},
+	}
+	replay := application.NewReplay(store)
+
+	t.Run("step 1 stops after first decision effects", func(t *testing.T) {
+		t.Parallel()
+		run, err := replay.ReconstructRunAtStep(context.Background(), "run-1", 1)
+		if err != nil {
+			t.Fatalf("err = %v", err)
+		}
+		if run.CurrentState != agent.StateExplore {
+			t.Errorf("state = %s, want explore", run.CurrentState)
+		}
+		if len(run.Evidence) != 0 {
+			t.Errorf("evidence = %d, want 0 at step 1", len(run.Evidence))
+		}
+	})
+
+	t.Run("step 2 includes step-2 evidence and state", func(t *testing.T) {
+		t.Parallel()
+		run, err := replay.ReconstructRunAtStep(context.Background(), "run-1", 2)
+		if err != nil {
+			t.Fatalf("err = %v", err)
+		}
+		if run.CurrentState != agent.StateDecide {
+			t.Errorf("state = %s, want decide", run.CurrentState)
+		}
+		if len(run.Evidence) != 1 {
+			t.Errorf("evidence = %d, want 1 at step 2", len(run.Evidence))
+		}
+	})
+
+	t.Run("step beyond history applies all events", func(t *testing.T) {
+		t.Parallel()
+		run, err := replay.ReconstructRunAtStep(context.Background(), "run-1", 99)
+		if err != nil {
+			t.Fatalf("err = %v", err)
+		}
+		if run.CurrentState != agent.StateDone {
+			t.Errorf("state = %s, want done", run.CurrentState)
+		}
+	})
+
+	t.Run("invalid step rejected", func(t *testing.T) {
+		t.Parallel()
+		_, err := replay.ReconstructRunAtStep(context.Background(), "run-1", 0)
+		if !errors.Is(err, application.ErrInvalidStep) {
+			t.Errorf("err = %v, want ErrInvalidStep", err)
+		}
+	})
+
+	t.Run("no events returns run not found", func(t *testing.T) {
+		t.Parallel()
+		empty := &mockEventStore{loadEventsFn: func(_ context.Context, _ string) ([]event.Event, error) {
+			return []event.Event{}, nil
+		}}
+		_, err := application.NewReplay(empty).ReconstructRunAtStep(context.Background(), "x", 1)
+		if !errors.Is(err, event.ErrRunNotFound) {
+			t.Errorf("err = %v, want ErrRunNotFound", err)
+		}
+	})
+}

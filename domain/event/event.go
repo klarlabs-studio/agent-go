@@ -30,8 +30,16 @@ type Event struct {
 	Version int `json:"version,omitempty"`
 }
 
-// NewEvent creates a new event with the given type and payload.
+// NewEvent creates a new event with the given type and payload, stamped with
+// the current wall-clock time. For deterministic timestamps (replay, fork,
+// tests) use NewEventAt with an injected clock's time.
 func NewEvent(runID string, eventType Type, payload any) (Event, error) {
+	return NewEventAt(runID, eventType, payload, time.Now())
+}
+
+// NewEventAt creates a new event stamped with the provided timestamp. The
+// engine passes its injected clock's time so an event stream is reproducible.
+func NewEventAt(runID string, eventType Type, payload any, ts time.Time) (Event, error) {
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return Event{}, err
@@ -40,7 +48,7 @@ func NewEvent(runID string, eventType Type, payload any) (Event, error) {
 	return Event{
 		RunID:     runID,
 		Type:      eventType,
-		Timestamp: time.Now(),
+		Timestamp: ts,
 		Payload:   data,
 		Version:   1,
 	}, nil

@@ -19,6 +19,13 @@ var (
 	// ErrToolNotAllowed indicates the tool is not allowed in the current state.
 	ErrToolNotAllowed = errors.New("tool not allowed in current state")
 
+	// ErrSideEffectInNonActState indicates a side-effecting tool was invoked in
+	// a state that does not permit side effects. This is a STRUCTURAL invariant
+	// — it is enforced independently of tool-eligibility configuration and
+	// cannot be relaxed or bypassed. Side effects are permitted only in states
+	// that allow them (canonically, the act state).
+	ErrSideEffectInNonActState = errors.New("side-effecting tool rejected outside a side-effecting state")
+
 	// ErrInvalidInput indicates the input failed schema validation.
 	ErrInvalidInput = errors.New("invalid tool input")
 

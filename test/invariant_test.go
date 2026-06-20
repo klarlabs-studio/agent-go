@@ -581,6 +581,45 @@ func TestInvariant_StateSemantics(t *testing.T) {
 			t.Error("decide state should not allow side effects")
 		}
 	})
+
+	// Non-negotiable: the structural act-gate cannot be bypassed by
+	// tool-eligibility configuration. Even with a wildcard eligibility that
+	// nominally permits every tool in every state, a side-effecting tool is
+	// rejected in any non-act state by the engine's structural gate.
+	t.Run("structural_gate_not_bypassable_by_eligibility", func(t *testing.T) {
+		destructive, err := api.NewToolBuilder("wipe").
+			WithDescription("destructive tool").
+			WithAnnotations(tool.DestructiveAnnotations()).
+			WithHandler(func(_ context.Context, _ json.RawMessage) (tool.Result, error) {
+				return tool.Result{Output: json.RawMessage(`{}`)}, nil
+			}).
+			Build()
+		if err != nil {
+			t.Fatalf("build tool: %v", err)
+		}
+
+		// Wildcard eligibility: every tool allowed in every state.
+		eligibility := api.NewDefaultToolEligibility()
+
+		p := api.NewScriptedPlanner(
+			api.ScriptStep{ExpectState: api.StateIntake, Decision: api.NewTransitionDecision(api.StateExplore, "begin")},
+			api.ScriptStep{ExpectState: api.StateExplore, Decision: api.NewCallToolDecision("wipe", json.RawMessage(`{}`), "must be blocked structurally")},
+		)
+
+		engine, err := api.New(
+			api.WithTool(destructive),
+			api.WithPlanner(p),
+			api.WithToolEligibility(eligibility),
+		)
+		if err != nil {
+			t.Fatalf("new engine: %v", err)
+		}
+
+		_, runErr := engine.Run(context.Background(), "attempt side effect in explore")
+		if !errors.Is(runErr, tool.ErrSideEffectInNonActState) {
+			t.Fatalf("structural gate must block side-effecting tool in explore despite wildcard eligibility; got %v", runErr)
+		}
+	})
 }
 
 // =============================================================================

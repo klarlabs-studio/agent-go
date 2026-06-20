@@ -2,6 +2,7 @@ package application
 
 import (
 	"go.klarlabs.de/agent/domain/artifact"
+	"go.klarlabs.de/agent/domain/clock"
 	"go.klarlabs.de/agent/domain/event"
 	"go.klarlabs.de/agent/domain/middleware"
 	"go.klarlabs.de/agent/domain/policy"
@@ -9,6 +10,7 @@ import (
 	"go.klarlabs.de/agent/domain/task"
 	"go.klarlabs.de/agent/domain/telemetry"
 	"go.klarlabs.de/agent/domain/tool"
+	"go.klarlabs.de/agent/infrastructure/logging"
 	"go.klarlabs.de/agent/infrastructure/planner"
 	"go.klarlabs.de/agent/infrastructure/resilience"
 )
@@ -132,6 +134,24 @@ func WithEventStore(s event.Store) Option {
 func WithTaskContext(tc *task.Context) Option {
 	return func(c *EngineConfig) {
 		c.TaskContext = tc
+	}
+}
+
+// WithLogger sets the injected structured logger for the engine.
+// When unset, the engine uses a no-op logger and emits nothing — the
+// execution path never depends on the package-level logging singleton.
+func WithLogger(l *logging.Logger) Option {
+	return func(c *EngineConfig) {
+		c.Logger = l
+	}
+}
+
+// WithClock sets the clock used for run IDs, run start timestamps, and event
+// timestamps. When unset, the system clock is used. Inject a fixed or
+// statekit FakeClock for deterministic replay and tests.
+func WithClock(c clock.Clock) Option {
+	return func(cfg *EngineConfig) {
+		cfg.Clock = c
 	}
 }
 

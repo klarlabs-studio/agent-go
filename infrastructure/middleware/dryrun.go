@@ -31,6 +31,10 @@ type DryRunConfig struct {
 
 	// Recorder captures all dry-run operations for later inspection.
 	Recorder *DryRunRecorder
+
+	// Logger is the injected structured logger. When nil, a no-op logger is
+	// used — never the package-level logging singleton.
+	Logger *logging.Logger
 }
 
 // DryRunOption configures the dry-run middleware.
@@ -88,6 +92,14 @@ func WithDryRunRecorder(recorder *DryRunRecorder) DryRunOption {
 	}
 }
 
+// WithDryRunLogger injects the structured logger used by the middleware. When
+// unset, a no-op logger is used — never the package-level logging singleton.
+func WithDryRunLogger(l *logging.Logger) DryRunOption {
+	return func(c *DryRunConfig) {
+		c.Logger = l
+	}
+}
+
 // DryRun returns middleware that prevents side-effect tools from executing.
 // In dry-run mode, destructive tools return mock responses instead of executing.
 func DryRun(opts ...DryRunOption) middleware.Middleware {
@@ -101,6 +113,8 @@ func DryRun(opts ...DryRunOption) middleware.Middleware {
 	for _, opt := range opts {
 		opt(&cfg)
 	}
+
+	log := resolveLogger(cfg.Logger)
 
 	return func(next middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, execCtx *middleware.ExecutionContext) (tool.Result, error) {
@@ -121,7 +135,7 @@ func DryRun(opts ...DryRunOption) middleware.Middleware {
 			}
 
 			// Log dry-run
-			logging.Info().
+			log.Info().
 				Add(logging.RunID(execCtx.RunID)).
 				Add(logging.ToolName(execCtx.Tool.Name())).
 				Add(logging.Str("mode", "dry-run")).
@@ -424,6 +438,7 @@ func ContextAwareDryRun(opts ...DryRunOption) middleware.Middleware {
 				WithMockResponses(cfg.MockResponses),
 				WithDryRunCallback(cfg.OnDryRun),
 				WithDryRunRecorder(cfg.Recorder),
+				WithDryRunLogger(cfg.Logger),
 			)
 
 			handler := dryRunMiddleware(next)

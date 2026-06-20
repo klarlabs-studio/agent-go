@@ -1,9 +1,21 @@
 package resilience
 
-import "time"
+import (
+	"time"
+
+	"go.klarlabs.de/agent/domain/clock"
+)
 
 // Option configures the executor.
 type Option func(*ExecutorConfig)
+
+// WithClock sets the clock used for tool-duration accounting. Inject a fixed
+// clock to make tool.succeeded/tool.failed payload durations deterministic.
+func WithClock(c clock.Clock) Option {
+	return func(cfg *ExecutorConfig) {
+		cfg.Clock = c
+	}
+}
 
 // WithMaxConcurrent sets the maximum concurrent executions.
 func WithMaxConcurrent(n int) Option {

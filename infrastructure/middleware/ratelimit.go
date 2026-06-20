@@ -67,6 +67,10 @@ type RateLimitConfig struct {
 	// TenantKey is the Vars key used to extract the tenant ID for ScopePerTenant.
 	// Defaults to "tenant_id" if empty.
 	TenantKey string
+
+	// Logger is the injected structured logger. When nil, a no-op logger is
+	// used — never the package-level logging singleton.
+	Logger *logging.Logger
 }
 
 // DefaultRateLimitConfig returns a sensible default rate limit configuration.
@@ -104,6 +108,8 @@ func RateLimit(cfg RateLimitConfig) middleware.Middleware {
 		scope = ScopeGlobal
 	}
 
+	log := resolveLogger(cfg.Logger)
+
 	return func(next middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, execCtx *middleware.ExecutionContext) (tool.Result, error) {
 			// Generate key based on scope
@@ -112,7 +118,7 @@ func RateLimit(cfg RateLimitConfig) middleware.Middleware {
 			// Check rate limit
 			if !limiter.Allow(ctx, key) {
 				// Log rate limit event
-				logging.Warn().
+				log.Warn().
 					Add(logging.RunID(execCtx.RunID)).
 					Add(logging.ToolName(execCtx.Tool.Name())).
 					Add(logging.Str("scope", string(scope))).
@@ -180,6 +186,9 @@ type PerToolRateLimitConfig struct {
 	FailOpen bool
 	// OnLimitExceeded is called when a request is rate limited.
 	OnLimitExceeded func(ctx context.Context, execCtx *middleware.ExecutionContext)
+	// Logger is the injected structured logger. When nil, a no-op logger is
+	// used — never the package-level logging singleton.
+	Logger *logging.Logger
 }
 
 // PerToolRateLimit returns middleware that enforces different rate limits per tool.
@@ -222,6 +231,8 @@ func PerToolRateLimit(cfg PerToolRateLimitConfig) middleware.Middleware {
 		FailOpen: cfg.FailOpen,
 	})
 
+	log := resolveLogger(cfg.Logger)
+
 	return func(next middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, execCtx *middleware.ExecutionContext) (tool.Result, error) {
 			toolName := execCtx.Tool.Name()
@@ -237,7 +248,7 @@ func PerToolRateLimit(cfg PerToolRateLimitConfig) middleware.Middleware {
 
 			// Check rate limit using tool name as key
 			if !limiter.Allow(ctx, toolName) {
-				logging.Warn().
+				log.Warn().
 					Add(logging.RunID(execCtx.RunID)).
 					Add(logging.ToolName(toolName)).
 					Msg("per-tool rate limit exceeded")
@@ -272,6 +283,9 @@ type AdaptiveRateLimitConfig struct {
 	RecoveryFactor float64
 	// FailOpen determines behavior when rate limiting fails.
 	FailOpen bool
+	// Logger is the injected structured logger. When nil, a no-op logger is
+	// used — never the package-level logging singleton.
+	Logger *logging.Logger
 }
 
 // AdaptiveRateLimit returns middleware that adjusts rate limits based on response patterns.
@@ -306,11 +320,13 @@ func AdaptiveRateLimit(cfg AdaptiveRateLimitConfig) middleware.Middleware {
 		FailOpen: cfg.FailOpen,
 	})
 
+	log := resolveLogger(cfg.Logger)
+
 	return func(next middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, execCtx *middleware.ExecutionContext) (tool.Result, error) {
 			// Check rate limit
 			if !limiter.Allow(ctx, "adaptive") {
-				logging.Warn().
+				log.Warn().
 					Add(logging.RunID(execCtx.RunID)).
 					Add(logging.ToolName(execCtx.Tool.Name())).
 					Add(logging.Float64("current_rate", currentRate)).
@@ -336,7 +352,7 @@ func AdaptiveRateLimit(cfg AdaptiveRateLimitConfig) middleware.Middleware {
 					FailOpen: cfg.FailOpen,
 				})
 
-				logging.Debug().
+				log.Debug().
 					Add(logging.RunID(execCtx.RunID)).
 					Add(logging.Int("new_rate", newRate)).
 					Msg("rate decreased due to error")
@@ -377,13 +393,15 @@ func RateLimitWait(cfg RateLimitConfig) middleware.Middleware {
 		scope = ScopeGlobal
 	}
 
+	log := resolveLogger(cfg.Logger)
+
 	return func(next middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, execCtx *middleware.ExecutionContext) (tool.Result, error) {
 			key := generateRateLimitKey(scope, execCtx)
 
 			// Wait for rate limit capacity
 			if err := limiter.Wait(ctx, key); err != nil {
-				logging.Warn().
+				log.Warn().
 					Add(logging.RunID(execCtx.RunID)).
 					Add(logging.ToolName(execCtx.Tool.Name())).
 					Add(logging.ErrorField(err)).

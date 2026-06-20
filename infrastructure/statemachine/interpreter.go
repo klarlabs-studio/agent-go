@@ -52,13 +52,19 @@ func NewInterpreterFromDefinition(def *MachineDefinition, ctx *Context) *Interpr
 	}
 }
 
-// Start initializes the interpreter and enters the initial state.
+// Start initializes the interpreter and enters the initial state. The run start
+// time is stamped from the context clock (the engine's injected clock) so no
+// transient wall-clock value is stamped before the engine sees it.
 func (i *Interpreter) Start() {
 	i.interp.Start()
 	// Sync context state with interpreter
 	state := i.interp.State()
 	i.ctx.Run.CurrentState = agent.State(state.Value)
-	i.ctx.Run.Start()
+	if i.ctx.Clock != nil {
+		i.ctx.Run.StartAt(i.ctx.Clock.Now())
+	} else {
+		i.ctx.Run.Start()
+	}
 }
 
 // Stop stops the interpreter.

@@ -4,10 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/clock"
+	"go.klarlabs.de/agent/domain/event"
 	"go.klarlabs.de/agent/domain/policy"
 	"go.klarlabs.de/agent/domain/tool"
 	"go.klarlabs.de/agent/infrastructure/planner"
@@ -1141,12 +1145,37 @@ func TestRun_WildcardEligibility_DestructiveToolApproved(t *testing.T) {
 // Run ID Generation Tests
 
 func TestGenerateRunID_Format(t *testing.T) {
-	id := generateRunID()
+	engine, err := NewEngine(EngineConfig{
+		Registry: newTestRegistry(),
+		Planner:  planner.NewMockPlanner(),
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+	id := engine.generateRunID()
 	if id == "" {
 		t.Error("expected non-empty run ID")
 	}
 	if len(id) < 10 {
 		t.Error("expected run ID to have reasonable length")
+	}
+}
+
+func TestGenerateRunID_UsesInjectedClock(t *testing.T) {
+	fixed := clock.Fixed(time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC))
+	engine, err := NewEngine(EngineConfig{
+		Registry: newTestRegistry(),
+		Planner:  planner.NewMockPlanner(),
+		Clock:    fixed,
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+	// The timestamp portion of the run ID must reflect the injected clock.
+	want := fmt.Sprintf("run-%d-", fixed.Now().UnixNano())
+	id := engine.generateRunID()
+	if !strings.HasPrefix(id, want) {
+		t.Errorf("expected run ID to start with %q (from injected clock), got %q", want, id)
 	}
 }
 
@@ -2199,5 +2228,552 @@ func TestRun_ContextCancelMidRun_KernelDefault(t *testing.T) {
 	}
 	if run.Status != agent.RunStatusFailed {
 		t.Fatalf("expected failed run on cancel, got %s", run.Status)
+	}
+}
+
+// Structural Act-Gating Tests
+//
+// These verify the non-negotiable invariant "side effects ONLY in act":
+// a side-effecting/destructive tool is rejected in any non-act state by a
+// STRUCTURAL gate that is independent of tool-eligibility configuration.
+
+func newDestructiveTool(name string) tool.Tool {
+	t, err := tool.NewBuilder(name).
+		WithDescription("Destructive tool: " + name).
+		WithAnnotations(tool.DestructiveAnnotations()).
+		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
+			return tool.Result{Output: json.RawMessage(`{"status":"ok"}`)}, nil
+		}).
+		Build()
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
+func TestRun_StructuralGate_BlocksDestructiveToolInExplore(t *testing.T) {
+	delTool := newDestructiveTool("delete_file")
+	registry := newTestRegistry(delTool)
+
+	// Wildcard eligibility allows the tool EVERYWHERE — the structural gate
+	// must still reject it in explore, independent of this configuration.
+	eligibility := policy.NewDefaultToolEligibility()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "begin"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("delete_file", json.RawMessage(`{}`), "should be blocked"),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, err := engine.Run(context.Background(), "structural gate explore")
+	if !errors.Is(err, tool.ErrSideEffectInNonActState) {
+		t.Fatalf("expected ErrSideEffectInNonActState, got %v", err)
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Errorf("expected failed run, got %s", run.Status)
+	}
+}
+
+func TestRun_StructuralGate_BlocksDestructiveToolInValidate(t *testing.T) {
+	delTool := newDestructiveTool("delete_file")
+	noopTool := newTestTool("noop", true)
+	registry := newTestRegistry(delTool, noopTool)
+	eligibility := policy.NewDefaultToolEligibility()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewTransitionDecision(agent.StateAct, "act")},
+		planner.ScriptStep{ExpectState: agent.StateAct, Decision: agent.NewTransitionDecision(agent.StateValidate, "validate")},
+		planner.ScriptStep{ExpectState: agent.StateValidate, Decision: agent.NewCallToolDecision("delete_file", json.RawMessage(`{}`), "blocked in validate")},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	_, err = engine.Run(context.Background(), "structural gate validate")
+	if !errors.Is(err, tool.ErrSideEffectInNonActState) {
+		t.Fatalf("expected ErrSideEffectInNonActState, got %v", err)
+	}
+}
+
+func TestRun_StructuralGate_BlocksNonReadOnlyToolInDecide(t *testing.T) {
+	// A tool that is neither ReadOnly nor Destructive still has side effects
+	// structurally and must be blocked outside act.
+	sideTool := newTestTool("mutate", false) // ReadOnly:false
+	registry := newTestRegistry(sideTool)
+	eligibility := policy.NewDefaultToolEligibility()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewCallToolDecision("mutate", json.RawMessage(`{}`), "blocked in decide")},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	_, err = engine.Run(context.Background(), "structural gate decide")
+	if !errors.Is(err, tool.ErrSideEffectInNonActState) {
+		t.Fatalf("expected ErrSideEffectInNonActState, got %v", err)
+	}
+}
+
+func TestRun_StructuralGate_AllowsDestructiveToolInAct(t *testing.T) {
+	delTool := newDestructiveTool("delete_file")
+	registry := newTestRegistry(delTool)
+	eligibility := policy.NewDefaultToolEligibility()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewTransitionDecision(agent.StateAct, "act")},
+		planner.ScriptStep{ExpectState: agent.StateAct, Decision: agent.NewCallToolDecision("delete_file", json.RawMessage(`{}`), "allowed in act")},
+		planner.ScriptStep{ExpectState: agent.StateAct, Decision: agent.NewTransitionDecision(agent.StateValidate, "validate")},
+		planner.ScriptStep{ExpectState: agent.StateValidate, Decision: agent.NewFinishDecision("done", json.RawMessage(`{}`))},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+		Approver:    policy.NewAutoApprover("test"),
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, err := engine.Run(context.Background(), "destructive in act")
+	if err != nil {
+		t.Fatalf("expected success running destructive tool in act, got %v", err)
+	}
+	if run.Status != agent.RunStatusCompleted {
+		t.Errorf("expected completed run, got %s", run.Status)
+	}
+}
+
+// Fork Tests
+
+func TestEngine_Fork_BranchesFromEventHistory(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	registry := newTestRegistry(readTool)
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+	store := memory.NewEventStore()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "gather")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{"r":1}`))},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+		EventStore:  store,
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+
+	source, err := engine.Run(context.Background(), "source run for fork")
+	if err != nil {
+		t.Fatalf("source run: %v", err)
+	}
+
+	// Fork at step 1 (the first decision: intake -> explore).
+	forked, err := engine.Fork(context.Background(), source.ID, 1)
+	if err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+
+	if forked.ID == source.ID {
+		t.Error("forked run must have a new ID")
+	}
+	if forked.ParentRunID != source.ID {
+		t.Errorf("forked ParentRunID = %q, want %q", forked.ParentRunID, source.ID)
+	}
+	if forked.Goal != source.Goal {
+		t.Errorf("forked goal = %q, want %q", forked.Goal, source.Goal)
+	}
+	if forked.CurrentState != agent.StateExplore {
+		t.Errorf("forked state at step 1 = %s, want explore", forked.CurrentState)
+	}
+
+	// A lineage event must exist in the fork's stream.
+	events, err := store.LoadEvents(context.Background(), forked.ID)
+	if err != nil {
+		t.Fatalf("load fork events: %v", err)
+	}
+	foundLineage := false
+	for _, e := range events {
+		if e.Type == event.TypeAgentDelegated {
+			foundLineage = true
+		}
+	}
+	if !foundLineage {
+		t.Error("expected agent.delegated lineage event in forked stream")
+	}
+}
+
+// TestEngine_Fork_RoundTrip proves the fork persists its FULL reconstructed
+// prefix into its own event stream: replaying the fork's stream rebuilds the
+// exact state (current state + evidence + vars) the returned run carries,
+// rather than the initial intake state with zero evidence.
+func TestEngine_Fork_RoundTrip(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	registry := newTestRegistry(readTool)
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+	store := memory.NewEventStore()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "gather")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{"r":1}`))},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+		EventStore:  store,
+		Clock:       clock.Fixed(time.Date(2024, 3, 3, 0, 0, 0, 0, time.UTC)),
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+
+	source, err := engine.RunWithVars(context.Background(), "round-trip source", map[string]any{"k": "v"})
+	if err != nil {
+		t.Fatalf("source run: %v", err)
+	}
+
+	// Fork at step 2 (intake->explore, then the read_file tool call), so the
+	// fork carries one tool-result evidence item and is in the explore state.
+	forked, err := engine.Fork(context.Background(), source.ID, 2)
+	if err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+	if len(forked.Evidence) != 1 {
+		t.Fatalf("forked evidence count = %d, want 1", len(forked.Evidence))
+	}
+
+	// Replay the fork's OWN stream from scratch.
+	replay := NewReplay(store)
+	rebuilt, err := replay.ReconstructRun(context.Background(), forked.ID)
+	if err != nil {
+		t.Fatalf("reconstruct fork: %v", err)
+	}
+
+	if rebuilt.CurrentState != forked.CurrentState {
+		t.Errorf("rebuilt state = %s, want %s", rebuilt.CurrentState, forked.CurrentState)
+	}
+	if rebuilt.Goal != forked.Goal {
+		t.Errorf("rebuilt goal = %q, want %q", rebuilt.Goal, forked.Goal)
+	}
+	if got, want := rebuilt.Vars["k"], forked.Vars["k"]; got != want {
+		t.Errorf("rebuilt var k = %v, want %v", got, want)
+	}
+	if len(rebuilt.Evidence) != len(forked.Evidence) {
+		t.Fatalf("rebuilt evidence count = %d, want %d", len(rebuilt.Evidence), len(forked.Evidence))
+	}
+	for i := range forked.Evidence {
+		if rebuilt.Evidence[i].Type != forked.Evidence[i].Type {
+			t.Errorf("evidence[%d] type = %s, want %s", i, rebuilt.Evidence[i].Type, forked.Evidence[i].Type)
+		}
+		if rebuilt.Evidence[i].Source != forked.Evidence[i].Source {
+			t.Errorf("evidence[%d] source = %s, want %s", i, rebuilt.Evidence[i].Source, forked.Evidence[i].Source)
+		}
+		if string(rebuilt.Evidence[i].Content) != string(forked.Evidence[i].Content) {
+			t.Errorf("evidence[%d] content = %s, want %s", i, rebuilt.Evidence[i].Content, forked.Evidence[i].Content)
+		}
+	}
+}
+
+// TestEngine_FixedClock_DeterministicToolDurationAndStart proves the P3b
+// determinism fix: under a fixed clock the tool.succeeded duration payload is
+// zero (the clock does not advance) and the run start time is the fixed anchor
+// — no wall-clock value leaks into either the payload or run.StartTime.
+func TestEngine_FixedClock_DeterministicToolDurationAndStart(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+	anchor := time.Date(2024, 7, 7, 12, 0, 0, 0, time.UTC)
+
+	run := func() (*agent.Run, []event.Event) {
+		store := memory.NewEventStore()
+		sp := planner.NewScriptedPlanner(
+			planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+			planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "gather")},
+			planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+			planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{}`))},
+		)
+		engine, err := NewEngine(EngineConfig{
+			Registry:    newTestRegistry(readTool),
+			Planner:     sp,
+			Eligibility: eligibility,
+			EventStore:  store,
+			Clock:       clock.Fixed(anchor),
+		})
+		if err != nil {
+			t.Fatalf("new engine: %v", err)
+		}
+		r, err := engine.Run(context.Background(), "determinism")
+		if err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		events, err := store.LoadEvents(context.Background(), r.ID)
+		if err != nil {
+			t.Fatalf("load events: %v", err)
+		}
+		return r, events
+	}
+
+	r1, ev1 := run()
+
+	// Run start time is the fixed anchor, not wall-clock.
+	if !r1.StartTime.Equal(anchor) {
+		t.Errorf("run start time = %v, want fixed anchor %v", r1.StartTime, anchor)
+	}
+
+	// The tool.succeeded duration payload must be zero under the fixed clock.
+	foundSucceeded := false
+	for _, e := range ev1 {
+		if e.Type == event.TypeToolSucceeded {
+			foundSucceeded = true
+			var p event.ToolSucceededPayload
+			if err := e.UnmarshalPayload(&p); err != nil {
+				t.Fatalf("unmarshal tool.succeeded: %v", err)
+			}
+			if p.Duration != 0 {
+				t.Errorf("tool.succeeded duration = %v, want 0 under fixed clock", p.Duration)
+			}
+		}
+	}
+	if !foundSucceeded {
+		t.Fatal("expected a tool.succeeded event")
+	}
+
+	// A second identical run reproduces the same start time and event payloads.
+	r2, ev2 := run()
+	if !r1.StartTime.Equal(r2.StartTime) {
+		t.Errorf("start times diverge: %v vs %v", r1.StartTime, r2.StartTime)
+	}
+	if len(ev1) != len(ev2) {
+		t.Fatalf("event counts diverge: %d vs %d", len(ev1), len(ev2))
+	}
+	for i := range ev1 {
+		if !ev1[i].Timestamp.Equal(ev2[i].Timestamp) {
+			t.Errorf("event[%d] timestamps diverge: %v vs %v", i, ev1[i].Timestamp, ev2[i].Timestamp)
+		}
+		if string(ev1[i].Payload) != string(ev2[i].Payload) {
+			t.Errorf("event[%d] payloads diverge:\n%s\n%s", i, ev1[i].Payload, ev2[i].Payload)
+		}
+	}
+}
+
+// TestEngine_ContinueRun_DrivesForkToCompletion proves a forked run can be
+// driven further: ContinueRun resumes the step loop from the fork's current
+// state and runs it to completion.
+func TestEngine_ContinueRun_DrivesForkToCompletion(t *testing.T) {
+	store := memory.NewEventStore()
+	sourcePlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{}`))},
+	)
+	srcEngine, err := NewEngine(EngineConfig{
+		Registry:   newTestRegistry(),
+		Planner:    sourcePlanner,
+		EventStore: store,
+	})
+	if err != nil {
+		t.Fatalf("new source engine: %v", err)
+	}
+	source, err := srcEngine.Run(context.Background(), "continue source")
+	if err != nil {
+		t.Fatalf("source run: %v", err)
+	}
+	// Fork at step 1 -> explore.
+	forked, err := srcEngine.Fork(context.Background(), source.ID, 1)
+	if err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+
+	// A second engine (sharing the store) continues the fork from explore.
+	contPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{"continued":true}`))},
+	)
+	contEngine, err := NewEngine(EngineConfig{
+		Registry:   newTestRegistry(),
+		Planner:    contPlanner,
+		EventStore: store,
+	})
+	if err != nil {
+		t.Fatalf("new continue engine: %v", err)
+	}
+
+	final, err := contEngine.ContinueRun(context.Background(), forked)
+	if err != nil {
+		t.Fatalf("continue run: %v", err)
+	}
+	if final.Status != agent.RunStatusCompleted {
+		t.Errorf("continued run status = %s, want completed", final.Status)
+	}
+	if final.CurrentState != agent.StateDone {
+		t.Errorf("continued run state = %s, want done", final.CurrentState)
+	}
+}
+
+// TestEngine_ContinueRun_ReappliesActGate proves the structural act-gate still
+// fires on a continued fork: a side-effecting tool requested outside act is
+// rejected with ErrSideEffectInNonActState, exactly as on the initial path.
+func TestEngine_ContinueRun_ReappliesActGate(t *testing.T) {
+	delTool := newDestructiveTool("delete_file")
+	store := memory.NewEventStore()
+
+	sourcePlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{}`))},
+	)
+	srcEngine, err := NewEngine(EngineConfig{
+		Registry:    newTestRegistry(delTool),
+		Planner:     sourcePlanner,
+		Eligibility: policy.NewDefaultToolEligibility(),
+		EventStore:  store,
+	})
+	if err != nil {
+		t.Fatalf("new source engine: %v", err)
+	}
+	source, err := srcEngine.Run(context.Background(), "act gate source")
+	if err != nil {
+		t.Fatalf("source run: %v", err)
+	}
+	// Fork at step 1 -> explore (a non-act state).
+	forked, err := srcEngine.Fork(context.Background(), source.ID, 1)
+	if err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+	if forked.CurrentState != agent.StateExplore {
+		t.Fatalf("forked state = %s, want explore", forked.CurrentState)
+	}
+
+	// Continue with a planner that immediately calls a destructive tool in
+	// explore — the structural act-gate must reject it.
+	contPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewCallToolDecision("delete_file", json.RawMessage(`{}`), "blocked in explore")},
+	)
+	contEngine, err := NewEngine(EngineConfig{
+		Registry:    newTestRegistry(delTool),
+		Planner:     contPlanner,
+		Eligibility: policy.NewDefaultToolEligibility(),
+		EventStore:  store,
+	})
+	if err != nil {
+		t.Fatalf("new continue engine: %v", err)
+	}
+
+	_, err = contEngine.ContinueRun(context.Background(), forked)
+	if !errors.Is(err, tool.ErrSideEffectInNonActState) {
+		t.Fatalf("expected ErrSideEffectInNonActState on continued fork, got %v", err)
+	}
+}
+
+// TestEngine_ContinueRun_RejectsTerminalRun proves a completed/failed run
+// cannot be continued.
+func TestEngine_ContinueRun_RejectsTerminalRun(t *testing.T) {
+	engine, err := NewEngine(EngineConfig{
+		Registry: newTestRegistry(),
+		Planner:  planner.NewMockPlanner(),
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+	done := agent.NewRun("run-done", "terminal")
+	done.Complete(json.RawMessage(`{}`))
+	if _, err := engine.ContinueRun(context.Background(), done); err == nil {
+		t.Error("expected error continuing a terminal run")
+	}
+	if _, err := engine.ContinueRun(context.Background(), nil); err == nil {
+		t.Error("expected error continuing a nil run")
+	}
+}
+
+func TestEngine_Fork_RequiresEventStore(t *testing.T) {
+	engine, err := NewEngine(EngineConfig{
+		Registry: newTestRegistry(),
+		Planner:  planner.NewMockPlanner(),
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+	_, err = engine.Fork(context.Background(), "run-x", 1)
+	if err == nil {
+		t.Error("expected error when forking without an event store")
+	}
+}
+
+func TestEngine_Fork_DeterministicWithFixedClock(t *testing.T) {
+	store := memory.NewEventStore()
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{}`))},
+	)
+	anchor := time.Date(2024, 5, 5, 0, 0, 0, 0, time.UTC)
+	engine, err := NewEngine(EngineConfig{
+		Registry:   newTestRegistry(),
+		Planner:    scriptedPlanner,
+		EventStore: store,
+		Clock:      clock.Fixed(anchor),
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+	source, err := engine.Run(context.Background(), "deterministic fork")
+	if err != nil {
+		t.Fatalf("source run: %v", err)
+	}
+	forked, err := engine.Fork(context.Background(), source.ID, 1)
+	if err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+	if !forked.StartTime.Equal(anchor) {
+		t.Errorf("forked start time = %v, want fixed anchor %v", forked.StartTime, anchor)
 	}
 }

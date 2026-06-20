@@ -53,6 +53,10 @@ type OTelMetricsConfig struct {
 
 	// RecordOutputSize records tool output size.
 	RecordOutputSize bool
+
+	// Logger is the injected structured logger. When nil, a no-op logger is
+	// used — never the package-level logging singleton.
+	Logger *logging.Logger
 }
 
 // DefaultOTelMetricsConfig returns a sensible default configuration.
@@ -78,6 +82,8 @@ func OTelMetrics(cfg OTelMetricsConfig) middleware.Middleware {
 	if cfg.MetricPrefix == "" {
 		cfg.MetricPrefix = "agent"
 	}
+
+	log := resolveLogger(cfg.Logger)
 
 	return func(next middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, execCtx *middleware.ExecutionContext) (tool.Result, error) {
@@ -147,7 +153,7 @@ func OTelMetrics(cfg OTelMetricsConfig) middleware.Middleware {
 			}
 
 			// Log metrics
-			logging.Debug().
+			log.Debug().
 				Add(logging.RunID(execCtx.RunID)).
 				Add(logging.ToolName(execCtx.Tool.Name())).
 				Add(logging.Duration(duration)).

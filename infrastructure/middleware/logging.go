@@ -15,16 +15,32 @@ type LoggingConfig struct {
 	LogInput bool
 	// LogOutput logs the tool output (may be large).
 	LogOutput bool
+	// Logger is the injected structured logger. When nil, a no-op logger is
+	// used — this middleware NEVER falls back to the package-level logging
+	// singleton, so a configured engine's logs all flow to its injected sink.
+	Logger *logging.Logger
+}
+
+// resolveLogger returns the injected logger, or a no-op logger when nil. The
+// execution-path middleware NEVER falls back to the package-level logging
+// singleton (logging.Get); an unconfigured engine is silent rather than
+// leaking to a global sink.
+func resolveLogger(l *logging.Logger) *logging.Logger {
+	if l == nil {
+		return logging.NewNopLogger()
+	}
+	return l
 }
 
 // Logging returns middleware that logs tool execution.
 func Logging(cfg LoggingConfig) middleware.Middleware {
+	log := resolveLogger(cfg.Logger)
 	return func(next middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, execCtx *middleware.ExecutionContext) (tool.Result, error) {
 			start := time.Now()
 
 			// Log start
-			entry := logging.Info().
+			entry := log.Info().
 				Add(logging.RunID(execCtx.RunID)).
 				Add(logging.State(execCtx.CurrentState)).
 				Add(logging.ToolName(execCtx.Tool.Name()))
@@ -41,14 +57,14 @@ func Logging(cfg LoggingConfig) middleware.Middleware {
 
 			// Log result
 			if err != nil {
-				logging.Error().
+				log.Error().
 					Add(logging.RunID(execCtx.RunID)).
 					Add(logging.ToolName(execCtx.Tool.Name())).
 					Add(logging.ErrorField(err)).
 					Add(logging.Duration(duration)).
 					Msg("tool execution failed")
 			} else {
-				logEntry := logging.Info().
+				logEntry := log.Info().
 					Add(logging.RunID(execCtx.RunID)).
 					Add(logging.ToolName(execCtx.Tool.Name())).
 					Add(logging.Duration(duration)).

@@ -5,11 +5,9 @@ import (
 	"context"
 	"fmt"
 
-	"go.klarlabs.de/agent/domain/agent"
 	"go.klarlabs.de/agent/domain/middleware"
 	"go.klarlabs.de/agent/domain/policy"
 	"go.klarlabs.de/agent/domain/tool"
-	"go.klarlabs.de/agent/infrastructure/logging"
 )
 
 // EligibilityConfig configures the eligibility middleware.
@@ -20,8 +18,12 @@ type EligibilityConfig struct {
 
 // Eligibility returns middleware that enforces tool eligibility per state.
 // If a tool is not allowed in the current state, execution is blocked.
-// When a destructive tool is allowed via wildcard in a non-Act state,
-// a warning is logged to alert operators of potential state semantic violations.
+//
+// Note: this is the configurable, name-based gate. The non-negotiable
+// "side effects only in act" invariant is enforced separately and earlier by
+// a structural gate in the engine execution path (see Engine.executeToolDecision
+// and tool.Annotations.HasSideEffects), which cannot be widened by eligibility
+// configuration — including wildcards.
 func Eligibility(cfg EligibilityConfig) middleware.Middleware {
 	return func(next middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, execCtx *middleware.ExecutionContext) (tool.Result, error) {
@@ -34,18 +36,6 @@ func Eligibility(cfg EligibilityConfig) middleware.Middleware {
 			if !cfg.Eligibility.IsAllowed(execCtx.CurrentState, execCtx.Tool.Name()) {
 				return tool.Result{}, fmt.Errorf("%w: %s in state %s",
 					tool.ErrToolNotAllowed, execCtx.Tool.Name(), execCtx.CurrentState)
-			}
-
-			// Warn when a destructive tool passes via wildcard in a non-Act state.
-			// This is informational only — approval middleware handles enforcement.
-			if execCtx.CurrentState != agent.StateAct &&
-				cfg.Eligibility.HasWildcard(execCtx.CurrentState) &&
-				execCtx.Tool.Annotations().ShouldRequireApproval() {
-				logging.Warn().
-					Add(logging.RunID(execCtx.RunID)).
-					Add(logging.State(execCtx.CurrentState)).
-					Add(logging.ToolName(execCtx.Tool.Name())).
-					Msg("destructive tool allowed via wildcard in non-act state")
 			}
 
 			return next(ctx, execCtx)

@@ -14,6 +14,7 @@ import (
 	"go.klarlabs.de/fortify/circuitbreaker"
 	"go.klarlabs.de/fortify/retry"
 
+	"go.klarlabs.de/agent/domain/clock"
 	"go.klarlabs.de/agent/domain/tool"
 )
 
@@ -53,6 +54,13 @@ type Executor struct {
 	// saturation metrics per bulkhead key ("" = shared).
 	bulkheadMetrics   map[string]*bulkheadMetricsEntry
 	bulkheadMetricsMu sync.RWMutex
+
+	// clock supplies the time used for tool-duration accounting. Defaults to
+	// the system clock (real wall-clock durations). Injecting a fixed clock
+	// makes the duration that lands in tool.succeeded/tool.failed event
+	// payloads deterministic (zero, since the clock does not advance) so
+	// replay reproduces identical payloads.
+	clock clock.Clock
 }
 
 // bulkheadMetricsEntry tracks saturation counters for a single bulkhead.
@@ -94,6 +102,12 @@ type ExecutorConfig struct {
 	// RateLimiter optionally configures rate limiting in the executor
 	// pipeline.
 	RateLimiter *RateLimiterConfig
+
+	// Clock supplies the time used for tool-duration accounting. When nil, the
+	// system clock is used (real wall-clock durations). Inject a fixed clock to
+	// make the duration in tool.succeeded/tool.failed event payloads
+	// deterministic for replay.
+	Clock clock.Clock
 }
 
 // DefaultExecutorConfig returns a configuration with sensible defaults.
@@ -142,6 +156,13 @@ func NewExecutor(config ExecutorConfig) *Executor {
 		timeout:         config.DefaultTimeout,
 		cbHooks:         config.CBHooks,
 		bulkheadMetrics: make(map[string]*bulkheadMetricsEntry),
+		clock:           config.Clock,
+	}
+
+	// Default to the system clock so durations are real wall-clock times
+	// unless a deterministic clock is injected.
+	if e.clock == nil {
+		e.clock = clock.System()
 	}
 
 	// Store the initial circuit breaker state for change detection.
@@ -185,7 +206,7 @@ func (e *Executor) Execute(ctx context.Context, t tool.Tool, input json.RawMessa
 		return tool.Result{}, fmt.Errorf("%w: tool %s", ErrRateLimited, toolName)
 	}
 
-	start := time.Now()
+	start := e.clock.Now()
 
 	// Select bulkhead (per-tool or shared).
 	bh := e.bulkhead
@@ -234,9 +255,11 @@ func (e *Executor) Execute(ctx context.Context, t tool.Tool, input json.RawMessa
 		}
 	}
 
-	// Add timing information.
+	// Add timing information from the injected clock. Under a fixed clock this
+	// is zero (the clock does not advance), making the duration that lands in
+	// the tool.succeeded/tool.failed event payload deterministic for replay.
 	if err == nil {
-		result.Duration = time.Since(start)
+		result.Duration = e.clock.Now().Sub(start)
 	}
 
 	return result, err

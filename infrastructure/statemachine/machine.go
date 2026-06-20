@@ -8,6 +8,7 @@ import (
 	"go.klarlabs.de/statekit"
 
 	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/clock"
 	"go.klarlabs.de/agent/domain/ledger"
 	"go.klarlabs.de/agent/domain/policy"
 	"go.klarlabs.de/agent/infrastructure/governance"
@@ -24,6 +25,10 @@ type Context struct {
 	// Governor enforces budget (and, under axi, approval + evidence) for
 	// act-state tool execution. Set by the engine per run.
 	Governor governance.Governor
+	// Clock stamps the run start time when the interpreter starts. The engine
+	// sets it to its injected clock so the start timestamp is deterministic
+	// under a fixed clock; when nil, the system clock is used.
+	Clock clock.Clock
 }
 
 // NewContext creates a new machine context.
@@ -35,6 +40,7 @@ func NewContext(run *agent.Run, budget *policy.Budget, ledger *ledger.Ledger) *C
 		Eligibility:   policy.NewToolEligibility(),
 		Transitions:   policy.DefaultTransitions(),
 		StateRegistry: agent.NewStateRegistry(),
+		Clock:         clock.System(),
 	}
 }
 

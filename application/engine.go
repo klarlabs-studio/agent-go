@@ -12,6 +12,7 @@ import (
 
 	"go.klarlabs.de/agent/domain/agent"
 	"go.klarlabs.de/agent/domain/artifact"
+	"go.klarlabs.de/agent/domain/clock"
 	"go.klarlabs.de/agent/domain/event"
 	"go.klarlabs.de/agent/domain/knowledge"
 	"go.klarlabs.de/agent/domain/ledger"
@@ -48,6 +49,8 @@ type Engine struct {
 	eventStore   event.Store
 	taskCtx      *task.Context
 	govFactory   governance.Factory
+	logger       *logging.Logger
+	clock        clock.Clock
 }
 
 // EngineConfig contains configuration for the engine.
@@ -73,6 +76,14 @@ type EngineConfig struct {
 	// is ONE axi session, so budget, the destructive-tool approval gate, and
 	// the evidence chain are all axi-native.
 	Governance governance.Factory
+	// Logger is the injected structured logger. When nil, a no-op logger is
+	// used and the engine emits no logs — the execution path never falls back
+	// to the package-level logging singleton.
+	Logger *logging.Logger
+	// Clock supplies the time used for run IDs, run start timestamps, and
+	// event timestamps. When nil, the system clock is used. Inject a fixed or
+	// statekit FakeClock for deterministic replay and tests.
+	Clock clock.Clock
 }
 
 // NewEngine creates a new engine with the given configuration.
@@ -102,11 +113,25 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 		eventStore:   config.EventStore,
 		taskCtx:      config.TaskContext,
 		govFactory:   config.Governance,
+		logger:       config.Logger,
+		clock:        config.Clock,
 	}
 
 	// Set defaults
+	if e.logger == nil {
+		// No-op by default: the execution path never depends on the
+		// package-level logging singleton. Callers opt in via api.WithLogger.
+		e.logger = logging.NewNopLogger()
+	}
+	if e.clock == nil {
+		// System clock by default; tests/replay inject a deterministic clock.
+		e.clock = clock.System()
+	}
 	if e.executor == nil {
-		e.executor = resilience.NewDefaultExecutor()
+		// Thread the engine clock into the executor so tool-duration accounting
+		// (which lands in tool.succeeded/tool.failed payloads) is deterministic
+		// under an injected fixed clock, matching event-timestamp determinism.
+		e.executor = resilience.NewExecutorWithOptions(resilience.WithClock(e.clock))
 	}
 	if e.eligibility == nil {
 		e.eligibility = policy.NewToolEligibility()
@@ -160,10 +185,13 @@ func (e *Engine) defaultMiddlewareChain() *middleware.Registry {
 		}))
 	}
 
-	// Logging (execution timing and results)
+	// Logging (execution timing and results). The engine's injected logger is
+	// threaded in so tool-execution logs flow to the configured sink — the
+	// default chain NEVER reaches the package-level logging singleton.
 	registry.Use(inframw.Logging(inframw.LoggingConfig{
 		LogInput:  false,
 		LogOutput: false,
+		Logger:    e.logger,
 	}))
 
 	return registry
@@ -176,7 +204,7 @@ func (e *Engine) Run(ctx context.Context, goal string) (*agent.Run, error) {
 
 // RunWithVars executes the agent with the given goal and initial variables.
 func (e *Engine) RunWithVars(ctx context.Context, goal string, vars map[string]any) (*agent.Run, error) {
-	return e.executeRun(ctx, generateRunID(), goal, vars)
+	return e.executeRun(ctx, e.generateRunID(), goal, vars)
 }
 
 // executeRun is the internal run method that accepts a pre-generated run ID.
@@ -232,10 +260,11 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	machineCtx := statemachine.NewContext(r, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
+	machineCtx.Clock = e.clock
 	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
 	// Some Governors (full axi delegation) hold a per-run axi session that
 	// must be released when the run ends. Close it on every exit path.
-	defer closeGovernor(machineCtx.Governor)
+	defer e.closeGovernor(machineCtx.Governor)
 
 	// Create state machine
 	machine, err := statemachine.NewAgentMachine()
@@ -247,12 +276,14 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	interp := statemachine.NewInterpreter(machine, machineCtx)
 
 	// Log run start
-	logging.Info().
+	e.logger.Info().
 		Add(logging.RunID(runID)).
 		Add(logging.Goal(goal)).
 		Msg("run started")
 
-	// Start state machine
+	// Start state machine. interp.Start stamps the run start time from the
+	// context clock (e.clock), so the start timestamp is deterministic under a
+	// fixed clock with no transient wall-clock value.
 	interp.Start()
 	runLedger.RecordRunStarted(goal)
 
@@ -267,7 +298,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	for !interp.IsTerminal() && steps < e.maxSteps {
 		select {
 		case <-ctx.Done():
-			r.Fail("context cancelled")
+			r.FailAt("context cancelled", e.endTime(machineCtx))
 			runLedger.RecordRunFailed(r.CurrentState, "context cancelled")
 			e.publishEvent(ctx, runID, event.TypeRunFailed, event.RunFailedPayload{
 				Error: "context cancelled", State: r.CurrentState, Duration: r.Duration(),
@@ -280,23 +311,23 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 		if err := e.step(ctx, interp, machineCtx); err != nil {
 			// Handle human input request specially - not a failure
 			if errors.Is(err, agent.ErrAwaitingHumanInput) {
-				logging.Info().
+				e.logger.Info().
 					Add(logging.RunID(runID)).
 					Add(logging.State(r.CurrentState)).
 					Msg("run paused for human input")
 				// Capture the governor's evidence-chain snapshot onto the run
 				// so the resumed segment continues ONE physical chain across
 				// the pause (the deferred closeGovernor tears the session down).
-				captureGovernorEvidence(r, machineCtx.Governor)
+				e.captureGovernorEvidence(r, machineCtx.Governor)
 				e.publishEvent(ctx, runID, event.TypeRunPaused, nil)
 				e.updateRun(ctx, r)
 				return r, err
 			}
 
-			r.Fail(err.Error())
+			r.FailAt(err.Error(), e.endTime(machineCtx))
 			runLedger.RecordRunFailed(r.CurrentState, err.Error())
 
-			logging.Error().
+			e.logger.Error().
 				Add(logging.RunID(runID)).
 				Add(logging.State(r.CurrentState)).
 				Add(logging.ErrorField(err)).
@@ -324,7 +355,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	}
 
 	if steps >= e.maxSteps && !interp.IsTerminal() {
-		r.Fail("max steps exceeded")
+		r.FailAt("max steps exceeded", e.endTime(machineCtx))
 		runLedger.RecordRunFailed(r.CurrentState, "max steps exceeded")
 		e.publishEvent(ctx, runID, event.TypeRunFailed, event.RunFailedPayload{
 			Error: "max steps exceeded", State: r.CurrentState, Duration: r.Duration(),
@@ -339,7 +370,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	// a run failure, not a silent success.
 	if r.Status == agent.RunStatusCompleted {
 		if err := verifyRunEvidence(machineCtx.Governor); err != nil {
-			r.Fail(err.Error())
+			r.FailAt(err.Error(), e.endTime(machineCtx))
 			runLedger.RecordRunFailed(r.CurrentState, err.Error())
 			e.publishEvent(ctx, runID, event.TypeRunFailed, event.RunFailedPayload{
 				Error: err.Error(), State: r.CurrentState, Duration: r.Duration(),
@@ -350,7 +381,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	}
 
 	// Log completion
-	logging.Info().
+	e.logger.Info().
 		Add(logging.RunID(runID)).
 		Add(logging.State(r.CurrentState)).
 		Add(logging.Duration(r.Duration())).
@@ -376,7 +407,7 @@ func (e *Engine) Stream(ctx context.Context, goal string) (string, <-chan event.
 		return "", nil, errors.New("streaming requires an event store (use WithEventStore)")
 	}
 
-	runID := generateRunID()
+	runID := e.generateRunID()
 
 	// Subscribe before starting the run to avoid missing early events
 	ch, err := e.eventStore.Subscribe(ctx, runID)
@@ -388,7 +419,7 @@ func (e *Engine) Stream(ctx context.Context, goal string) (string, <-chan event.
 	// Errors are captured via run.failed events in the event stream.
 	go func() {
 		if _, err := e.runWithID(ctx, runID, goal, nil); err != nil {
-			logging.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("streamed run failed")
+			e.logger.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("streamed run failed")
 		}
 	}()
 
@@ -398,6 +429,231 @@ func (e *Engine) Stream(ctx context.Context, goal string) (string, <-chan event.
 // runWithID is an internal method that executes with a specified run ID.
 func (e *Engine) runWithID(ctx context.Context, runID, goal string, vars map[string]any) (*agent.Run, error) {
 	return e.executeRun(ctx, runID, goal, vars)
+}
+
+// Fork creates a new run branched from an existing run's event history at a
+// given step. The source run is reconstructed up to and including its first
+// stepN executed steps (decision.made boundaries), and the resulting state —
+// goal, variables, evidence, and current state — is materialized into a fresh
+// run with a new ID. The fork is persisted (when a run store is configured)
+// and a lineage event linking parent and child is recorded in the new run's
+// event stream.
+//
+// Fork enables "what-if" branching and deterministic re-exploration from any
+// point in a run's history (pair with WithClock for fully reproducible forks).
+// The returned run is in its reconstructed state and not yet re-executed;
+// callers may inspect it, or drive it further with ContinueRun, which resumes
+// the step loop from the fork's current state under the same governance and
+// structural act-gate guarantees.
+//
+// Requires an event store (use WithEventStore). stepN must be >= 1.
+func (e *Engine) Fork(ctx context.Context, runID string, stepN int) (*agent.Run, error) {
+	if e.eventStore == nil {
+		return nil, errors.New("fork requires an event store (use WithEventStore)")
+	}
+
+	replay := NewReplay(e.eventStore)
+	source, err := replay.ReconstructRunAtStep(ctx, runID, stepN)
+	if err != nil {
+		return nil, fmt.Errorf("reconstruct source run at step %d: %w", stepN, err)
+	}
+
+	// Materialize a fresh run carrying the reconstructed state. A new ID keeps
+	// the fork's event stream and persistence independent from its parent.
+	forkID := e.generateRunID()
+	forked := agent.NewRun(forkID, source.Goal)
+	forked.StartTime = e.clock.Now()
+	forked.ParentRunID = runID
+	forked.TaskID = source.TaskID
+	forked.CurrentState = source.CurrentState
+	forked.Status = source.Status
+	for k, v := range source.Vars {
+		forked.SetVar(k, v)
+	}
+	for _, ev := range source.Evidence {
+		forked.AddEvidence(ev)
+	}
+
+	// Persist the fork and record lineage in its stream.
+	e.saveRun(ctx, forked)
+	e.publishEvent(ctx, forkID, event.TypeRunStarted, event.RunStartedPayload{
+		Goal: forked.Goal,
+		Vars: forked.Vars,
+	})
+	e.publishEvent(ctx, forkID, event.TypeAgentDelegated, event.AgentDelegatedPayload{
+		ParentRunID: runID,
+		ChildRunID:  forkID,
+		AgentName:   "fork",
+		Goal:        forked.Goal,
+	})
+
+	// Replay the reconstructed prefix into the fork's OWN event stream so the
+	// fork is self-describing: NewReplay(store).ReconstructRun(forkID) must
+	// rebuild the exact reconstructed state (current state + evidence + vars),
+	// not the initial intake state with zero evidence. Without this the persisted
+	// fork and its event log diverge.
+	//
+	// run.started above already carries the vars (applyEvents seeds them from its
+	// payload), so we replay the remaining carried state: the transition to the
+	// source's current state, then each carried evidence item. All events are
+	// stamped via the injected clock (publishEvent) for deterministic forks.
+	if source.CurrentState != agent.StateIntake {
+		e.publishEvent(ctx, forkID, event.TypeStateTransitioned, event.StateTransitionedPayload{
+			FromState: agent.StateIntake,
+			ToState:   source.CurrentState,
+			Reason:    "fork: reconstructed state",
+		})
+	}
+	for _, ev := range forked.Evidence {
+		e.publishEvent(ctx, forkID, event.TypeEvidenceAdded, event.EvidenceAddedPayload{
+			Type:    string(ev.Type),
+			Source:  ev.Source,
+			Content: ev.Content,
+		})
+	}
+
+	e.logger.Info().
+		Add(logging.RunID(forkID)).
+		Add(logging.State(forked.CurrentState)).
+		Msg("run forked")
+
+	return forked, nil
+}
+
+// ContinueRun drives a reconstructed run (e.g. the product of Fork or a replay)
+// further from its current state. It re-attaches a fresh state machine and a
+// new per-run Governor to the run and resumes the step loop from
+// run.CurrentState, re-applying the full pipeline: the structural act-gate,
+// governance authorization (budget + approval), and the 12-event stream.
+//
+// The run's tool-call budget is seeded with the calls already consumed (the
+// persisted tool-result evidence count) so a continued fork does not silently
+// reset its run-spanning budget to full. A nil or already-terminal run is
+// returned unchanged with an error.
+//
+// ContinueRun is the run-advancing counterpart to Fork: Fork reconstructs and
+// inspects, ContinueRun re-drives. Pair them to branch a run and explore the
+// branch under the same governance and act-gate guarantees as the original.
+func (e *Engine) ContinueRun(ctx context.Context, run *agent.Run) (*agent.Run, error) {
+	if run == nil {
+		return nil, errors.New("run is nil")
+	}
+	if run.IsTerminal() {
+		return nil, fmt.Errorf("cannot continue terminal run in state %s", run.CurrentState)
+	}
+
+	// Re-attach to the run id so child agents and events thread correctly.
+	ctx = task.WithRunID(ctx, run.ID)
+
+	// Mark running and create supporting components. The budget is seeded with
+	// the tool calls already consumed (persisted tool-result evidence) so the
+	// run-spanning tool_calls limit survives the reconstruction.
+	run.Status = agent.RunStatusRunning
+	budget := policy.NewBudget(e.budgetLimits)
+	if consumed := run.ConsumedToolCalls(); consumed > 0 {
+		_ = budget.Consume("tool_calls", consumed)
+	}
+	runLedger := ledger.New(run.ID)
+
+	machineCtx := statemachine.NewContext(run, budget, runLedger)
+	machineCtx.Eligibility = e.eligibility
+	machineCtx.Transitions = e.transitions
+	machineCtx.Clock = e.clock
+	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
+	defer e.closeGovernor(machineCtx.Governor)
+
+	machine, err := statemachine.NewAgentMachine()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create state machine: %w", err)
+	}
+
+	interp := statemachine.NewInterpreter(machine, machineCtx)
+	if err := interp.ResumeFrom(run.CurrentState); err != nil {
+		return nil, fmt.Errorf("failed to resume state machine: %w", err)
+	}
+
+	e.logger.Info().
+		Add(logging.RunID(run.ID)).
+		Add(logging.State(run.CurrentState)).
+		Msg("run continued")
+
+	steps := 0
+	for !interp.IsTerminal() && steps < e.maxSteps {
+		select {
+		case <-ctx.Done():
+			run.FailAt("context cancelled", e.endTime(machineCtx))
+			runLedger.RecordRunFailed(run.CurrentState, "context cancelled")
+			e.publishEvent(ctx, run.ID, event.TypeRunFailed, event.RunFailedPayload{
+				Error: "context cancelled", State: run.CurrentState, Duration: run.Duration(),
+			})
+			e.updateRun(ctx, run)
+			return run, ctx.Err()
+		default:
+		}
+
+		if err := e.step(ctx, interp, machineCtx); err != nil {
+			if errors.Is(err, agent.ErrAwaitingHumanInput) {
+				e.logger.Info().
+					Add(logging.RunID(run.ID)).
+					Add(logging.State(run.CurrentState)).
+					Msg("run paused for human input")
+				e.captureGovernorEvidence(run, machineCtx.Governor)
+				e.publishEvent(ctx, run.ID, event.TypeRunPaused, nil)
+				e.updateRun(ctx, run)
+				return run, err
+			}
+
+			run.FailAt(err.Error(), e.endTime(machineCtx))
+			runLedger.RecordRunFailed(run.CurrentState, err.Error())
+			e.logger.Error().
+				Add(logging.RunID(run.ID)).
+				Add(logging.State(run.CurrentState)).
+				Add(logging.ErrorField(err)).
+				Msg("run failed")
+			e.publishEvent(ctx, run.ID, event.TypeRunFailed, event.RunFailedPayload{
+				Error: err.Error(), State: run.CurrentState, Duration: run.Duration(),
+			})
+			e.updateRun(ctx, run)
+			return run, err
+		}
+		steps++
+		e.updateRun(ctx, run)
+	}
+
+	if steps >= e.maxSteps && !interp.IsTerminal() {
+		run.FailAt("max steps exceeded", e.endTime(machineCtx))
+		runLedger.RecordRunFailed(run.CurrentState, "max steps exceeded")
+		e.publishEvent(ctx, run.ID, event.TypeRunFailed, event.RunFailedPayload{
+			Error: "max steps exceeded", State: run.CurrentState, Duration: run.Duration(),
+		})
+		e.updateRun(ctx, run)
+		return run, errors.New("max steps exceeded")
+	}
+
+	if run.Status == agent.RunStatusCompleted {
+		if err := verifyRunEvidence(machineCtx.Governor); err != nil {
+			run.FailAt(err.Error(), e.endTime(machineCtx))
+			runLedger.RecordRunFailed(run.CurrentState, err.Error())
+			e.publishEvent(ctx, run.ID, event.TypeRunFailed, event.RunFailedPayload{
+				Error: err.Error(), State: run.CurrentState, Duration: run.Duration(),
+			})
+			e.updateRun(ctx, run)
+			return run, err
+		}
+		runLedger.RecordRunCompleted(run.Result)
+		e.publishEvent(ctx, run.ID, event.TypeRunCompleted, event.RunCompletedPayload{
+			Result: run.Result, Duration: run.Duration(),
+		})
+	}
+
+	e.logger.Info().
+		Add(logging.RunID(run.ID)).
+		Add(logging.State(run.CurrentState)).
+		Add(logging.Duration(run.Duration())).
+		Msg("run completed after continue")
+
+	e.updateRun(ctx, run)
+	return run, nil
 }
 
 // ResumeWithInput continues a paused run with human-provided input.
@@ -457,8 +713,9 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	machineCtx := statemachine.NewContext(run, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
+	machineCtx.Clock = e.clock
 	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
-	defer closeGovernor(machineCtx.Governor)
+	defer e.closeGovernor(machineCtx.Governor)
 
 	// Rehydrate the evidence chain from the snapshot captured at pause time so
 	// the resumed run continues ONE continuous, tamper-evident chain.
@@ -481,7 +738,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	}
 
 	// Log resumption
-	logging.Info().
+	e.logger.Info().
 		Add(logging.RunID(run.ID)).
 		Add(logging.State(run.CurrentState)).
 		Add(logging.Str("human_input", input)).
@@ -492,7 +749,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	for !interp.IsTerminal() && steps < e.maxSteps {
 		select {
 		case <-ctx.Done():
-			run.Fail("context cancelled")
+			run.FailAt("context cancelled", e.endTime(machineCtx))
 			runLedger.RecordRunFailed(run.CurrentState, "context cancelled")
 			return run, ctx.Err()
 		default:
@@ -501,21 +758,21 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 		if err := e.step(ctx, interp, machineCtx); err != nil {
 			// Handle human input request specially - not a failure
 			if errors.Is(err, agent.ErrAwaitingHumanInput) {
-				logging.Info().
+				e.logger.Info().
 					Add(logging.RunID(run.ID)).
 					Add(logging.State(run.CurrentState)).
 					Msg("run paused for human input")
 				// Re-capture the (now-extended) evidence chain so a further
 				// resume continues the same continuous chain.
-				captureGovernorEvidence(run, machineCtx.Governor)
+				e.captureGovernorEvidence(run, machineCtx.Governor)
 				e.updateRun(ctx, run)
 				return run, err
 			}
 
-			run.Fail(err.Error())
+			run.FailAt(err.Error(), e.endTime(machineCtx))
 			runLedger.RecordRunFailed(run.CurrentState, err.Error())
 
-			logging.Error().
+			e.logger.Error().
 				Add(logging.RunID(run.ID)).
 				Add(logging.State(run.CurrentState)).
 				Add(logging.ErrorField(err)).
@@ -527,7 +784,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	}
 
 	if steps >= e.maxSteps && !interp.IsTerminal() {
-		run.Fail("max steps exceeded")
+		run.FailAt("max steps exceeded", e.endTime(machineCtx))
 		runLedger.RecordRunFailed(run.CurrentState, "max steps exceeded")
 		return run, errors.New("max steps exceeded")
 	}
@@ -537,14 +794,14 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	// a run failure, exactly as on the initial path (parity with executeRun).
 	if run.Status == agent.RunStatusCompleted {
 		if err := verifyRunEvidence(machineCtx.Governor); err != nil {
-			run.Fail(err.Error())
+			run.FailAt(err.Error(), e.endTime(machineCtx))
 			runLedger.RecordRunFailed(run.CurrentState, err.Error())
 			return run, err
 		}
 	}
 
 	// Log completion
-	logging.Info().
+	e.logger.Info().
 		Add(logging.RunID(run.ID)).
 		Add(logging.State(run.CurrentState)).
 		Add(logging.Duration(run.Duration())).
@@ -627,7 +884,7 @@ func (e *Engine) step(ctx context.Context, interp *statemachine.Interpreter, mac
 	}
 	e.publishEvent(ctx, run.ID, event.TypeDecisionMade, dp)
 
-	logging.Debug().
+	e.logger.Debug().
 		Add(logging.RunID(run.ID)).
 		Add(logging.State(run.CurrentState)).
 		Add(logging.Decision(decision.Type)).
@@ -661,6 +918,19 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 	t, ok := e.registry.Get(decision.ToolName)
 	if !ok {
 		return fmt.Errorf("%w: %s", tool.ErrToolNotFound, decision.ToolName)
+	}
+
+	// STRUCTURAL ACT-GATE (non-negotiable: "side effects ONLY in act").
+	//
+	// This gate is enforced here, in the execution path, independent of and
+	// BEFORE tool-eligibility, governance, and approval. A side-effecting tool
+	// is rejected with a hard error in any state that does not permit side
+	// effects. It is driven purely by the tool's annotations and the state's
+	// side-effect semantics — there is no configuration that can relax or
+	// bypass it. Eligibility name maps (including wildcards) cannot widen it.
+	if t.Annotations().HasSideEffects() && !e.stateAllowsSideEffects(machineCtx, run.CurrentState) {
+		return fmt.Errorf("%w: %s in state %s",
+			tool.ErrSideEffectInNonActState, decision.ToolName, run.CurrentState)
 	}
 
 	// Authorize the tool call through the governance seam: budget always,
@@ -794,6 +1064,18 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 	return nil
 }
 
+// stateAllowsSideEffects reports whether the given state permits side-effecting
+// tools. It consults the run's StateRegistry so custom states that declare
+// AllowsSideEffects are honored, and otherwise falls back to the canonical
+// rule (only the act state permits side effects). This backs the structural
+// act-gate and is never configurable away.
+func (e *Engine) stateAllowsSideEffects(machineCtx *statemachine.Context, state agent.State) bool {
+	if machineCtx != nil && machineCtx.StateRegistry != nil {
+		return machineCtx.StateRegistry.AllowsSideEffects(state)
+	}
+	return state.AllowsSideEffects()
+}
+
 // executeTransition executes a state transition decision.
 func (e *Engine) executeTransition(ctx context.Context, interp *statemachine.Interpreter, machineCtx *statemachine.Context, decision *agent.TransitionDecision) error {
 	fromState := machineCtx.Run.CurrentState
@@ -817,7 +1099,7 @@ func (e *Engine) executeAskHuman(_ context.Context, _ *statemachine.Interpreter,
 	// Record in ledger
 	runLedger.RecordHumanInputRequest(run.CurrentState, decision.Question, decision.Options)
 
-	logging.Info().
+	e.logger.Info().
 		Add(logging.RunID(run.ID)).
 		Add(logging.State(run.CurrentState)).
 		Add(logging.Str("question", decision.Question)).
@@ -836,6 +1118,9 @@ func (e *Engine) executeFinish(_ context.Context, interp *statemachine.Interpret
 	}
 	run.Result = decision.Result
 	run.Status = agent.RunStatusCompleted
+	// Stamp the end time from the injected clock so run.Duration() (which lands
+	// in the run.completed payload) is deterministic under a fixed clock.
+	run.EndTime = e.endTime(machineCtx)
 	return nil
 }
 
@@ -848,7 +1133,20 @@ func (e *Engine) executeFail(_ context.Context, interp *statemachine.Interpreter
 	}
 	run.Error = decision.Reason
 	run.Status = agent.RunStatusFailed
+	// Stamp the end time from the injected clock so run.Duration() (which lands
+	// in the run.failed payload) is deterministic under a fixed clock.
+	run.EndTime = e.endTime(machineCtx)
 	return nil
+}
+
+// endTime returns the terminal timestamp from the context clock, falling back
+// to the engine clock. Stamping EndTime makes run.Duration() deterministic
+// under a fixed clock instead of computing time.Since(StartTime) at read time.
+func (e *Engine) endTime(machineCtx *statemachine.Context) time.Time {
+	if machineCtx != nil && machineCtx.Clock != nil {
+		return machineCtx.Clock.Now()
+	}
+	return e.clock.Now()
 }
 
 // saveRun persists a new run. Best-effort — logs errors but doesn't fail the run.
@@ -857,7 +1155,7 @@ func (e *Engine) saveRun(ctx context.Context, r *agent.Run) {
 		return
 	}
 	if err := e.runStore.Save(ctx, r); err != nil {
-		logging.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).Msg("failed to save run")
+		e.logger.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).Msg("failed to save run")
 	}
 }
 
@@ -867,7 +1165,7 @@ func (e *Engine) updateRun(ctx context.Context, r *agent.Run) {
 		return
 	}
 	if err := e.runStore.Update(ctx, r); err != nil {
-		logging.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).Msg("failed to update run")
+		e.logger.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).Msg("failed to update run")
 	}
 }
 
@@ -876,13 +1174,13 @@ func (e *Engine) publishEvent(ctx context.Context, runID string, eventType event
 	if e.eventStore == nil {
 		return
 	}
-	evt, err := event.NewEvent(runID, eventType, payload)
+	evt, err := event.NewEventAt(runID, eventType, payload, e.clock.Now())
 	if err != nil {
-		logging.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to create event")
+		e.logger.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to create event")
 		return
 	}
 	if err := e.eventStore.Append(ctx, evt); err != nil {
-		logging.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to publish event")
+		e.logger.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to publish event")
 	}
 }
 
@@ -906,14 +1204,14 @@ func verifyRunEvidence(gov governance.Governor) error {
 // rehydrates from it to continue ONE continuous chain. Governors without an
 // evidence chain (passthrough, approval-only axi) leave the run untouched.
 // Best-effort — a snapshot error is logged, not fatal to the pause.
-func captureGovernorEvidence(r *agent.Run, gov governance.Governor) {
+func (e *Engine) captureGovernorEvidence(r *agent.Run, gov governance.Governor) {
 	snapshotter, ok := gov.(governance.EvidenceSnapshotter)
 	if !ok {
 		return
 	}
 	data, err := snapshotter.EvidenceSnapshot()
 	if err != nil {
-		logging.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).
+		e.logger.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).
 			Msg("failed to snapshot governance evidence at pause")
 		return
 	}
@@ -939,21 +1237,24 @@ func rehydrateGovernorEvidence(gov governance.Governor, data json.RawMessage) er
 // full-delegation kernel governor's in-flight axi session). Governors without
 // a Close method are left untouched. Errors are logged, not propagated — a
 // run's success does not hinge on session teardown.
-func closeGovernor(gov governance.Governor) {
+func (e *Engine) closeGovernor(gov governance.Governor) {
 	closer, ok := gov.(interface{ Close() error })
 	if !ok {
 		return
 	}
 	if err := closer.Close(); err != nil {
-		logging.Error().Add(logging.ErrorField(err)).Msg("failed to close run governor")
+		e.logger.Error().Add(logging.ErrorField(err)).Msg("failed to close run governor")
 	}
 }
 
-// generateRunID creates a unique run ID using timestamp and random bytes.
-func generateRunID() string {
+// generateRunID creates a unique run ID using the injected clock's time and
+// random bytes. Using the clock keeps the timestamp portion deterministic
+// when a fixed/fake clock is injected, while the random suffix preserves
+// uniqueness across runs sharing the same clock instant.
+func (e *Engine) generateRunID() string {
 	b := make([]byte, 4)
 	_, _ = rand.Read(b)
-	return fmt.Sprintf("run-%d-%s", time.Now().UnixNano(), hex.EncodeToString(b))
+	return fmt.Sprintf("run-%d-%s", e.clock.Now().UnixNano(), hex.EncodeToString(b))
 }
 
 // buildToolDefs converts allowed tool names into ToolDef structs for the planner.

@@ -95,6 +95,7 @@ import (
 	"go.klarlabs.de/agent/application"
 	"go.klarlabs.de/agent/domain/agent"
 	"go.klarlabs.de/agent/domain/artifact"
+	"go.klarlabs.de/agent/domain/clock"
 	"go.klarlabs.de/agent/domain/event"
 	"go.klarlabs.de/agent/domain/knowledge"
 	"go.klarlabs.de/agent/domain/middleware"
@@ -105,6 +106,7 @@ import (
 	"go.klarlabs.de/agent/domain/telemetry"
 	"go.klarlabs.de/agent/domain/tool"
 	"go.klarlabs.de/agent/infrastructure/governance"
+	"go.klarlabs.de/agent/infrastructure/logging"
 	inframw "go.klarlabs.de/agent/infrastructure/middleware"
 	"go.klarlabs.de/agent/infrastructure/planner"
 	"go.klarlabs.de/agent/infrastructure/resilience"
@@ -280,6 +282,8 @@ func New(opts ...Option) (*Engine, error) {
 		EventStore:   config.eventStore,
 		TaskContext:  config.taskCtx,
 		Governance:   config.governance,
+		Logger:       config.logger,
+		Clock:        config.clock,
 	}
 
 	engine, err := application.NewEngine(appConfig)
@@ -329,6 +333,42 @@ func (e *Engine) Stream(ctx context.Context, goal string) (string, <-chan event.
 	return e.engine.Stream(ctx, goal)
 }
 
+// Fork branches a new run from an existing run's event history at the given
+// step. The source run is reconstructed up to and including its first stepN
+// executed steps (decision boundaries), and that state — goal, variables,
+// evidence, current state — is materialized into a fresh run with a new ID and
+// a lineage link back to the parent. The fork is persisted (when a run store
+// is configured) and a lineage event is written to its event stream.
+//
+// Requires an event store (WithEventStore). Pair with WithClock for fully
+// deterministic forks. stepN must be >= 1. The returned run is in its
+// reconstructed state and not yet re-executed — inspect it, or drive it
+// further with ContinueRun.
+//
+// Example:
+//
+//	forked, _ := engine.Fork(ctx, "run-123", 3) // branch after 3 steps
+//	forked, _ = engine.ContinueRun(ctx, forked) // resume the branch
+func (e *Engine) Fork(ctx context.Context, runID string, stepN int) (*Run, error) {
+	return e.engine.Fork(ctx, runID, stepN)
+}
+
+// ContinueRun drives a reconstructed run (e.g. the result of Fork or a replay)
+// further from its current state. It re-attaches a fresh state machine and
+// per-run governor and resumes the step loop, re-applying the full pipeline:
+// the structural act-gate (side effects only in act), governance authorization
+// (budget + approval), and the event stream. The run's tool-call budget is
+// seeded with the calls already consumed so a continued run does not reset its
+// run-spanning budget. A nil or already-terminal run returns an error.
+//
+// Example:
+//
+//	forked, _ := engine.Fork(ctx, "run-123", 3)
+//	final, _ := engine.ContinueRun(ctx, forked)
+func (e *Engine) ContinueRun(ctx context.Context, run *Run) (*Run, error) {
+	return e.engine.ContinueRun(ctx, run)
+}
+
 // NewReplay creates a replay engine for reconstructing historical runs.
 // Requires an EventStore for loading events.
 //
@@ -345,12 +385,18 @@ func NewReplay(eventStore event.Store) *application.Replay {
 // Re-export replay types for convenience.
 type (
 	// Replay provides run reconstruction and timeline analysis from events.
+	// It also supports step-bounded reconstruction via ReconstructRunAtStep,
+	// the primitive behind Engine.Fork.
 	Replay = application.Replay
 	// Timeline provides temporal analysis of a run's event history.
 	Timeline = application.Timeline
 	// EventIterator steps through events sequentially.
 	EventIterator = application.EventIterator
 )
+
+// ErrInvalidStep indicates a fork/reconstruct was requested at a step index
+// below 1 (steps are 1-based).
+var ErrInvalidStep = application.ErrInvalidStep
 
 // Knowledge returns the knowledge store, if configured.
 // Returns nil if no knowledge store was provided via WithKnowledgeStore.
@@ -377,6 +423,8 @@ type engineConfig struct {
 	eventStore  event.Store
 	taskCtx     *task.Context
 	governance  governance.Factory
+	logger      *logging.Logger
+	clock       clock.Clock
 }
 
 // Option configures the Engine.
@@ -529,6 +577,37 @@ func WithRateLimit(rate, burst int) Option {
 	}
 }
 
+// WithInputValidation enables an invocation-time input-validation guard that
+// validates each tool input against its JSON schema and, when maxInputBytes
+// > 0, rejects inputs larger than that many bytes. This bounds untrusted or
+// LLM-produced payloads before they reach tool handlers.
+//
+// This is structural/schema validation, not prompt-injection content
+// detection: the framework's primary defense against malicious tool use is the
+// structural act-gate, tool eligibility, and governance/approval. For callable
+// field-level validators (email, url, uuid, etc.) use contrib/pack-validate.
+//
+// Note: the engine's default middleware chain already performs schema input
+// validation; use this option to add a size bound or when supplying a custom
+// middleware chain.
+//
+// Example:
+//
+//	engine, _ := api.New(
+//	    api.WithPlanner(planner),
+//	    api.WithInputValidation(64*1024), // reject tool inputs over 64 KiB
+//	)
+func WithInputValidation(maxInputBytes int) Option {
+	return func(c *engineConfig) {
+		if c.middleware == nil {
+			c.middleware = middleware.NewRegistry()
+		}
+		cfg := inframw.DefaultValidationConfig()
+		cfg.MaxInputBytes = maxInputBytes
+		c.middleware.Use(inframw.Validation(cfg))
+	}
+}
+
 // WithPerToolRateLimit enables per-tool rate limiting.
 // Each tool can have its own rate limit, falling back to defaults.
 //
@@ -607,5 +686,57 @@ func WithEventStore(s event.Store) Option {
 func WithTaskContext(tc *task.Context) Option {
 	return func(c *engineConfig) {
 		c.taskCtx = tc
+	}
+}
+
+// Logger is the injectable structured logger used by the engine.
+type Logger = logging.Logger
+
+// NewLogger wraps a bolt.Logger for injection via WithLogger.
+var NewLogger = logging.NewLogger
+
+// NewNopLogger returns a logger that discards all output.
+var NewNopLogger = logging.NewNopLogger
+
+// NewLoggerFromConfig builds a configured logger without touching the
+// package-level logging singleton.
+var NewLoggerFromConfig = logging.NewLoggerFromConfig
+
+// LoggerConfig configures a logger built via NewLoggerFromConfig.
+type LoggerConfig = logging.Config
+
+// WithLogger injects a structured logger into the engine. When unset, the
+// engine emits no logs and never depends on a global logging singleton.
+//
+// Example:
+//
+//	logger := api.NewLoggerFromConfig(api.LoggerConfig{Level: "info", Format: "json"})
+//	engine, _ := api.New(api.WithPlanner(p), api.WithLogger(logger))
+func WithLogger(l *logging.Logger) Option {
+	return func(c *engineConfig) {
+		c.logger = l
+	}
+}
+
+// Clock abstracts the source of wall-clock time for the runtime.
+type Clock = clock.Clock
+
+// SystemClock returns the default time.Now-backed clock.
+var SystemClock = clock.System
+
+// NewFixedClock returns a deterministic clock that always reports t.
+var NewFixedClock = clock.Fixed
+
+// WithClock injects the clock used for run IDs, run start timestamps, and
+// event timestamps. When unset, the system clock is used. Inject a fixed clock
+// or a statekit FakeClock for deterministic replay, fork, and tests.
+//
+// Example (deterministic events):
+//
+//	clk := api.NewFixedClock(time.Unix(0, 0).UTC())
+//	engine, _ := api.New(api.WithPlanner(p), api.WithEventStore(store), api.WithClock(clk))
+func WithClock(c clock.Clock) Option {
+	return func(cfg *engineConfig) {
+		cfg.clock = c
 	}
 }
