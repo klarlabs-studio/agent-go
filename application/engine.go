@@ -48,6 +48,7 @@ type Engine struct {
 	eventStore   event.Store
 	taskCtx      *task.Context
 	govFactory   governance.Factory
+	logger       *logging.Logger
 }
 
 // EngineConfig contains configuration for the engine.
@@ -73,6 +74,10 @@ type EngineConfig struct {
 	// is ONE axi session, so budget, the destructive-tool approval gate, and
 	// the evidence chain are all axi-native.
 	Governance governance.Factory
+	// Logger is the injected structured logger. When nil, a no-op logger is
+	// used and the engine emits no logs — the execution path never falls back
+	// to the package-level logging singleton.
+	Logger *logging.Logger
 }
 
 // NewEngine creates a new engine with the given configuration.
@@ -102,9 +107,15 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 		eventStore:   config.EventStore,
 		taskCtx:      config.TaskContext,
 		govFactory:   config.Governance,
+		logger:       config.Logger,
 	}
 
 	// Set defaults
+	if e.logger == nil {
+		// No-op by default: the execution path never depends on the
+		// package-level logging singleton. Callers opt in via api.WithLogger.
+		e.logger = logging.NewNopLogger()
+	}
 	if e.executor == nil {
 		e.executor = resilience.NewDefaultExecutor()
 	}
@@ -235,7 +246,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
 	// Some Governors (full axi delegation) hold a per-run axi session that
 	// must be released when the run ends. Close it on every exit path.
-	defer closeGovernor(machineCtx.Governor)
+	defer e.closeGovernor(machineCtx.Governor)
 
 	// Create state machine
 	machine, err := statemachine.NewAgentMachine()
@@ -247,7 +258,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	interp := statemachine.NewInterpreter(machine, machineCtx)
 
 	// Log run start
-	logging.Info().
+	e.logger.Info().
 		Add(logging.RunID(runID)).
 		Add(logging.Goal(goal)).
 		Msg("run started")
@@ -280,14 +291,14 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 		if err := e.step(ctx, interp, machineCtx); err != nil {
 			// Handle human input request specially - not a failure
 			if errors.Is(err, agent.ErrAwaitingHumanInput) {
-				logging.Info().
+				e.logger.Info().
 					Add(logging.RunID(runID)).
 					Add(logging.State(r.CurrentState)).
 					Msg("run paused for human input")
 				// Capture the governor's evidence-chain snapshot onto the run
 				// so the resumed segment continues ONE physical chain across
 				// the pause (the deferred closeGovernor tears the session down).
-				captureGovernorEvidence(r, machineCtx.Governor)
+				e.captureGovernorEvidence(r, machineCtx.Governor)
 				e.publishEvent(ctx, runID, event.TypeRunPaused, nil)
 				e.updateRun(ctx, r)
 				return r, err
@@ -296,7 +307,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 			r.Fail(err.Error())
 			runLedger.RecordRunFailed(r.CurrentState, err.Error())
 
-			logging.Error().
+			e.logger.Error().
 				Add(logging.RunID(runID)).
 				Add(logging.State(r.CurrentState)).
 				Add(logging.ErrorField(err)).
@@ -350,7 +361,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	}
 
 	// Log completion
-	logging.Info().
+	e.logger.Info().
 		Add(logging.RunID(runID)).
 		Add(logging.State(r.CurrentState)).
 		Add(logging.Duration(r.Duration())).
@@ -388,7 +399,7 @@ func (e *Engine) Stream(ctx context.Context, goal string) (string, <-chan event.
 	// Errors are captured via run.failed events in the event stream.
 	go func() {
 		if _, err := e.runWithID(ctx, runID, goal, nil); err != nil {
-			logging.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("streamed run failed")
+			e.logger.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("streamed run failed")
 		}
 	}()
 
@@ -458,7 +469,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
 	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
-	defer closeGovernor(machineCtx.Governor)
+	defer e.closeGovernor(machineCtx.Governor)
 
 	// Rehydrate the evidence chain from the snapshot captured at pause time so
 	// the resumed run continues ONE continuous, tamper-evident chain.
@@ -481,7 +492,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	}
 
 	// Log resumption
-	logging.Info().
+	e.logger.Info().
 		Add(logging.RunID(run.ID)).
 		Add(logging.State(run.CurrentState)).
 		Add(logging.Str("human_input", input)).
@@ -501,13 +512,13 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 		if err := e.step(ctx, interp, machineCtx); err != nil {
 			// Handle human input request specially - not a failure
 			if errors.Is(err, agent.ErrAwaitingHumanInput) {
-				logging.Info().
+				e.logger.Info().
 					Add(logging.RunID(run.ID)).
 					Add(logging.State(run.CurrentState)).
 					Msg("run paused for human input")
 				// Re-capture the (now-extended) evidence chain so a further
 				// resume continues the same continuous chain.
-				captureGovernorEvidence(run, machineCtx.Governor)
+				e.captureGovernorEvidence(run, machineCtx.Governor)
 				e.updateRun(ctx, run)
 				return run, err
 			}
@@ -515,7 +526,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 			run.Fail(err.Error())
 			runLedger.RecordRunFailed(run.CurrentState, err.Error())
 
-			logging.Error().
+			e.logger.Error().
 				Add(logging.RunID(run.ID)).
 				Add(logging.State(run.CurrentState)).
 				Add(logging.ErrorField(err)).
@@ -544,7 +555,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	}
 
 	// Log completion
-	logging.Info().
+	e.logger.Info().
 		Add(logging.RunID(run.ID)).
 		Add(logging.State(run.CurrentState)).
 		Add(logging.Duration(run.Duration())).
@@ -627,7 +638,7 @@ func (e *Engine) step(ctx context.Context, interp *statemachine.Interpreter, mac
 	}
 	e.publishEvent(ctx, run.ID, event.TypeDecisionMade, dp)
 
-	logging.Debug().
+	e.logger.Debug().
 		Add(logging.RunID(run.ID)).
 		Add(logging.State(run.CurrentState)).
 		Add(logging.Decision(decision.Type)).
@@ -842,7 +853,7 @@ func (e *Engine) executeAskHuman(_ context.Context, _ *statemachine.Interpreter,
 	// Record in ledger
 	runLedger.RecordHumanInputRequest(run.CurrentState, decision.Question, decision.Options)
 
-	logging.Info().
+	e.logger.Info().
 		Add(logging.RunID(run.ID)).
 		Add(logging.State(run.CurrentState)).
 		Add(logging.Str("question", decision.Question)).
@@ -882,7 +893,7 @@ func (e *Engine) saveRun(ctx context.Context, r *agent.Run) {
 		return
 	}
 	if err := e.runStore.Save(ctx, r); err != nil {
-		logging.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).Msg("failed to save run")
+		e.logger.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).Msg("failed to save run")
 	}
 }
 
@@ -892,7 +903,7 @@ func (e *Engine) updateRun(ctx context.Context, r *agent.Run) {
 		return
 	}
 	if err := e.runStore.Update(ctx, r); err != nil {
-		logging.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).Msg("failed to update run")
+		e.logger.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).Msg("failed to update run")
 	}
 }
 
@@ -903,11 +914,11 @@ func (e *Engine) publishEvent(ctx context.Context, runID string, eventType event
 	}
 	evt, err := event.NewEvent(runID, eventType, payload)
 	if err != nil {
-		logging.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to create event")
+		e.logger.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to create event")
 		return
 	}
 	if err := e.eventStore.Append(ctx, evt); err != nil {
-		logging.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to publish event")
+		e.logger.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to publish event")
 	}
 }
 
@@ -931,14 +942,14 @@ func verifyRunEvidence(gov governance.Governor) error {
 // rehydrates from it to continue ONE continuous chain. Governors without an
 // evidence chain (passthrough, approval-only axi) leave the run untouched.
 // Best-effort — a snapshot error is logged, not fatal to the pause.
-func captureGovernorEvidence(r *agent.Run, gov governance.Governor) {
+func (e *Engine) captureGovernorEvidence(r *agent.Run, gov governance.Governor) {
 	snapshotter, ok := gov.(governance.EvidenceSnapshotter)
 	if !ok {
 		return
 	}
 	data, err := snapshotter.EvidenceSnapshot()
 	if err != nil {
-		logging.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).
+		e.logger.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).
 			Msg("failed to snapshot governance evidence at pause")
 		return
 	}
@@ -964,13 +975,13 @@ func rehydrateGovernorEvidence(gov governance.Governor, data json.RawMessage) er
 // full-delegation kernel governor's in-flight axi session). Governors without
 // a Close method are left untouched. Errors are logged, not propagated — a
 // run's success does not hinge on session teardown.
-func closeGovernor(gov governance.Governor) {
+func (e *Engine) closeGovernor(gov governance.Governor) {
 	closer, ok := gov.(interface{ Close() error })
 	if !ok {
 		return
 	}
 	if err := closer.Close(); err != nil {
-		logging.Error().Add(logging.ErrorField(err)).Msg("failed to close run governor")
+		e.logger.Error().Add(logging.ErrorField(err)).Msg("failed to close run governor")
 	}
 }
 

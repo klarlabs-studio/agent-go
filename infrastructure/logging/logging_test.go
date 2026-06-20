@@ -587,3 +587,60 @@ func TestLogLevelHelpers(t *testing.T) {
 
 // Ensure io import is used
 var _ io.Writer = (*bytes.Buffer)(nil)
+
+// Injectable Logger (instance.go) tests.
+
+func TestNopLogger_DiscardsOutput(t *testing.T) {
+	l := NewNopLogger()
+	// Must not panic and must produce no output.
+	l.Info().Add(RunID("r1")).Add(State(agent.StateAct)).Msg("hello")
+	l.Error().Add(ErrorField(errors.New("boom"))).Send()
+	l.Debug().Msg("dbg")
+}
+
+func TestNilLogger_IsSafeNoop(t *testing.T) {
+	var l *Logger // nil
+	l.Info().Add(RunID("r1")).Msg("should not panic")
+	l.Error().Send()
+}
+
+func TestNewLogger_WritesThroughBolt(t *testing.T) {
+	b, buf := testLogger()
+	l := NewLogger(b)
+
+	l.Info().Add(RunID("run-42")).Msg("started")
+
+	out := buf.String()
+	if !bytes.Contains([]byte(out), []byte("run-42")) {
+		t.Errorf("expected output to contain run id, got %q", out)
+	}
+	if !bytes.Contains([]byte(out), []byte("started")) {
+		t.Errorf("expected output to contain message, got %q", out)
+	}
+}
+
+func TestNewLogger_NilBoltIsNoop(t *testing.T) {
+	l := NewLogger(nil)
+	l.Info().Add(RunID("x")).Msg("no panic")
+}
+
+func TestNewLoggerFromConfig_BuildsWorkingLogger(t *testing.T) {
+	// Config.Output is *os.File; a temp file lets us assert real output without
+	// touching the package-level singleton.
+	f, err := os.CreateTemp(t.TempDir(), "log-*.json")
+	if err != nil {
+		t.Fatalf("temp file: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	l := NewLoggerFromConfig(Config{Level: "info", Format: "json", Output: f})
+	l.Info().Add(RunID("cfg-run")).Msg("configured")
+
+	data, err := os.ReadFile(f.Name())
+	if err != nil {
+		t.Fatalf("read temp file: %v", err)
+	}
+	if !bytes.Contains(data, []byte("cfg-run")) {
+		t.Errorf("expected configured logger output to contain run id, got %q", string(data))
+	}
+}

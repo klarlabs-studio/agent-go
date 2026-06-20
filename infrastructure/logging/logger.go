@@ -64,22 +64,28 @@ func parseLevel(s string) bolt.Level {
 	}
 }
 
+// buildLogger constructs a bolt.Logger from a Config without touching the
+// package-level singleton. Shared by Init and NewLoggerFromConfig.
+func buildLogger(config Config) *bolt.Logger {
+	output := config.Output
+	if output == nil {
+		output = os.Stdout
+	}
+
+	var handler bolt.Handler
+	if config.Format == "json" {
+		handler = bolt.NewJSONHandler(output)
+	} else {
+		handler = bolt.NewConsoleHandler(output)
+	}
+
+	return bolt.New(handler).SetLevel(parseLevel(config.Level))
+}
+
 // Init initializes the default logger with the given configuration.
 func Init(config Config) {
 	once.Do(func() {
-		output := config.Output
-		if output == nil {
-			output = os.Stdout
-		}
-
-		var handler bolt.Handler
-		if config.Format == "json" {
-			handler = bolt.NewJSONHandler(output)
-		} else {
-			handler = bolt.NewConsoleHandler(output)
-		}
-
-		defaultLogger = bolt.New(handler).SetLevel(parseLevel(config.Level))
+		defaultLogger = buildLogger(config)
 	})
 }
 
@@ -106,18 +112,30 @@ func NewEvent(e *bolt.Event) *LogEvent {
 }
 
 // Add applies a field to the event and returns the wrapper for chaining.
+// A LogEvent with a nil underlying event (no-op logger) discards the field.
 func (l *LogEvent) Add(f Field) *LogEvent {
+	if l == nil || l.event == nil {
+		return l
+	}
 	l.event = f(l.event)
 	return l
 }
 
-// Msg sends the log event with a message.
+// Msg sends the log event with a message. A no-op when the underlying event
+// is nil (no-op logger).
 func (l *LogEvent) Msg(msg string) {
+	if l == nil || l.event == nil {
+		return
+	}
 	l.event.Msg(msg)
 }
 
-// Send sends the log event without a message.
+// Send sends the log event without a message. A no-op when the underlying
+// event is nil (no-op logger).
 func (l *LogEvent) Send() {
+	if l == nil || l.event == nil {
+		return
+	}
 	l.event.Send()
 }
 

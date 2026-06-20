@@ -105,6 +105,7 @@ import (
 	"go.klarlabs.de/agent/domain/telemetry"
 	"go.klarlabs.de/agent/domain/tool"
 	"go.klarlabs.de/agent/infrastructure/governance"
+	"go.klarlabs.de/agent/infrastructure/logging"
 	inframw "go.klarlabs.de/agent/infrastructure/middleware"
 	"go.klarlabs.de/agent/infrastructure/planner"
 	"go.klarlabs.de/agent/infrastructure/resilience"
@@ -280,6 +281,7 @@ func New(opts ...Option) (*Engine, error) {
 		EventStore:   config.eventStore,
 		TaskContext:  config.taskCtx,
 		Governance:   config.governance,
+		Logger:       config.logger,
 	}
 
 	engine, err := application.NewEngine(appConfig)
@@ -377,6 +379,7 @@ type engineConfig struct {
 	eventStore  event.Store
 	taskCtx     *task.Context
 	governance  governance.Factory
+	logger      *logging.Logger
 }
 
 // Option configures the Engine.
@@ -607,5 +610,34 @@ func WithEventStore(s event.Store) Option {
 func WithTaskContext(tc *task.Context) Option {
 	return func(c *engineConfig) {
 		c.taskCtx = tc
+	}
+}
+
+// Logger is the injectable structured logger used by the engine.
+type Logger = logging.Logger
+
+// NewLogger wraps a bolt.Logger for injection via WithLogger.
+var NewLogger = logging.NewLogger
+
+// NewNopLogger returns a logger that discards all output.
+var NewNopLogger = logging.NewNopLogger
+
+// NewLoggerFromConfig builds a configured logger without touching the
+// package-level logging singleton.
+var NewLoggerFromConfig = logging.NewLoggerFromConfig
+
+// LoggerConfig configures a logger built via NewLoggerFromConfig.
+type LoggerConfig = logging.Config
+
+// WithLogger injects a structured logger into the engine. When unset, the
+// engine emits no logs and never depends on a global logging singleton.
+//
+// Example:
+//
+//	logger := api.NewLoggerFromConfig(api.LoggerConfig{Level: "info", Format: "json"})
+//	engine, _ := api.New(api.WithPlanner(p), api.WithLogger(logger))
+func WithLogger(l *logging.Logger) Option {
+	return func(c *engineConfig) {
+		c.logger = l
 	}
 }

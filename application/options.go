@@ -9,6 +9,7 @@ import (
 	"go.klarlabs.de/agent/domain/task"
 	"go.klarlabs.de/agent/domain/telemetry"
 	"go.klarlabs.de/agent/domain/tool"
+	"go.klarlabs.de/agent/infrastructure/logging"
 	"go.klarlabs.de/agent/infrastructure/planner"
 	"go.klarlabs.de/agent/infrastructure/resilience"
 )
@@ -132,6 +133,15 @@ func WithEventStore(s event.Store) Option {
 func WithTaskContext(tc *task.Context) Option {
 	return func(c *EngineConfig) {
 		c.TaskContext = tc
+	}
+}
+
+// WithLogger sets the injected structured logger for the engine.
+// When unset, the engine uses a no-op logger and emits nothing — the
+// execution path never depends on the package-level logging singleton.
+func WithLogger(l *logging.Logger) Option {
+	return func(c *EngineConfig) {
+		c.Logger = l
 	}
 }
 
