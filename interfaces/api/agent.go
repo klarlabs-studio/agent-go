@@ -559,6 +559,37 @@ func WithRateLimit(rate, burst int) Option {
 	}
 }
 
+// WithInputValidation enables an invocation-time input-validation guard that
+// validates each tool input against its JSON schema and, when maxInputBytes
+// > 0, rejects inputs larger than that many bytes. This bounds untrusted or
+// LLM-produced payloads before they reach tool handlers.
+//
+// This is structural/schema validation, not prompt-injection content
+// detection: the framework's primary defense against malicious tool use is the
+// structural act-gate, tool eligibility, and governance/approval. For callable
+// field-level validators (email, url, uuid, etc.) use contrib/pack-validate.
+//
+// Note: the engine's default middleware chain already performs schema input
+// validation; use this option to add a size bound or when supplying a custom
+// middleware chain.
+//
+// Example:
+//
+//	engine, _ := api.New(
+//	    api.WithPlanner(planner),
+//	    api.WithInputValidation(64*1024), // reject tool inputs over 64 KiB
+//	)
+func WithInputValidation(maxInputBytes int) Option {
+	return func(c *engineConfig) {
+		if c.middleware == nil {
+			c.middleware = middleware.NewRegistry()
+		}
+		cfg := inframw.DefaultValidationConfig()
+		cfg.MaxInputBytes = maxInputBytes
+		c.middleware.Use(inframw.Validation(cfg))
+	}
+}
+
 // WithPerToolRateLimit enables per-tool rate limiting.
 // Each tool can have its own rate limit, falling back to defaults.
 //

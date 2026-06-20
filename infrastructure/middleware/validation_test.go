@@ -706,3 +706,72 @@ func TestValidation_ConcurrentExecution(t *testing.T) {
 		}
 	}
 }
+
+func TestValidation_MaxInputBytes_RejectsOversized(t *testing.T) {
+	t.Parallel()
+
+	cfg := mw.ValidationConfig{
+		ValidateInput: true,
+		MaxInputBytes: 16,
+	}
+	middleware := mw.Validation(cfg)
+
+	mockT := &mockToolWithSchemas{name: "sized_tool", inputSchema: tool.EmptySchema()}
+	execCtx := &domainmw.ExecutionContext{
+		CurrentState: agent.StateExplore,
+		Tool:         mockT,
+		Input:        json.RawMessage(`{"k":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`), // > 16 bytes
+	}
+
+	handler := middleware(createTestHandler(tool.Result{Output: json.RawMessage(`{}`)}, nil))
+	_, err := handler(context.Background(), execCtx)
+	if !errors.Is(err, tool.ErrInvalidInput) {
+		t.Fatalf("expected ErrInvalidInput for oversized input, got %v", err)
+	}
+}
+
+func TestValidation_MaxInputBytes_AllowsWithinLimit(t *testing.T) {
+	t.Parallel()
+
+	cfg := mw.ValidationConfig{
+		ValidateInput: true,
+		MaxInputBytes: 64,
+	}
+	middleware := mw.Validation(cfg)
+
+	mockT := &mockToolWithSchemas{name: "sized_tool", inputSchema: tool.EmptySchema()}
+	execCtx := &domainmw.ExecutionContext{
+		CurrentState: agent.StateExplore,
+		Tool:         mockT,
+		Input:        json.RawMessage(`{"k":"v"}`),
+	}
+
+	expected := tool.Result{Output: json.RawMessage(`{"ok":true}`)}
+	handler := middleware(createTestHandler(expected, nil))
+	result, err := handler(context.Background(), execCtx)
+	if err != nil {
+		t.Fatalf("unexpected error within limit: %v", err)
+	}
+	if string(result.Output) != string(expected.Output) {
+		t.Errorf("got %s, want %s", result.Output, expected.Output)
+	}
+}
+
+func TestValidation_MaxInputBytes_ZeroMeansUnbounded(t *testing.T) {
+	t.Parallel()
+
+	cfg := mw.ValidationConfig{ValidateInput: true, MaxInputBytes: 0}
+	middleware := mw.Validation(cfg)
+
+	mockT := &mockToolWithSchemas{name: "sized_tool", inputSchema: tool.EmptySchema()}
+	big := `{"k":"` + string(make([]byte, 0)) + `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`
+	execCtx := &domainmw.ExecutionContext{
+		CurrentState: agent.StateExplore,
+		Tool:         mockT,
+		Input:        json.RawMessage(big),
+	}
+	handler := middleware(createTestHandler(tool.Result{Output: json.RawMessage(`{}`)}, nil))
+	if _, err := handler(context.Background(), execCtx); err != nil {
+		t.Fatalf("zero limit must be unbounded, got %v", err)
+	}
+}

@@ -23,6 +23,13 @@ type ValidationConfig struct {
 	// RejectEmpty controls whether to reject empty/nil inputs.
 	// Default: false (empty inputs may be valid for some tools)
 	RejectEmpty bool
+
+	// MaxInputBytes, when > 0, rejects tool inputs whose raw JSON exceeds this
+	// many bytes. This is an invocation-time input-validation guard that bounds
+	// untrusted/LLM-produced payloads before they reach tool handlers,
+	// limiting resource-exhaustion and oversized-injection vectors.
+	// Default: 0 (no size limit).
+	MaxInputBytes int
 }
 
 // DefaultValidationConfig returns a sensible default configuration.
@@ -45,12 +52,27 @@ func DefaultValidationConfig() ValidationConfig {
 // Security Considerations:
 // - Prevents malformed JSON from reaching tool handlers
 // - Enforces schema contracts defined by tools
+// - Bounds untrusted/LLM-produced input size when MaxInputBytes is set
 // - Helps detect LLM hallucinations that produce invalid tool inputs
+//
+// This is the framework's invocation-time input-validation guard. It performs
+// structural and schema validation; it is not a prompt-injection content
+// detector. The primary defense against malicious tool use is structural —
+// the act-gate, tool eligibility, and governance/approval — not content
+// heuristics. For callable, field-level validators (email, url, uuid, credit
+// card, etc.) see contrib/pack-validate.
 func Validation(cfg ValidationConfig) middleware.Middleware {
 	return func(next middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, execCtx *middleware.ExecutionContext) (tool.Result, error) {
 			t := execCtx.Tool
 			input := execCtx.Input
+
+			// Size guard runs regardless of schema validation: it bounds the
+			// untrusted payload before any further processing.
+			if cfg.MaxInputBytes > 0 && len(input) > cfg.MaxInputBytes {
+				return tool.Result{}, fmt.Errorf("%w: input size %d exceeds limit %d bytes",
+					tool.ErrInvalidInput, len(input), cfg.MaxInputBytes)
+			}
 
 			// Validate input
 			if cfg.ValidateInput {

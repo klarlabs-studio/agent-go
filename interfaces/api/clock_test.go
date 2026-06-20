@@ -86,3 +86,42 @@ func TestEngine_Fork_ViaAPI(t *testing.T) {
 		t.Errorf("fork state = %s, want explore", forked.CurrentState)
 	}
 }
+
+func TestWithInputValidation_RejectsOversizedInput(t *testing.T) {
+	big := make([]byte, 0, 256)
+	big = append(big, []byte(`{"k":"`)...)
+	for i := 0; i < 200; i++ {
+		big = append(big, 'a')
+	}
+	big = append(big, []byte(`"}`)...)
+
+	tl := api.NewToolBuilder("sink").
+		WithDescription("accepts input").
+		WithAnnotations(api.Annotations{ReadOnly: true}).
+		WithHandler(func(_ context.Context, _ json.RawMessage) (api.ToolResult, error) {
+			return api.ToolResult{Output: json.RawMessage(`{}`)}, nil
+		}).
+		MustBuild()
+
+	p := api.NewScriptedPlanner(
+		api.ScriptStep{ExpectState: api.StateIntake, Decision: api.NewTransitionDecision(api.StateExplore, "begin")},
+		api.ScriptStep{ExpectState: api.StateExplore, Decision: api.NewCallToolDecision("sink", json.RawMessage(big), "oversized")},
+	)
+	eligibility := api.NewToolEligibility()
+	eligibility.Allow(api.StateExplore, "sink")
+
+	engine, err := api.New(
+		api.WithTool(tl),
+		api.WithPlanner(p),
+		api.WithToolEligibility(eligibility),
+		api.WithInputValidation(32),
+	)
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+
+	_, runErr := engine.Run(context.Background(), "oversized input")
+	if runErr == nil {
+		t.Fatal("expected run to fail on oversized tool input")
+	}
+}
