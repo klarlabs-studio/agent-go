@@ -49,8 +49,10 @@ func NewAxiFactory(approver policy.Approver) (*AxiFactory, error) {
 	return &AxiFactory{kernel: kernel, approver: approver}, nil
 }
 
-// Governor returns a Governor for one run, bound to that run's budget.
-func (f *AxiFactory) Governor(budget *policy.Budget) Governor {
+// Governor returns a Governor for one run, bound to that run's budget. The
+// approval-only axi governor holds no per-run session, so ctx is unused (each
+// gate Execute carries its own ctx from Authorize).
+func (f *AxiFactory) Governor(_ context.Context, budget *policy.Budget) Governor {
 	return &axiGovernor{budget: budget, approver: f.approver, kernel: f.kernel}
 }
 

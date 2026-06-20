@@ -130,8 +130,11 @@ type Governor interface {
 // holds one Factory (so shared state like an axi.Kernel is built once) and
 // asks it for a Governor at the start of each run.
 type Factory interface {
-	// Governor returns a Governor for one run over the given budget.
-	Governor(budget *policy.Budget) Governor
+	// Governor returns a Governor for one run over the given budget, scoped to
+	// ctx. Governors that hold a per-run resource (the full-delegation kernel
+	// governor's in-flight axi session) bind it to ctx so the run's
+	// cancellation and MaxDuration propagate into the held session.
+	Governor(ctx context.Context, budget *policy.Budget) Governor
 	// OwnsApproval reports whether Governors from this Factory enforce
 	// approval, so the engine can drop its approval middleware once, at
 	// construction, rather than per run.

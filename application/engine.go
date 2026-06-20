@@ -227,7 +227,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	machineCtx := statemachine.NewContext(r, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
-	machineCtx.Governor = e.govFactory.Governor(budget)
+	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
 	// Some Governors (full axi delegation) hold a per-run axi session that
 	// must be released when the run ends. Close it on every exit path.
 	defer closeGovernor(machineCtx.Governor)
@@ -442,7 +442,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	machineCtx := statemachine.NewContext(run, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
-	machineCtx.Governor = e.govFactory.Governor(budget)
+	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
 	defer closeGovernor(machineCtx.Governor)
 
 	// Create state machine

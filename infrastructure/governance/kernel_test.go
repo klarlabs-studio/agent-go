@@ -20,8 +20,24 @@ func kernelGov(t *testing.T, limit int, approver policy.Approver) (*KernelFactor
 	if err != nil {
 		t.Fatalf("NewKernelFactory: %v", err)
 	}
-	g := f.Governor(policy.NewBudget(map[string]int{budgetKey: limit}))
+	g := f.Governor(context.Background(), policy.NewBudget(map[string]int{budgetKey: limit}))
 	return f, g
+}
+
+// allowAndCommit authorizes a successful tool call and commits it, advancing
+// both the local mirror and axi's authoritative successful-call count.
+func allowAndCommit(t *testing.T, g Governor, ctx context.Context, tool string) Authorization {
+	t.Helper()
+	auth, err := g.Authorize(ctx, ToolRequest{ToolName: tool, RunID: "run-1"})
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+	if auth.Allowed() {
+		if _, err := g.Commit(ctx, ToolRequest{ToolName: tool}, Outcome{Success: true, Output: json.RawMessage(`{}`)}); err != nil {
+			t.Fatalf("Commit: %v", err)
+		}
+	}
+	return auth
 }
 
 func TestKernel_OwnsApproval(t *testing.T) {
@@ -87,6 +103,77 @@ func TestKernel_AxiSessionIsAuthoritativeBudgetEnforcer(t *testing.T) {
 	}
 	if !isBudgetExceeded(err) {
 		t.Fatalf("want axi budget-exceeded, got: %v", err)
+	}
+}
+
+// A failed tool call does NOT consume a run-budget slot — parity with the
+// passthrough and approval-only axi Governors, which consume only on success.
+// Under full delegation, the authoritative axi caps.Invoke happens at Commit
+// gated on Outcome.Success, so a failure burns nothing.
+func TestKernel_FailedToolDoesNotConsumeBudget(t *testing.T) {
+	_, g := kernelGov(t, 2, nil)
+	defer closeGov(t, g)
+	ctx := context.Background()
+	req := ToolRequest{ToolName: "write", RunID: "run-1"}
+
+	// Authorize, then the tool fails: Commit with Success:false consumes nothing.
+	auth, err := g.Authorize(ctx, req)
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+	if !auth.Allowed() {
+		t.Fatalf("want allow, got %+v", auth)
+	}
+	commit, err := g.Commit(ctx, req, Outcome{Success: false})
+	if err != nil {
+		t.Fatalf("Commit(failure): %v", err)
+	}
+	if commit.Remaining != 2 {
+		t.Fatalf("failed tool must not consume budget; remaining=%d want 2", commit.Remaining)
+	}
+
+	// The whole budget remains: two successful calls must still be allowed.
+	for i := 0; i < 2; i++ {
+		if a := allowAndCommit(t, g, ctx, "read"); !a.Allowed() {
+			t.Fatalf("success call %d should be allowed, got %+v", i+1, a)
+		}
+	}
+	// Now exhausted.
+	a, err := g.Authorize(ctx, ToolRequest{ToolName: "read", RunID: "run-1"})
+	if err != nil {
+		t.Fatalf("Authorize after exhaustion: %v", err)
+	}
+	if a.Decision != DecisionBudgetExhausted {
+		t.Fatalf("want budget exhausted after 2 successes, got %+v", a)
+	}
+}
+
+// A successful tool call consumes exactly one slot, matching the other
+// Governors' success-only accounting.
+func TestKernel_SuccessConsumesOneSlot(t *testing.T) {
+	_, g := kernelGov(t, 3, nil)
+	defer closeGov(t, g)
+	ctx := context.Background()
+	allowAndCommit(t, g, ctx, "read")
+	snap := g.BudgetSnapshot()
+	if snap.Remaining[budgetKey] != 2 {
+		t.Fatalf("one success must leave 2; remaining=%d", snap.Remaining[budgetKey])
+	}
+}
+
+// A zero tool_calls budget must allow ZERO tool calls. axi treats
+// MaxCapabilityInvocations:0 as no-limit, so the governor must block the very
+// first call on its own authoritative precedence gate, never delegating an
+// unlimited session.
+func TestKernel_ZeroBudgetAllowsNoToolCalls(t *testing.T) {
+	_, g := kernelGov(t, 0, nil)
+	defer closeGov(t, g)
+	auth, err := g.Authorize(context.Background(), ToolRequest{ToolName: "read", RunID: "run-1"})
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+	if auth.Decision != DecisionBudgetExhausted {
+		t.Fatalf("zero budget must deny first call, got %+v", auth)
 	}
 }
 
@@ -204,6 +291,152 @@ func TestKernel_AuthorizeAfterCloseDoesNotDeadlock(t *testing.T) {
 	case <-done:
 	case <-time.After(2 * time.Second):
 		t.Fatal("Authorize after Close deadlocked")
+	}
+}
+
+// If the held run session's goroutine exits before Close (e.g. the run ctx is
+// cancelled, or kernel.Execute returns early before the orchestrator loop),
+// invokeStep must not block forever waiting on a vanished receiver. The
+// governor closes runExited on EVERY goroutine exit path, so invokeStep
+// unwinds promptly. Driven here by cancelling the run ctx, which makes the
+// held session return and close runExited without Close being called.
+func TestKernel_EarlyGoroutineExitDoesNotDeadlock(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	f, err := NewKernelFactory(nil)
+	if err != nil {
+		t.Fatalf("NewKernelFactory: %v", err)
+	}
+	g := f.Governor(ctx, policy.NewBudget(map[string]int{budgetKey: 5}))
+	kg := g.(*kernelGovernor)
+	defer closeGov(t, g)
+
+	// Cancel the run ctx; the held session's goroutine returns and closes
+	// runExited. Wait for it so the early-exit state is in effect.
+	cancel()
+	select {
+	case <-kg.runExited:
+	case <-time.After(2 * time.Second):
+		t.Fatal("run session goroutine did not exit on ctx cancel")
+	}
+
+	// A tool call after the early exit must not deadlock — it unwinds on
+	// runExited (here ctx is also done, but the point is no hang on reqCh).
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = kg.invokeStep(context.Background(), ToolRequest{ToolName: "read"})
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("invokeStep deadlocked after early goroutine exit")
+	}
+}
+
+// The evidence chain is a single continuous physical chain across a
+// human-input pause: a governor rehydrated from a prior segment's snapshot
+// continues the same hash chain, and verification still holds end-to-end.
+func TestKernel_EvidenceRehydratesAcrossPause(t *testing.T) {
+	ctx := context.Background()
+	f, err := NewKernelFactory(nil)
+	if err != nil {
+		t.Fatalf("NewKernelFactory: %v", err)
+	}
+
+	// Segment 1: two successful tool calls, then snapshot (as a pause would).
+	b1 := policy.NewBudget(map[string]int{budgetKey: 5})
+	g1 := f.Governor(ctx, b1)
+	for i := 0; i < 2; i++ {
+		allowAndCommit(t, g1, ctx, "read")
+	}
+	snap, err := g1.(EvidenceSnapshotter).EvidenceSnapshot()
+	if err != nil {
+		t.Fatalf("EvidenceSnapshot: %v", err)
+	}
+	closeGov(t, g1)
+
+	// Segment 2: rehydrate, seed remaining budget, append one more call.
+	b2 := policy.NewBudget(map[string]int{budgetKey: 5})
+	_ = b2.Consume(budgetKey, 2) // seed consumed from segment 1
+	g2 := f.Governor(ctx, b2)
+	if err := g2.(EvidenceRehydrator).RehydrateEvidence(snap); err != nil {
+		t.Fatalf("RehydrateEvidence: %v", err)
+	}
+	allowAndCommit(t, g2, ctx, "read")
+	defer closeGov(t, g2)
+
+	v := g2.(EvidenceVerifier)
+	if err := v.VerifyEvidenceChain(); err != nil {
+		t.Fatalf("continuous chain must verify across pause: %v", err)
+	}
+	if n := v.EvidenceCount(); n != 3 {
+		t.Fatalf("want 3 records on the continuous chain, got %d", n)
+	}
+}
+
+// Budget survives a pause: a governor seeded with the consumed count from a
+// prior segment enforces the run-spanning remainder, not a reset full budget.
+func TestKernel_BudgetSeededAcrossPause(t *testing.T) {
+	ctx := context.Background()
+	f, err := NewKernelFactory(nil)
+	if err != nil {
+		t.Fatalf("NewKernelFactory: %v", err)
+	}
+	// Run-level budget is 2; segment 1 already consumed 2 before the pause.
+	b := policy.NewBudget(map[string]int{budgetKey: 2})
+	_ = b.Consume(budgetKey, 2)
+	g := f.Governor(ctx, b)
+	defer closeGov(t, g)
+
+	auth, err := g.Authorize(ctx, ToolRequest{ToolName: "read", RunID: "run-1"})
+	if err != nil {
+		t.Fatalf("Authorize: %v", err)
+	}
+	if auth.Decision != DecisionBudgetExhausted {
+		t.Fatalf("seeded-exhausted budget must deny, got %+v (no reset to full)", auth)
+	}
+}
+
+// Two concurrent kernel-governed runs do not interfere: each has its own
+// session, budget, and evidence chain.
+func TestKernel_ConcurrentRunsDoNotInterfere(t *testing.T) {
+	ctx := context.Background()
+	f, err := NewKernelFactory(nil)
+	if err != nil {
+		t.Fatalf("NewKernelFactory: %v", err)
+	}
+	run := func(limit int) error {
+		g := f.Governor(ctx, policy.NewBudget(map[string]int{budgetKey: limit}))
+		defer closeGov(t, g)
+		for i := 0; i < limit; i++ {
+			if a := allowAndCommit(t, g, ctx, "read"); !a.Allowed() {
+				return errors.New("expected allow within budget")
+			}
+		}
+		a, err := g.Authorize(ctx, ToolRequest{ToolName: "read", RunID: "run-1"})
+		if err != nil {
+			return err
+		}
+		if a.Decision != DecisionBudgetExhausted {
+			return errors.New("expected exhaustion at limit")
+		}
+		if v, ok := g.(EvidenceVerifier); ok {
+			if err := v.VerifyEvidenceChain(); err != nil {
+				return err
+			}
+			if v.EvidenceCount() != limit {
+				return errors.New("evidence count mismatch")
+			}
+		}
+		return nil
+	}
+	errCh := make(chan error, 2)
+	go func() { errCh <- run(2) }()
+	go func() { errCh <- run(3) }()
+	for i := 0; i < 2; i++ {
+		if err := <-errCh; err != nil {
+			t.Fatalf("concurrent run %d: %v", i, err)
+		}
 	}
 }
 
