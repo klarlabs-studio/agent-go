@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/storage-gcs
 
-go 1.25.0
+go 1.26.2
 
 require (
 	cloud.google.com/go/storage v1.50.0

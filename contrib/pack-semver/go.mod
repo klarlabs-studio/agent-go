@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/pack-semver
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1

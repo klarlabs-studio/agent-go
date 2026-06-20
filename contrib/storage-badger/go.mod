@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/storage-badger
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/dgraph-io/badger/v4 v4.7.0

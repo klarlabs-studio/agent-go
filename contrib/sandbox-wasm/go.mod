@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/sandbox-wasm
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/tetratelabs/wazero v1.8.2

@@ -1,32 +1,33 @@
 package governance
 
-// Migration status — governance delegation to axi-go (agent-go spec § Changes
-// Required #1).
+// Governance delegation to axi-go (agent-go spec § Changes Required #1).
 //
-// Done (default build, go 1.25, no axi dependency):
-//   - Governor seam (governance.go) — the single governance port the engine
-//     uses for act-state tool authorization, budget accounting, and the
-//     approval-ownership switch.
-//   - Passthrough (passthrough.go) — behaviour-identical to the engine's
-//     original inline budget enforcement; approval stays with the engine's
-//     approval middleware (OwnsApproval == false).
-//   - axiGovernor (axi.go, build tag "axi") — the route-through target:
-//     budget, approval, and evidence owned by an axi.Kernel
-//     (OwnsApproval == true). Excluded from the default build.
+// Active (default): the engine builds an AxiFactory unless EngineConfig.
+// Governance is set. The destructive-tool approval gate is delegated to a
+// shared axi.Kernel — the tool's risk annotations drive a write-external
+// effect profile, the kernel pauses the session at awaiting_approval, and
+// the configured approver settles it via Approve/Reject. When the factory
+// OwnsApproval, the engine drops its approval middleware so the gate is
+// enforced exactly once.
 //
-// Deferred (the axi-go toolchain/dependency bump) — activate with:
-//   1. bump the agent-go module go directive: go 1.25.0 -> go 1.26.2
-//      (axi-go v1.4.0's floor); propagate to contrib modules + CI.
-//   2. go.mod: require go.klarlabs.de/axi v1.4.0
-//   3. build and test with -tags axi
-//   4. swap the engine's per-run Governor construction from
-//      NewPassthrough(budget, approver) to NewAxi(limits, approver); when
-//      OwnsApproval() is true the engine omits its approval middleware.
-//   5. finalise the TODO(activation) points in axi.go (kernel action/
-//      capability registration, evidence recording, budget projection)
-//      against the live axi v1.4.0 API.
+// Scope boundary (axi v1.4.0):
+//   - Approval — delegated to axi. Native, per-call, the spec's headline
+//     safety primitive.
+//   - Budget — stays run-level in agent-go. axi's ExecutionBudget is
+//     per-session (one action's capability fan-out) and cannot express a
+//     run-spanning tool count without a held-session / incremental-
+//     invocation handle that axi does not yet expose.
+//   - Evidence — stays on the engine's run ledger (one chain per run).
+//     Routing it through axi today would yield fragmented per-call chains,
+//     a regression for a run-level audit trail.
 //
-// Non-negotiable (agent-go spec): budget and approval always go through axi
-// once activated. The domain/policy interfaces (Budget, Approval,
-// Eligibility) are retained; this package binds them — it does not fork
-// governance semantics.
+// Path to full delegation: an axi held-session API (open a session with a
+// run budget, invoke capabilities against it across the agent loop, close
+// it) would let budget and the evidence chain move to axi as one session
+// per run. That is an axi-side change — track it in the axi spec. Until
+// then this split is the faithful, shippable boundary.
+//
+// Opt out with EngineConfig.Governance = NewPassthroughFactory(approver):
+// budget + approval stay fully in-process (approval via the engine
+// middleware), e.g. for LLM-free scripted runs or tests that do not want a
+// kernel.

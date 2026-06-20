@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/pack-sql
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/go-sql-driver/mysql v1.9.3

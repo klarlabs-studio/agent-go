@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/cmd/agentctl
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/spf13/cobra v1.10.2
@@ -12,6 +12,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
+	go.klarlabs.de/axi v1.4.0 // indirect
 	go.klarlabs.de/bolt v1.5.2 // indirect
 	go.klarlabs.de/fortify v1.6.0 // indirect
 	go.klarlabs.de/statekit v1.8.0 // indirect

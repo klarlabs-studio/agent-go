@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/pack-html
 
-go 1.25.0
+go 1.26.2
 
 require (
 	go.klarlabs.de/agent v0.0.0

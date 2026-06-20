@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/queue-kafka
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/segmentio/kafka-go v0.4.47

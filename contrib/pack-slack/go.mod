@@ -1,6 +1,6 @@
 module go.klarlabs.de/agent/contrib/pack-slack
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/slack-go/slack v0.23.1
