@@ -2201,3 +2201,150 @@ func TestRun_ContextCancelMidRun_KernelDefault(t *testing.T) {
 		t.Fatalf("expected failed run on cancel, got %s", run.Status)
 	}
 }
+
+// Structural Act-Gating Tests
+//
+// These verify the non-negotiable invariant "side effects ONLY in act":
+// a side-effecting/destructive tool is rejected in any non-act state by a
+// STRUCTURAL gate that is independent of tool-eligibility configuration.
+
+func newDestructiveTool(name string) tool.Tool {
+	t, err := tool.NewBuilder(name).
+		WithDescription("Destructive tool: " + name).
+		WithAnnotations(tool.DestructiveAnnotations()).
+		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
+			return tool.Result{Output: json.RawMessage(`{"status":"ok"}`)}, nil
+		}).
+		Build()
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
+func TestRun_StructuralGate_BlocksDestructiveToolInExplore(t *testing.T) {
+	delTool := newDestructiveTool("delete_file")
+	registry := newTestRegistry(delTool)
+
+	// Wildcard eligibility allows the tool EVERYWHERE — the structural gate
+	// must still reject it in explore, independent of this configuration.
+	eligibility := policy.NewDefaultToolEligibility()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{
+			ExpectState: agent.StateIntake,
+			Decision:    agent.NewTransitionDecision(agent.StateExplore, "begin"),
+		},
+		planner.ScriptStep{
+			ExpectState: agent.StateExplore,
+			Decision:    agent.NewCallToolDecision("delete_file", json.RawMessage(`{}`), "should be blocked"),
+		},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, err := engine.Run(context.Background(), "structural gate explore")
+	if !errors.Is(err, tool.ErrSideEffectInNonActState) {
+		t.Fatalf("expected ErrSideEffectInNonActState, got %v", err)
+	}
+	if run.Status != agent.RunStatusFailed {
+		t.Errorf("expected failed run, got %s", run.Status)
+	}
+}
+
+func TestRun_StructuralGate_BlocksDestructiveToolInValidate(t *testing.T) {
+	delTool := newDestructiveTool("delete_file")
+	noopTool := newTestTool("noop", true)
+	registry := newTestRegistry(delTool, noopTool)
+	eligibility := policy.NewDefaultToolEligibility()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewTransitionDecision(agent.StateAct, "act")},
+		planner.ScriptStep{ExpectState: agent.StateAct, Decision: agent.NewTransitionDecision(agent.StateValidate, "validate")},
+		planner.ScriptStep{ExpectState: agent.StateValidate, Decision: agent.NewCallToolDecision("delete_file", json.RawMessage(`{}`), "blocked in validate")},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	_, err = engine.Run(context.Background(), "structural gate validate")
+	if !errors.Is(err, tool.ErrSideEffectInNonActState) {
+		t.Fatalf("expected ErrSideEffectInNonActState, got %v", err)
+	}
+}
+
+func TestRun_StructuralGate_BlocksNonReadOnlyToolInDecide(t *testing.T) {
+	// A tool that is neither ReadOnly nor Destructive still has side effects
+	// structurally and must be blocked outside act.
+	sideTool := newTestTool("mutate", false) // ReadOnly:false
+	registry := newTestRegistry(sideTool)
+	eligibility := policy.NewDefaultToolEligibility()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewCallToolDecision("mutate", json.RawMessage(`{}`), "blocked in decide")},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	_, err = engine.Run(context.Background(), "structural gate decide")
+	if !errors.Is(err, tool.ErrSideEffectInNonActState) {
+		t.Fatalf("expected ErrSideEffectInNonActState, got %v", err)
+	}
+}
+
+func TestRun_StructuralGate_AllowsDestructiveToolInAct(t *testing.T) {
+	delTool := newDestructiveTool("delete_file")
+	registry := newTestRegistry(delTool)
+	eligibility := policy.NewDefaultToolEligibility()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewTransitionDecision(agent.StateAct, "act")},
+		planner.ScriptStep{ExpectState: agent.StateAct, Decision: agent.NewCallToolDecision("delete_file", json.RawMessage(`{}`), "allowed in act")},
+		planner.ScriptStep{ExpectState: agent.StateAct, Decision: agent.NewTransitionDecision(agent.StateValidate, "validate")},
+		planner.ScriptStep{ExpectState: agent.StateValidate, Decision: agent.NewFinishDecision("done", json.RawMessage(`{}`))},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+		Approver:    policy.NewAutoApprover("test"),
+	})
+	if err != nil {
+		t.Fatalf("failed to create engine: %v", err)
+	}
+
+	run, err := engine.Run(context.Background(), "destructive in act")
+	if err != nil {
+		t.Fatalf("expected success running destructive tool in act, got %v", err)
+	}
+	if run.Status != agent.RunStatusCompleted {
+		t.Errorf("expected completed run, got %s", run.Status)
+	}
+}

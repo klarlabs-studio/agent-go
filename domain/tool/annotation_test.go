@@ -282,6 +282,56 @@ func TestAnnotations_CanRetry(t *testing.T) {
 	}
 }
 
+func TestAnnotations_HasSideEffects(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		annotations tool.Annotations
+		want        bool
+	}{
+		{
+			name:        "read-only tool has no side effects",
+			annotations: tool.ReadOnlyAnnotations(),
+			want:        false,
+		},
+		{
+			name:        "explicit ReadOnly has no side effects",
+			annotations: tool.Annotations{ReadOnly: true},
+			want:        false,
+		},
+		{
+			name:        "destructive tool has side effects",
+			annotations: tool.DestructiveAnnotations(),
+			want:        true,
+		},
+		{
+			name:        "default (not read-only) tool has side effects",
+			annotations: tool.DefaultAnnotations(),
+			want:        true,
+		},
+		{
+			name:        "non-read-only non-destructive still has side effects",
+			annotations: tool.Annotations{ReadOnly: false, Destructive: false},
+			want:        true,
+		},
+		{
+			name:        "destructive overrides read-only (defensive)",
+			annotations: tool.Annotations{ReadOnly: true, Destructive: true},
+			want:        true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.annotations.HasSideEffects(); got != tt.want {
+				t.Errorf("HasSideEffects() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRiskLevel_Ordering(t *testing.T) {
 	t.Parallel()
 

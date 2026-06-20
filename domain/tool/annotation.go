@@ -91,6 +91,24 @@ func DestructiveAnnotations() Annotations {
 	}
 }
 
+// HasSideEffects reports whether executing the tool may mutate external state.
+//
+// This is the STRUCTURAL definition of a side effect used to enforce the
+// non-negotiable invariant "side effects only in the act state". A tool has
+// side effects unless it is explicitly marked ReadOnly. Destructive tools
+// always have side effects, even if mislabelled ReadOnly (defensive).
+//
+// Unlike ShouldRequireApproval (a configurable, risk-based policy hint), this
+// method is the ground truth the engine uses to reject side-effecting tools in
+// non-act states. It must remain a pure function of the annotations and must
+// not be widened by configuration.
+func (a Annotations) HasSideEffects() bool {
+	if a.Destructive {
+		return true
+	}
+	return !a.ReadOnly
+}
+
 // ShouldRequireApproval returns true if the tool should require approval.
 func (a Annotations) ShouldRequireApproval() bool {
 	return a.RequiresApproval || a.Destructive || a.RiskLevel >= RiskHigh

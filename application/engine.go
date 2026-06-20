@@ -663,6 +663,19 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 		return fmt.Errorf("%w: %s", tool.ErrToolNotFound, decision.ToolName)
 	}
 
+	// STRUCTURAL ACT-GATE (non-negotiable: "side effects ONLY in act").
+	//
+	// This gate is enforced here, in the execution path, independent of and
+	// BEFORE tool-eligibility, governance, and approval. A side-effecting tool
+	// is rejected with a hard error in any state that does not permit side
+	// effects. It is driven purely by the tool's annotations and the state's
+	// side-effect semantics — there is no configuration that can relax or
+	// bypass it. Eligibility name maps (including wildcards) cannot widen it.
+	if t.Annotations().HasSideEffects() && !e.stateAllowsSideEffects(machineCtx, run.CurrentState) {
+		return fmt.Errorf("%w: %s in state %s",
+			tool.ErrSideEffectInNonActState, decision.ToolName, run.CurrentState)
+	}
+
 	// Authorize the tool call through the governance seam: budget always,
 	// and the approval gate when the Governor owns approval (axi). When it
 	// does not (passthrough), approval stays with the middleware below.
@@ -792,6 +805,18 @@ func (e *Engine) executeToolDecision(ctx context.Context, _ *statemachine.Interp
 	})
 
 	return nil
+}
+
+// stateAllowsSideEffects reports whether the given state permits side-effecting
+// tools. It consults the run's StateRegistry so custom states that declare
+// AllowsSideEffects are honored, and otherwise falls back to the canonical
+// rule (only the act state permits side effects). This backs the structural
+// act-gate and is never configurable away.
+func (e *Engine) stateAllowsSideEffects(machineCtx *statemachine.Context, state agent.State) bool {
+	if machineCtx != nil && machineCtx.StateRegistry != nil {
+		return machineCtx.StateRegistry.AllowsSideEffects(state)
+	}
+	return state.AllowsSideEffects()
 }
 
 // executeTransition executes a state transition decision.
