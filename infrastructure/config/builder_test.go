@@ -179,10 +179,8 @@ func TestBuilder_RateLimit(t *testing.T) {
 	}
 	if tr, ok := result.RateLimitConfig.ToolRates["expensive_tool"]; !ok {
 		t.Error("ToolRates should have expensive_tool")
-	} else {
-		if tr.Rate != 1 || tr.Burst != 2 {
-			t.Errorf("ToolRates[expensive_tool] = %v, want {1, 2}", tr)
-		}
+	} else if tr.Rate != 1 || tr.Burst != 2 {
+		t.Errorf("ToolRates[expensive_tool] = %v, want {1, 2}", tr)
 	}
 }
 

@@ -95,7 +95,8 @@ func parseTool() tool.Tool {
 			var country string
 
 			// Try to detect country code
-			if hasPlus && len(digits) > 0 {
+			switch {
+			case hasPlus && len(digits) > 0:
 				// Check 1-3 digit codes
 				for i := 1; i <= 3 && i <= len(digits); i++ {
 					if c, ok := codeToCountry[digits[:i]]; ok {
@@ -109,13 +110,13 @@ func parseTool() tool.Tool {
 					countryCode = digits[:1]
 					nationalNumber = digits[1:]
 				}
-			} else if params.Country != "" {
+			case params.Country != "":
 				if code, ok := countryCodes[strings.ToUpper(params.Country)]; ok {
 					countryCode = code
 					nationalNumber = digits
 					country = params.Country
 				}
-			} else {
+			default:
 				nationalNumber = digits
 			}
 
@@ -353,7 +354,8 @@ func countryCodeTool() tool.Tool {
 
 			result := make(map[string]any)
 
-			if params.Country != "" {
+			switch {
+			case params.Country != "":
 				if code, ok := countryCodes[strings.ToUpper(params.Country)]; ok {
 					result["country"] = strings.ToUpper(params.Country)
 					result["code"] = code
@@ -362,7 +364,7 @@ func countryCodeTool() tool.Tool {
 					result["error"] = "country not found"
 					result["country"] = params.Country
 				}
-			} else if params.Code != "" {
+			case params.Code != "":
 				code := strings.TrimPrefix(params.Code, "+")
 				if country, ok := codeToCountry[code]; ok {
 					result["code"] = code
@@ -372,7 +374,7 @@ func countryCodeTool() tool.Tool {
 					result["error"] = "code not found"
 					result["code"] = params.Code
 				}
-			} else {
+			default:
 				// Return all codes
 				result["country_codes"] = countryCodes
 				result["code_to_country"] = codeToCountry

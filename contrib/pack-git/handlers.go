@@ -452,12 +452,13 @@ func handleGitAdd(ctx context.Context, input json.RawMessage) (tool.Result, erro
 	}
 
 	args := []string{"add"}
-	if in.All {
+	switch {
+	case in.All:
 		args = append(args, "-A")
-	} else if len(in.Paths) > 0 {
+	case len(in.Paths) > 0:
 		args = append(args, "--")
 		args = append(args, in.Paths...)
-	} else {
+	default:
 		return tool.Result{}, fmt.Errorf("either paths or all is required for git add")
 	}
 

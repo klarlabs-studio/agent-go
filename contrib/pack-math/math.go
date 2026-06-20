@@ -215,12 +215,13 @@ func sqrtTool() tool.Tool {
 			var root float64
 			var err string
 
-			if params.Value < 0 && int(n)%2 == 0 {
+			switch {
+			case params.Value < 0 && int(n)%2 == 0:
 				err = "cannot compute even root of negative number"
-			} else if params.Value < 0 {
+			case params.Value < 0:
 				// Odd root of negative number
 				root = -math.Pow(-params.Value, 1/n)
-			} else {
+			default:
 				root = math.Pow(params.Value, 1/n)
 			}
 
@@ -330,18 +331,19 @@ func logTool() tool.Tool {
 			var err string
 			base := params.Base
 
-			if params.Value <= 0 {
+			switch {
+			case params.Value <= 0:
 				err = "logarithm of non-positive number is undefined"
-			} else if base == 0 || base == math.E {
+			case base == 0 || base == math.E:
 				logValue = math.Log(params.Value)
 				base = math.E
-			} else if base == 10 {
+			case base == 10:
 				logValue = math.Log10(params.Value)
-			} else if base == 2 {
+			case base == 2:
 				logValue = math.Log2(params.Value)
-			} else if base <= 0 || base == 1 {
+			case base <= 0 || base == 1:
 				err = "logarithm base must be positive and not equal to 1"
-			} else {
+			default:
 				logValue = math.Log(params.Value) / math.Log(base)
 			}
 

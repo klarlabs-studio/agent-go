@@ -288,8 +288,7 @@ func (p *spreadsheetPack) appendCSVTool() tool.Tool {
 			}
 
 			for _, item := range dataArray {
-				switch v := item.(type) {
-				case []interface{}:
+				if v, ok := item.([]interface{}); ok {
 					row := make([]string, len(v))
 					for i, cell := range v {
 						row[i] = fmt.Sprintf("%v", cell)

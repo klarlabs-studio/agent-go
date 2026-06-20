@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"go.klarlabs.de/agent/contrib/pack-notification"
+	notification "go.klarlabs.de/agent/contrib/pack-notification"
 )
 
 // ExamplePack demonstrates basic usage of the notification pack.
@@ -32,7 +32,8 @@ func ExamplePack() {
 	// Get a notification tool
 	slackTool, ok := pack.GetTool("notify_slack")
 	if !ok {
-		log.Fatal("notify_slack tool not found")
+		fmt.Println("notify_slack tool not found")
+		return
 	}
 
 	// Prepare input
@@ -44,7 +45,8 @@ func ExamplePack() {
 	// Execute the tool
 	result, err := slackTool.Execute(context.Background(), input)
 	if err != nil {
-		log.Fatalf("Failed to send notification: %v", err)
+		fmt.Printf("Failed to send notification: %v\n", err)
+		return
 	}
 
 	fmt.Printf("Notification sent: %s\n", string(result.Output))
@@ -163,7 +165,8 @@ func ExamplePack_webhookTool() {
 
 	result, err := webhookTool.Execute(context.Background(), inputJSON)
 	if err != nil {
-		log.Fatalf("Webhook failed: %v", err)
+		fmt.Printf("Webhook failed: %v\n", err)
+		return
 	}
 
 	var response map[string]any

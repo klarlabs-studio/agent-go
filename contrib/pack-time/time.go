@@ -511,11 +511,12 @@ func (p *timePack) compareTool() tool.Tool {
 			}
 
 			var comparison string
-			if a.Before(b) {
+			switch {
+			case a.Before(b):
 				comparison = "before"
-			} else if a.After(b) {
+			case a.After(b):
 				comparison = "after"
-			} else {
+			default:
 				comparison = "equal"
 			}
 

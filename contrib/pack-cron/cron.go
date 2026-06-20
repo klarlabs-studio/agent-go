@@ -373,22 +373,24 @@ func describeCron(expr *CronExpr) string {
 	var parts []string
 
 	// Describe minute
-	if expr.Minute == "*" {
+	switch {
+	case expr.Minute == "*":
 		parts = append(parts, "every minute")
-	} else if strings.HasPrefix(expr.Minute, "*/") {
+	case strings.HasPrefix(expr.Minute, "*/"):
 		step := strings.TrimPrefix(expr.Minute, "*/")
 		parts = append(parts, "every "+step+" minutes")
-	} else {
+	default:
 		parts = append(parts, "at minute "+expr.Minute)
 	}
 
 	// Describe hour
-	if expr.Hour == "*" {
+	switch {
+	case expr.Hour == "*":
 		parts = append(parts, "of every hour")
-	} else if strings.HasPrefix(expr.Hour, "*/") {
+	case strings.HasPrefix(expr.Hour, "*/"):
 		step := strings.TrimPrefix(expr.Hour, "*/")
 		parts = append(parts, "every "+step+" hours")
-	} else {
+	default:
 		parts = append(parts, "past hour "+expr.Hour)
 	}
 

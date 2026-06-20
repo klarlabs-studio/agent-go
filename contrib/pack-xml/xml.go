@@ -238,11 +238,6 @@ func escapeXML(v any) string {
 	case string:
 		s = val
 	case float64:
-		s = strings.TrimRight(strings.TrimRight(strings.Replace(json.Number(json.RawMessage{}).String(), "", "", 1), "0"), ".")
-		if s == "" {
-			s = "0"
-		}
-		// Use fmt for proper formatting
 		b, _ := json.Marshal(val)
 		s = string(b)
 	default:

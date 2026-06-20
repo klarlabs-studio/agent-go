@@ -1,0 +1,151 @@
+# Contrib module tests — cost-aware sharded matrix.
+#
+# WHY: agent-go is a multi-module repo (~145 contrib modules in go.work).
+# The old ci.yml ran the FULL ~145-job test matrix on EVERY push and EVERY
+# PR (plus a benchmark on every PR). This single change was the org's
+# largest GitHub Actions spend.
+#
+# WHAT THIS DOES instead:
+#   * Pull request: the `discover` job diffs against the PR base and builds
+#     a matrix containing ONLY the contrib modules whose files changed.
+#     Touch one pack -> one test job (not 145). Touch no contrib code ->
+#     the workflow's path filter means it doesn't even run.
+#   * Push to main + weekly schedule + manual dispatch: the FULL matrix
+#     runs, so every contrib module is still tested regularly (coverage is
+#     preserved, just not re-run on every unrelated PR).
+#   * Benchmarks moved OFF pull requests to push/schedule only.
+#
+# TRADE-OFF: a PR that changes only core code (domain/, application/, ...)
+# does not re-run the contrib matrix; that full validation happens on the
+# push-to-main and the weekly scheduled run. Core changes are still fully
+# tested by the core CI caller (ci.yml).
+name: Contrib
+
+on:
+  # Push to main runs the FULL matrix (post-merge safety net + core
+  # benchmark). Pull requests only trigger when contrib code changes, and
+  # then the discover job narrows the matrix to the changed modules.
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths: ["contrib/**"]
+  schedule:
+    # Weekly full matrix — Monday 04:00 UTC.
+    - cron: "0 4 * * 1"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    name: Select modules
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+      any: ${{ steps.select.outputs.any }}
+      count: ${{ steps.select.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: select
+        name: Compute test matrix
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          # Canonical module sets (source of truth for what gets tested).
+          STORAGE="storage-badger storage-dynamodb storage-etcd storage-gcs storage-mongodb storage-nats storage-postgres storage-redis storage-sqlite"
+          ENH="approval-slack dashboard distributed mcp otel planner-llm"
+          PACKS="pack-archive pack-compression pack-ascii pack-base64 pack-case pack-code pack-diff pack-hash pack-markdown pack-pluralize pack-regex pack-similarity pack-slug pack-string pack-template pack-html pack-json pack-xml pack-yaml pack-ast pack-changelog pack-docs pack-license pack-openapi pack-semver pack-cache pack-calendar pack-chunker pack-collection pack-color pack-config pack-convert pack-cron pack-env pack-math pack-path pack-prompt pack-random pack-rate pack-retry pack-scheduler pack-stats pack-testing pack-time pack-uuid pack-validate pack-api pack-browser pack-dns pack-graphql pack-grpc pack-http pack-ip pack-network pack-scrape pack-sse pack-url pack-useragent pack-websocket pack-ci pack-cloud pack-database pack-docker pack-filesystem pack-fileops pack-git pack-kubernetes pack-process pack-shell pack-sql pack-ssh pack-terraform pack-email pack-messaging pack-mqtt pack-notification pack-slack pack-embeddings pack-llm pack-model pack-rag pack-vectordb pack-tokenizer pack-audio pack-chart pack-image pack-ocr pack-pdf pack-qrcode pack-spreadsheet pack-video pack-visualization pack-copilot pack-github pack-jira pack-linear pack-crypto pack-jwt pack-password pack-secrets pack-analytics pack-dataframe pack-etl pack-finance pack-metrics pack-monitoring pack-payments pack-search pack-country pack-geo pack-phone pack-emoji pack-gpio pack-serial pack-crm pack-creditcard pack-fuzzy pack-mime pack-sysinfo"
+          ALL="$STORAGE $ENH $PACKS"
+
+          if [ "$EVENT" = "pull_request" ]; then
+            changed=$(git diff --name-only "$BASE_SHA" HEAD -- 'contrib/**' | awk -F/ 'NF>1 {print $2}' | sort -u)
+            sel=""
+            for m in $ALL; do
+              for c in $changed; do
+                if [ "$m" = "$c" ]; then sel="$sel $m"; break; fi
+              done
+            done
+          else
+            # push to main, weekly schedule, or manual dispatch -> full matrix.
+            sel="$ALL"
+          fi
+
+          inc=""
+          for m in $sel; do
+            short=false
+            case " $STORAGE " in *" $m "*) short=true ;; esac
+            inc="$inc{\"module\":\"$m\",\"short\":$short},"
+          done
+          inc="${inc%,}"
+          matrix="{\"include\":[$inc]}"
+
+          count=$(printf '%s' "$sel" | wc -w | tr -d ' ')
+          if [ "$count" -gt 0 ]; then any=true; else any=false; fi
+
+          echo "Selected $count contrib module(s) for event '$EVENT'."
+          {
+            echo "matrix=$matrix"
+            echo "any=$any"
+            echo "count=$count"
+          } >> "$GITHUB_OUTPUT"
+
+  test:
+    name: Test ${{ matrix.module }}
+    needs: discover
+    if: needs.discover.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - name: Sync workspace
+        run: go work sync
+      - name: Test ${{ matrix.module }}
+        run: |
+          cd "contrib/${{ matrix.module }}"
+          if [ "${{ matrix.short }}" = "true" ]; then
+            go test -race -short -timeout=5m ./...
+          else
+            go test -race ./...
+          fi
+
+  benchmark:
+    name: Benchmark (core)
+    # Perf-sensitive core packages. Push/schedule/dispatch only — never on PRs.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - name: Sync workspace
+        run: go work sync
+      - name: Run benchmarks
+        run: |
+          go test -bench=. -benchmem -count=3 -timeout=5m \
+            ./application/... \
+            ./infrastructure/statemachine/... \
+            ./infrastructure/planner/... \
+            | tee bench-results.txt
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: bench-results.txt

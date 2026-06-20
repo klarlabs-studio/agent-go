@@ -101,7 +101,7 @@ func (d *CostAnomalyDetector) Detect(ctx context.Context, opts pattern.Detection
 			continue
 		}
 
-		costs := calculateRunCosts(r.ID, events)
+		costs := calculateRunCosts(events)
 		for costType, cost := range costs {
 			if _, ok := costsByType[costType]; ok {
 				costsByType[costType] = append(costsByType[costType], runCost{
@@ -206,7 +206,7 @@ type anomaly struct {
 	deviation float64
 }
 
-func calculateRunCosts(runID string, events []event.Event) map[string]float64 {
+func calculateRunCosts(events []event.Event) map[string]float64 {
 	costs := make(map[string]float64)
 
 	var toolCalls int

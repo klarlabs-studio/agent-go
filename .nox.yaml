@@ -1,0 +1,50 @@
+scan:
+  exclude:
+    # Baseline file: contains high-entropy fingerprint hashes (SHA-256 hex)
+    # that match the SEC-680 "Prometheus API key" regex; these ARE the
+    # finding fingerprints, not actual secrets.
+    - ".nox/baseline.json"
+    # go.sum: module digests look like API keys to entropy-based detectors.
+    - "go.sum"
+    - "**/go.sum"
+    # CI workflows: pinned commit SHAs + GITHUB_TOKEN references look like
+    # secret patterns to entropy-based rules.
+    - ".github/workflows/*.yml"
+    # Documentation contains example code snippets and curl commands with
+    # placeholder tokens / API keys.
+    - "README.md"
+    - "CHANGELOG.md"
+    - "docs/*.md"
+    - "**/README.md"
+    # Generated coverage badge.
+    - "assets/coverage-badge.svg"
+    # Grafana dashboard JSON contains Prometheus query expressions that
+    # match SEC-680 against `prometheus_*_total` metric names.
+    - "assets/grafana/*.json"
+    # Generated artifacts.
+    - "nox-out/"
+    - "release-artifacts/"
+    # Dependency lockfiles: dense package-integrity hashes trip the
+    # entropy/secret rules (SEC-455/659/680/...), not real secrets.
+    - "**/package-lock.json"
+    - "**/pnpm-lock.yaml"
+    - "**/yarn.lock"
+    - "**/Cargo.lock"
+    # go workspace checksum file: same module-digest noise as go.sum.
+    - "go.work.sum"
+    - "**/go.work.sum"
+    # Agent OS / release tooling state: append-only event logs and JSON
+    # snapshots are hash-dense identifiers, not application code.
+    - ".roady/"
+    - ".relicta/"
+    # nox's own scan output: finding fingerprints are SHA-256 hex that the
+    # secret/entropy rules re-flag on the next scan (self-referential noise).
+    - "findings.json"
+    - "**/findings.json"
+    - "nox-results/"
+
+# Activate nox code-level taint SAST (source-to-sink: SSRF, injection,
+# path traversal). nox scan auto-installs (cosign-verified) + runs it.
+plugins:
+  required:
+    - nox/taint-analysis

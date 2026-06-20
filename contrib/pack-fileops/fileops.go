@@ -665,7 +665,8 @@ func computeSimpleDiff(linesA, linesB []string) []diffLine {
 	var result []diffLine
 	i, j := 0, 0
 	for i < len(linesA) || j < len(linesB) {
-		if i < len(linesA) && j < len(linesB) && linesA[i] == linesB[j] {
+		switch {
+		case i < len(linesA) && j < len(linesB) && linesA[i] == linesB[j]:
 			result = append(result, diffLine{
 				Number: i + 1,
 				Type:   "context",
@@ -673,14 +674,14 @@ func computeSimpleDiff(linesA, linesB []string) []diffLine {
 			})
 			i++
 			j++
-		} else if i < len(linesA) && (j >= len(linesB) || !containsFrom(linesB, j, linesA[i])) {
+		case i < len(linesA) && (j >= len(linesB) || !containsFrom(linesB, j, linesA[i])):
 			result = append(result, diffLine{
 				Number: i + 1,
 				Type:   "removed",
 				Text:   linesA[i],
 			})
 			i++
-		} else if j < len(linesB) {
+		case j < len(linesB):
 			result = append(result, diffLine{
 				Number: j + 1,
 				Type:   "added",

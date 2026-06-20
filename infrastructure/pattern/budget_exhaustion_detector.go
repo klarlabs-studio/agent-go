@@ -150,7 +150,7 @@ func (d *BudgetExhaustionDetector) processRunEvents(runID string, events []event
 					total := budgetUsage[payload.BudgetName] + payload.Remaining
 					if total > 0 {
 						ratio := float64(budgetUsage[payload.BudgetName]) / float64(total)
-						d.updateUsageStats(stats, payload.BudgetName, ratio, runID)
+						d.updateUsageStats(stats, payload.BudgetName, ratio)
 					}
 				}
 			}
@@ -177,7 +177,7 @@ func (d *BudgetExhaustionDetector) recordExhaustion(stats map[string]*budgetUsag
 	s.events = append(s.events, evt)
 }
 
-func (d *BudgetExhaustionDetector) updateUsageStats(stats map[string]*budgetUsageStats, name string, ratio float64, runID string) {
+func (d *BudgetExhaustionDetector) updateUsageStats(stats map[string]*budgetUsageStats, name string, ratio float64) {
 	if name == "" {
 		name = "default"
 	}

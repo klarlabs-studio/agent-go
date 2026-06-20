@@ -150,13 +150,14 @@ func (p *githubPack) listReposTool() tool.Tool {
 			var repos []*github.Repository
 			var err error
 
-			if in.Owner == "" {
+			switch {
+			case in.Owner == "":
 				repos, _, err = client.Repositories.List(ctx, "", opts)
-			} else if in.Type == "org" {
+			case in.Type == "org":
 				repos, _, err = client.Repositories.ListByOrg(ctx, in.Owner, &github.RepositoryListByOrgOptions{
 					ListOptions: opts.ListOptions,
 				})
-			} else {
+			default:
 				repos, _, err = client.Repositories.List(ctx, in.Owner, opts)
 			}
 
