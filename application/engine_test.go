@@ -2445,6 +2445,83 @@ func TestEngine_Fork_BranchesFromEventHistory(t *testing.T) {
 	}
 }
 
+// TestEngine_Fork_RoundTrip proves the fork persists its FULL reconstructed
+// prefix into its own event stream: replaying the fork's stream rebuilds the
+// exact state (current state + evidence + vars) the returned run carries,
+// rather than the initial intake state with zero evidence.
+func TestEngine_Fork_RoundTrip(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	registry := newTestRegistry(readTool)
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+	store := memory.NewEventStore()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "gather")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{"r":1}`))},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+		EventStore:  store,
+		Clock:       clock.Fixed(time.Date(2024, 3, 3, 0, 0, 0, 0, time.UTC)),
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+
+	source, err := engine.RunWithVars(context.Background(), "round-trip source", map[string]any{"k": "v"})
+	if err != nil {
+		t.Fatalf("source run: %v", err)
+	}
+
+	// Fork at step 2 (intake->explore, then the read_file tool call), so the
+	// fork carries one tool-result evidence item and is in the explore state.
+	forked, err := engine.Fork(context.Background(), source.ID, 2)
+	if err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+	if len(forked.Evidence) != 1 {
+		t.Fatalf("forked evidence count = %d, want 1", len(forked.Evidence))
+	}
+
+	// Replay the fork's OWN stream from scratch.
+	replay := NewReplay(store)
+	rebuilt, err := replay.ReconstructRun(context.Background(), forked.ID)
+	if err != nil {
+		t.Fatalf("reconstruct fork: %v", err)
+	}
+
+	if rebuilt.CurrentState != forked.CurrentState {
+		t.Errorf("rebuilt state = %s, want %s", rebuilt.CurrentState, forked.CurrentState)
+	}
+	if rebuilt.Goal != forked.Goal {
+		t.Errorf("rebuilt goal = %q, want %q", rebuilt.Goal, forked.Goal)
+	}
+	if got, want := rebuilt.Vars["k"], forked.Vars["k"]; got != want {
+		t.Errorf("rebuilt var k = %v, want %v", got, want)
+	}
+	if len(rebuilt.Evidence) != len(forked.Evidence) {
+		t.Fatalf("rebuilt evidence count = %d, want %d", len(rebuilt.Evidence), len(forked.Evidence))
+	}
+	for i := range forked.Evidence {
+		if rebuilt.Evidence[i].Type != forked.Evidence[i].Type {
+			t.Errorf("evidence[%d] type = %s, want %s", i, rebuilt.Evidence[i].Type, forked.Evidence[i].Type)
+		}
+		if rebuilt.Evidence[i].Source != forked.Evidence[i].Source {
+			t.Errorf("evidence[%d] source = %s, want %s", i, rebuilt.Evidence[i].Source, forked.Evidence[i].Source)
+		}
+		if string(rebuilt.Evidence[i].Content) != string(forked.Evidence[i].Content) {
+			t.Errorf("evidence[%d] content = %s, want %s", i, rebuilt.Evidence[i].Content, forked.Evidence[i].Content)
+		}
+	}
+}
+
 func TestEngine_Fork_RequiresEventStore(t *testing.T) {
 	engine, err := NewEngine(EngineConfig{
 		Registry: newTestRegistry(),

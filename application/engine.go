@@ -482,6 +482,31 @@ func (e *Engine) Fork(ctx context.Context, runID string, stepN int) (*agent.Run,
 		Goal:        forked.Goal,
 	})
 
+	// Replay the reconstructed prefix into the fork's OWN event stream so the
+	// fork is self-describing: NewReplay(store).ReconstructRun(forkID) must
+	// rebuild the exact reconstructed state (current state + evidence + vars),
+	// not the initial intake state with zero evidence. Without this the persisted
+	// fork and its event log diverge.
+	//
+	// run.started above already carries the vars (applyEvents seeds them from its
+	// payload), so we replay the remaining carried state: the transition to the
+	// source's current state, then each carried evidence item. All events are
+	// stamped via the injected clock (publishEvent) for deterministic forks.
+	if source.CurrentState != agent.StateIntake {
+		e.publishEvent(ctx, forkID, event.TypeStateTransitioned, event.StateTransitionedPayload{
+			FromState: agent.StateIntake,
+			ToState:   source.CurrentState,
+			Reason:    "fork: reconstructed state",
+		})
+	}
+	for _, ev := range forked.Evidence {
+		e.publishEvent(ctx, forkID, event.TypeEvidenceAdded, event.EvidenceAddedPayload{
+			Type:    string(ev.Type),
+			Source:  ev.Source,
+			Content: ev.Content,
+		})
+	}
+
 	e.logger.Info().
 		Add(logging.RunID(forkID)).
 		Add(logging.State(forked.CurrentState)).
