@@ -2522,6 +2522,135 @@ func TestEngine_Fork_RoundTrip(t *testing.T) {
 	}
 }
 
+// TestEngine_ContinueRun_DrivesForkToCompletion proves a forked run can be
+// driven further: ContinueRun resumes the step loop from the fork's current
+// state and runs it to completion.
+func TestEngine_ContinueRun_DrivesForkToCompletion(t *testing.T) {
+	store := memory.NewEventStore()
+	sourcePlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{}`))},
+	)
+	srcEngine, err := NewEngine(EngineConfig{
+		Registry:   newTestRegistry(),
+		Planner:    sourcePlanner,
+		EventStore: store,
+	})
+	if err != nil {
+		t.Fatalf("new source engine: %v", err)
+	}
+	source, err := srcEngine.Run(context.Background(), "continue source")
+	if err != nil {
+		t.Fatalf("source run: %v", err)
+	}
+	// Fork at step 1 -> explore.
+	forked, err := srcEngine.Fork(context.Background(), source.ID, 1)
+	if err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+
+	// A second engine (sharing the store) continues the fork from explore.
+	contPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{"continued":true}`))},
+	)
+	contEngine, err := NewEngine(EngineConfig{
+		Registry:   newTestRegistry(),
+		Planner:    contPlanner,
+		EventStore: store,
+	})
+	if err != nil {
+		t.Fatalf("new continue engine: %v", err)
+	}
+
+	final, err := contEngine.ContinueRun(context.Background(), forked)
+	if err != nil {
+		t.Fatalf("continue run: %v", err)
+	}
+	if final.Status != agent.RunStatusCompleted {
+		t.Errorf("continued run status = %s, want completed", final.Status)
+	}
+	if final.CurrentState != agent.StateDone {
+		t.Errorf("continued run state = %s, want done", final.CurrentState)
+	}
+}
+
+// TestEngine_ContinueRun_ReappliesActGate proves the structural act-gate still
+// fires on a continued fork: a side-effecting tool requested outside act is
+// rejected with ErrSideEffectInNonActState, exactly as on the initial path.
+func TestEngine_ContinueRun_ReappliesActGate(t *testing.T) {
+	delTool := newDestructiveTool("delete_file")
+	store := memory.NewEventStore()
+
+	sourcePlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{}`))},
+	)
+	srcEngine, err := NewEngine(EngineConfig{
+		Registry:    newTestRegistry(delTool),
+		Planner:     sourcePlanner,
+		Eligibility: policy.NewDefaultToolEligibility(),
+		EventStore:  store,
+	})
+	if err != nil {
+		t.Fatalf("new source engine: %v", err)
+	}
+	source, err := srcEngine.Run(context.Background(), "act gate source")
+	if err != nil {
+		t.Fatalf("source run: %v", err)
+	}
+	// Fork at step 1 -> explore (a non-act state).
+	forked, err := srcEngine.Fork(context.Background(), source.ID, 1)
+	if err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+	if forked.CurrentState != agent.StateExplore {
+		t.Fatalf("forked state = %s, want explore", forked.CurrentState)
+	}
+
+	// Continue with a planner that immediately calls a destructive tool in
+	// explore — the structural act-gate must reject it.
+	contPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewCallToolDecision("delete_file", json.RawMessage(`{}`), "blocked in explore")},
+	)
+	contEngine, err := NewEngine(EngineConfig{
+		Registry:    newTestRegistry(delTool),
+		Planner:     contPlanner,
+		Eligibility: policy.NewDefaultToolEligibility(),
+		EventStore:  store,
+	})
+	if err != nil {
+		t.Fatalf("new continue engine: %v", err)
+	}
+
+	_, err = contEngine.ContinueRun(context.Background(), forked)
+	if !errors.Is(err, tool.ErrSideEffectInNonActState) {
+		t.Fatalf("expected ErrSideEffectInNonActState on continued fork, got %v", err)
+	}
+}
+
+// TestEngine_ContinueRun_RejectsTerminalRun proves a completed/failed run
+// cannot be continued.
+func TestEngine_ContinueRun_RejectsTerminalRun(t *testing.T) {
+	engine, err := NewEngine(EngineConfig{
+		Registry: newTestRegistry(),
+		Planner:  planner.NewMockPlanner(),
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+	done := agent.NewRun("run-done", "terminal")
+	done.Complete(json.RawMessage(`{}`))
+	if _, err := engine.ContinueRun(context.Background(), done); err == nil {
+		t.Error("expected error continuing a terminal run")
+	}
+	if _, err := engine.ContinueRun(context.Background(), nil); err == nil {
+		t.Error("expected error continuing a nil run")
+	}
+}
+
 func TestEngine_Fork_RequiresEventStore(t *testing.T) {
 	engine, err := NewEngine(EngineConfig{
 		Registry: newTestRegistry(),

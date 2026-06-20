@@ -439,7 +439,9 @@ func (e *Engine) runWithID(ctx context.Context, runID, goal string, vars map[str
 // Fork enables "what-if" branching and deterministic re-exploration from any
 // point in a run's history (pair with WithClock for fully reproducible forks).
 // The returned run is in its reconstructed state and not yet re-executed;
-// callers may inspect it or drive it further.
+// callers may inspect it, or drive it further with ContinueRun, which resumes
+// the step loop from the fork's current state under the same governance and
+// structural act-gate guarantees.
 //
 // Requires an event store (use WithEventStore). stepN must be >= 1.
 func (e *Engine) Fork(ctx context.Context, runID string, stepN int) (*agent.Run, error) {
@@ -513,6 +515,141 @@ func (e *Engine) Fork(ctx context.Context, runID string, stepN int) (*agent.Run,
 		Msg("run forked")
 
 	return forked, nil
+}
+
+// ContinueRun drives a reconstructed run (e.g. the product of Fork or a replay)
+// further from its current state. It re-attaches a fresh state machine and a
+// new per-run Governor to the run and resumes the step loop from
+// run.CurrentState, re-applying the full pipeline: the structural act-gate,
+// governance authorization (budget + approval), and the 12-event stream.
+//
+// The run's tool-call budget is seeded with the calls already consumed (the
+// persisted tool-result evidence count) so a continued fork does not silently
+// reset its run-spanning budget to full. A nil or already-terminal run is
+// returned unchanged with an error.
+//
+// ContinueRun is the run-advancing counterpart to Fork: Fork reconstructs and
+// inspects, ContinueRun re-drives. Pair them to branch a run and explore the
+// branch under the same governance and act-gate guarantees as the original.
+func (e *Engine) ContinueRun(ctx context.Context, run *agent.Run) (*agent.Run, error) {
+	if run == nil {
+		return nil, errors.New("run is nil")
+	}
+	if run.IsTerminal() {
+		return nil, fmt.Errorf("cannot continue terminal run in state %s", run.CurrentState)
+	}
+
+	// Re-attach to the run id so child agents and events thread correctly.
+	ctx = task.WithRunID(ctx, run.ID)
+
+	// Mark running and create supporting components. The budget is seeded with
+	// the tool calls already consumed (persisted tool-result evidence) so the
+	// run-spanning tool_calls limit survives the reconstruction.
+	run.Status = agent.RunStatusRunning
+	budget := policy.NewBudget(e.budgetLimits)
+	if consumed := run.ConsumedToolCalls(); consumed > 0 {
+		_ = budget.Consume("tool_calls", consumed)
+	}
+	runLedger := ledger.New(run.ID)
+
+	machineCtx := statemachine.NewContext(run, budget, runLedger)
+	machineCtx.Eligibility = e.eligibility
+	machineCtx.Transitions = e.transitions
+	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
+	defer e.closeGovernor(machineCtx.Governor)
+
+	machine, err := statemachine.NewAgentMachine()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create state machine: %w", err)
+	}
+
+	interp := statemachine.NewInterpreter(machine, machineCtx)
+	if err := interp.ResumeFrom(run.CurrentState); err != nil {
+		return nil, fmt.Errorf("failed to resume state machine: %w", err)
+	}
+
+	e.logger.Info().
+		Add(logging.RunID(run.ID)).
+		Add(logging.State(run.CurrentState)).
+		Msg("run continued")
+
+	steps := 0
+	for !interp.IsTerminal() && steps < e.maxSteps {
+		select {
+		case <-ctx.Done():
+			run.Fail("context cancelled")
+			runLedger.RecordRunFailed(run.CurrentState, "context cancelled")
+			e.publishEvent(ctx, run.ID, event.TypeRunFailed, event.RunFailedPayload{
+				Error: "context cancelled", State: run.CurrentState, Duration: run.Duration(),
+			})
+			e.updateRun(ctx, run)
+			return run, ctx.Err()
+		default:
+		}
+
+		if err := e.step(ctx, interp, machineCtx); err != nil {
+			if errors.Is(err, agent.ErrAwaitingHumanInput) {
+				e.logger.Info().
+					Add(logging.RunID(run.ID)).
+					Add(logging.State(run.CurrentState)).
+					Msg("run paused for human input")
+				e.captureGovernorEvidence(run, machineCtx.Governor)
+				e.publishEvent(ctx, run.ID, event.TypeRunPaused, nil)
+				e.updateRun(ctx, run)
+				return run, err
+			}
+
+			run.Fail(err.Error())
+			runLedger.RecordRunFailed(run.CurrentState, err.Error())
+			e.logger.Error().
+				Add(logging.RunID(run.ID)).
+				Add(logging.State(run.CurrentState)).
+				Add(logging.ErrorField(err)).
+				Msg("run failed")
+			e.publishEvent(ctx, run.ID, event.TypeRunFailed, event.RunFailedPayload{
+				Error: err.Error(), State: run.CurrentState, Duration: run.Duration(),
+			})
+			e.updateRun(ctx, run)
+			return run, err
+		}
+		steps++
+		e.updateRun(ctx, run)
+	}
+
+	if steps >= e.maxSteps && !interp.IsTerminal() {
+		run.Fail("max steps exceeded")
+		runLedger.RecordRunFailed(run.CurrentState, "max steps exceeded")
+		e.publishEvent(ctx, run.ID, event.TypeRunFailed, event.RunFailedPayload{
+			Error: "max steps exceeded", State: run.CurrentState, Duration: run.Duration(),
+		})
+		e.updateRun(ctx, run)
+		return run, errors.New("max steps exceeded")
+	}
+
+	if run.Status == agent.RunStatusCompleted {
+		if err := verifyRunEvidence(machineCtx.Governor); err != nil {
+			run.Fail(err.Error())
+			runLedger.RecordRunFailed(run.CurrentState, err.Error())
+			e.publishEvent(ctx, run.ID, event.TypeRunFailed, event.RunFailedPayload{
+				Error: err.Error(), State: run.CurrentState, Duration: run.Duration(),
+			})
+			e.updateRun(ctx, run)
+			return run, err
+		}
+		runLedger.RecordRunCompleted(run.Result)
+		e.publishEvent(ctx, run.ID, event.TypeRunCompleted, event.RunCompletedPayload{
+			Result: run.Result, Duration: run.Duration(),
+		})
+	}
+
+	e.logger.Info().
+		Add(logging.RunID(run.ID)).
+		Add(logging.State(run.CurrentState)).
+		Add(logging.Duration(run.Duration())).
+		Msg("run completed after continue")
+
+	e.updateRun(ctx, run)
+	return run, nil
 }
 
 // ResumeWithInput continues a paused run with human-provided input.

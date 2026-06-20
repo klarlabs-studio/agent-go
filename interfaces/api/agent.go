@@ -342,13 +342,31 @@ func (e *Engine) Stream(ctx context.Context, goal string) (string, <-chan event.
 //
 // Requires an event store (WithEventStore). Pair with WithClock for fully
 // deterministic forks. stepN must be >= 1. The returned run is in its
-// reconstructed state and not yet re-executed.
+// reconstructed state and not yet re-executed — inspect it, or drive it
+// further with ContinueRun.
 //
 // Example:
 //
 //	forked, _ := engine.Fork(ctx, "run-123", 3) // branch after 3 steps
+//	forked, _ = engine.ContinueRun(ctx, forked) // resume the branch
 func (e *Engine) Fork(ctx context.Context, runID string, stepN int) (*Run, error) {
 	return e.engine.Fork(ctx, runID, stepN)
+}
+
+// ContinueRun drives a reconstructed run (e.g. the result of Fork or a replay)
+// further from its current state. It re-attaches a fresh state machine and
+// per-run governor and resumes the step loop, re-applying the full pipeline:
+// the structural act-gate (side effects only in act), governance authorization
+// (budget + approval), and the event stream. The run's tool-call budget is
+// seeded with the calls already consumed so a continued run does not reset its
+// run-spanning budget. A nil or already-terminal run returns an error.
+//
+// Example:
+//
+//	forked, _ := engine.Fork(ctx, "run-123", 3)
+//	final, _ := engine.ContinueRun(ctx, forked)
+func (e *Engine) ContinueRun(ctx context.Context, run *Run) (*Run, error) {
+	return e.engine.ContinueRun(ctx, run)
 }
 
 // NewReplay creates a replay engine for reconstructing historical runs.

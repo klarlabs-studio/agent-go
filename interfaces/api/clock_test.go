@@ -87,6 +87,45 @@ func TestEngine_Fork_ViaAPI(t *testing.T) {
 	}
 }
 
+// TestEngine_ContinueRun_ViaAPI proves the api re-export drives a forked run
+// further to completion.
+func TestEngine_ContinueRun_ViaAPI(t *testing.T) {
+	store := memory.NewEventStore()
+	srcPlanner := api.NewScriptedPlanner(
+		api.ScriptStep{ExpectState: api.StateIntake, Decision: api.NewTransitionDecision(api.StateExplore, "begin")},
+		api.ScriptStep{ExpectState: api.StateExplore, Decision: api.NewTransitionDecision(api.StateDecide, "decide")},
+		api.ScriptStep{ExpectState: api.StateDecide, Decision: api.NewFinishDecision("done", json.RawMessage(`{}`))},
+	)
+	srcEngine, err := api.New(api.WithPlanner(srcPlanner), api.WithEventStore(store))
+	if err != nil {
+		t.Fatalf("new source engine: %v", err)
+	}
+	source, err := srcEngine.Run(context.Background(), "api continue source")
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	forked, err := srcEngine.Fork(context.Background(), source.ID, 1)
+	if err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+
+	contPlanner := api.NewScriptedPlanner(
+		api.ScriptStep{ExpectState: api.StateExplore, Decision: api.NewTransitionDecision(api.StateDecide, "decide")},
+		api.ScriptStep{ExpectState: api.StateDecide, Decision: api.NewFinishDecision("done", json.RawMessage(`{}`))},
+	)
+	contEngine, err := api.New(api.WithPlanner(contPlanner), api.WithEventStore(store))
+	if err != nil {
+		t.Fatalf("new continue engine: %v", err)
+	}
+	final, err := contEngine.ContinueRun(context.Background(), forked)
+	if err != nil {
+		t.Fatalf("continue: %v", err)
+	}
+	if final.Status != api.StatusCompleted {
+		t.Errorf("continued run status = %s, want completed", final.Status)
+	}
+}
+
 func TestWithInputValidation_RejectsOversizedInput(t *testing.T) {
 	big := make([]byte, 0, 256)
 	big = append(big, []byte(`{"k":"`)...)
