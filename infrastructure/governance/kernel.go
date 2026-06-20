@@ -230,17 +230,23 @@ func (g *kernelGovernor) consumeStep() {
 }
 
 // invokeStep sends one tool call into the in-flight run session and waits for
-// axi's budget verdict.
+// axi's budget verdict. It never blocks past the run session's lifetime: once
+// the session is closed (doneCh), it returns errRunSessionClosed instead of
+// deadlocking on a vanished receiver.
 func (g *kernelGovernor) invokeStep(ctx context.Context, req ToolRequest) error {
 	respCh := make(chan stepResponse, 1)
 	select {
 	case g.reqCh <- stepRequest{input: req.ToolName, respCh: respCh}:
+	case <-g.doneCh:
+		return errRunSessionClosed
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 	select {
 	case resp := <-respCh:
 		return resp.err
+	case <-g.doneCh:
+		return errRunSessionClosed
 	case <-ctx.Done():
 		return ctx.Err()
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	axidomain "go.klarlabs.de/axi/domain"
 
@@ -185,6 +186,24 @@ func TestKernel_EvidenceCorruptionFailsVerification(t *testing.T) {
 	var broken *axidomain.ErrChainBroken
 	if !errors.As(err, &broken) {
 		t.Fatalf("want ErrChainBroken, got %T: %v", err, err)
+	}
+}
+
+// Authorize after Close must not deadlock — it returns a governance fault,
+// never blocking on the vanished run-session receiver.
+func TestKernel_AuthorizeAfterCloseDoesNotDeadlock(t *testing.T) {
+	_, g := kernelGov(t, 5, nil)
+	closeGov(t, g)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, _ = g.Authorize(context.Background(), ToolRequest{ToolName: "read"})
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Authorize after Close deadlocked")
 	}
 }
 
