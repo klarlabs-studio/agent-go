@@ -39,6 +39,12 @@ type Run struct {
 	PendingQuestion *PendingQuestion `json:"pending_question,omitempty"`
 	ParentRunID     string           `json:"parent_run_id,omitempty"`
 	TaskID          string           `json:"task_id,omitempty"`
+	// GovernanceEvidence persists the run's axi evidence-chain snapshot across
+	// a human-input pause so the resumed run continues ONE continuous,
+	// tamper-evident chain rather than starting a fresh one. It is opaque to
+	// the domain (an axi SessionSnapshot); only the full-delegation governor
+	// reads and writes it. Empty when no governor exposes an evidence chain.
+	GovernanceEvidence json.RawMessage `json:"governance_evidence,omitempty"`
 }
 
 // NewRun creates a new run with the given ID and initial state.
@@ -104,6 +110,21 @@ func (r *Run) Resume() {
 // AddEvidence appends evidence to the run.
 func (r *Run) AddEvidence(e Evidence) {
 	r.Evidence = append(r.Evidence, e)
+}
+
+// ConsumedToolCalls reports how many successful tool calls the run has
+// recorded. Each successful act-state tool call appends one tool-result
+// evidence record, so this is the persisted count of tool_calls budget
+// consumed — the source for seeding a resumed run's budget so a human-input
+// pause does not reset it to full.
+func (r *Run) ConsumedToolCalls() int {
+	n := 0
+	for _, e := range r.Evidence {
+		if e.Type == EvidenceToolResult {
+			n++
+		}
+	}
+	return n
 }
 
 // SetVar sets a variable in the run context.

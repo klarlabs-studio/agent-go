@@ -279,6 +279,10 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 					Add(logging.RunID(runID)).
 					Add(logging.State(r.CurrentState)).
 					Msg("run paused for human input")
+				// Capture the governor's evidence-chain snapshot onto the run
+				// so the resumed segment continues ONE physical chain across
+				// the pause (the deferred closeGovernor tears the session down).
+				captureGovernorEvidence(r, machineCtx.Governor)
 				e.publishEvent(ctx, runID, event.TypeRunPaused, nil)
 				e.updateRun(ctx, r)
 				return r, err
@@ -431,8 +435,14 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	run.ClearPendingQuestion()
 	run.Resume()
 
-	// Create supporting components (fresh for this segment)
+	// Create supporting components for this segment. The budget is SEEDED with
+	// the tool calls already consumed before the pause (the persisted count of
+	// tool-result evidence), so the run-spanning tool_calls limit survives the
+	// pause instead of silently resetting to full.
 	budget := policy.NewBudget(e.budgetLimits)
+	if consumed := run.ConsumedToolCalls(); consumed > 0 {
+		_ = budget.Consume("tool_calls", consumed)
+	}
 	runLedger := ledger.New(run.ID)
 
 	// Record human input response in ledger
@@ -444,6 +454,12 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	machineCtx.Transitions = e.transitions
 	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
 	defer closeGovernor(machineCtx.Governor)
+
+	// Rehydrate the evidence chain from the snapshot captured at pause time so
+	// the resumed run continues ONE continuous, tamper-evident chain.
+	if err := rehydrateGovernorEvidence(machineCtx.Governor, run.GovernanceEvidence); err != nil {
+		return nil, fmt.Errorf("failed to rehydrate evidence chain: %w", err)
+	}
 
 	// Create state machine
 	machine, err := statemachine.NewAgentMachine()
@@ -484,6 +500,10 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 					Add(logging.RunID(run.ID)).
 					Add(logging.State(run.CurrentState)).
 					Msg("run paused for human input")
+				// Re-capture the (now-extended) evidence chain so a further
+				// resume continues the same continuous chain.
+				captureGovernorEvidence(run, machineCtx.Governor)
+				e.updateRun(ctx, run)
 				return run, err
 			}
 
@@ -505,6 +525,17 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 		run.Fail("max steps exceeded")
 		runLedger.RecordRunFailed(run.CurrentState, "max steps exceeded")
 		return run, errors.New("max steps exceeded")
+	}
+
+	// Verify the run's evidence chain before declaring success — the resumed
+	// run carries ONE continuous chain across the pause, so a broken chain is
+	// a run failure, exactly as on the initial path (parity with executeRun).
+	if run.Status == agent.RunStatusCompleted {
+		if err := verifyRunEvidence(machineCtx.Governor); err != nil {
+			run.Fail(err.Error())
+			runLedger.RecordRunFailed(run.CurrentState, err.Error())
+			return run, err
+		}
 	}
 
 	// Log completion
@@ -863,6 +894,40 @@ func verifyRunEvidence(gov governance.Governor) error {
 		return fmt.Errorf("run evidence chain verification failed: %w", err)
 	}
 	return nil
+}
+
+// captureGovernorEvidence persists the Governor's evidence-chain snapshot onto
+// the run so a human-input pause does not discard it: the resumed segment
+// rehydrates from it to continue ONE continuous chain. Governors without an
+// evidence chain (passthrough, approval-only axi) leave the run untouched.
+// Best-effort — a snapshot error is logged, not fatal to the pause.
+func captureGovernorEvidence(r *agent.Run, gov governance.Governor) {
+	snapshotter, ok := gov.(governance.EvidenceSnapshotter)
+	if !ok {
+		return
+	}
+	data, err := snapshotter.EvidenceSnapshot()
+	if err != nil {
+		logging.Error().Add(logging.RunID(r.ID)).Add(logging.ErrorField(err)).
+			Msg("failed to snapshot governance evidence at pause")
+		return
+	}
+	r.GovernanceEvidence = data
+}
+
+// rehydrateGovernorEvidence restores a previously captured evidence-chain
+// snapshot into the resumed run's Governor so the chain is continuous across
+// the pause. Governors without rehydration support (or an empty snapshot) are
+// a no-op.
+func rehydrateGovernorEvidence(gov governance.Governor, data json.RawMessage) error {
+	if len(data) == 0 {
+		return nil
+	}
+	rehydrator, ok := gov.(governance.EvidenceRehydrator)
+	if !ok {
+		return nil
+	}
+	return rehydrator.RehydrateEvidence(data)
 }
 
 // closeGovernor releases a per-run Governor that holds resources (e.g. the
