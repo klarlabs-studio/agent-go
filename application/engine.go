@@ -8,10 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"go.klarlabs.de/agent/domain/agent"
 	"go.klarlabs.de/agent/domain/artifact"
+	"go.klarlabs.de/agent/domain/clock"
 	"go.klarlabs.de/agent/domain/event"
 	"go.klarlabs.de/agent/domain/knowledge"
 	"go.klarlabs.de/agent/domain/ledger"
@@ -49,6 +49,7 @@ type Engine struct {
 	taskCtx      *task.Context
 	govFactory   governance.Factory
 	logger       *logging.Logger
+	clock        clock.Clock
 }
 
 // EngineConfig contains configuration for the engine.
@@ -78,6 +79,10 @@ type EngineConfig struct {
 	// used and the engine emits no logs — the execution path never falls back
 	// to the package-level logging singleton.
 	Logger *logging.Logger
+	// Clock supplies the time used for run IDs, run start timestamps, and
+	// event timestamps. When nil, the system clock is used. Inject a fixed or
+	// statekit FakeClock for deterministic replay and tests.
+	Clock clock.Clock
 }
 
 // NewEngine creates a new engine with the given configuration.
@@ -108,6 +113,7 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 		taskCtx:      config.TaskContext,
 		govFactory:   config.Governance,
 		logger:       config.Logger,
+		clock:        config.Clock,
 	}
 
 	// Set defaults
@@ -115,6 +121,10 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 		// No-op by default: the execution path never depends on the
 		// package-level logging singleton. Callers opt in via api.WithLogger.
 		e.logger = logging.NewNopLogger()
+	}
+	if e.clock == nil {
+		// System clock by default; tests/replay inject a deterministic clock.
+		e.clock = clock.System()
 	}
 	if e.executor == nil {
 		e.executor = resilience.NewDefaultExecutor()
@@ -187,7 +197,7 @@ func (e *Engine) Run(ctx context.Context, goal string) (*agent.Run, error) {
 
 // RunWithVars executes the agent with the given goal and initial variables.
 func (e *Engine) RunWithVars(ctx context.Context, goal string, vars map[string]any) (*agent.Run, error) {
-	return e.executeRun(ctx, generateRunID(), goal, vars)
+	return e.executeRun(ctx, e.generateRunID(), goal, vars)
 }
 
 // executeRun is the internal run method that accepts a pre-generated run ID.
@@ -265,6 +275,10 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 
 	// Start state machine
 	interp.Start()
+	// Stamp the run start time from the injected clock for determinism
+	// (interp.Start sets it from wall-clock; override with the clock so
+	// replayed/forked runs reproduce identical timestamps).
+	r.StartTime = e.clock.Now()
 	runLedger.RecordRunStarted(goal)
 
 	// Publish run.started event
@@ -387,7 +401,7 @@ func (e *Engine) Stream(ctx context.Context, goal string) (string, <-chan event.
 		return "", nil, errors.New("streaming requires an event store (use WithEventStore)")
 	}
 
-	runID := generateRunID()
+	runID := e.generateRunID()
 
 	// Subscribe before starting the run to avoid missing early events
 	ch, err := e.eventStore.Subscribe(ctx, runID)
@@ -912,7 +926,7 @@ func (e *Engine) publishEvent(ctx context.Context, runID string, eventType event
 	if e.eventStore == nil {
 		return
 	}
-	evt, err := event.NewEvent(runID, eventType, payload)
+	evt, err := event.NewEventAt(runID, eventType, payload, e.clock.Now())
 	if err != nil {
 		e.logger.Error().Add(logging.RunID(runID)).Add(logging.ErrorField(err)).Msg("failed to create event")
 		return
@@ -985,11 +999,14 @@ func (e *Engine) closeGovernor(gov governance.Governor) {
 	}
 }
 
-// generateRunID creates a unique run ID using timestamp and random bytes.
-func generateRunID() string {
+// generateRunID creates a unique run ID using the injected clock's time and
+// random bytes. Using the clock keeps the timestamp portion deterministic
+// when a fixed/fake clock is injected, while the random suffix preserves
+// uniqueness across runs sharing the same clock instant.
+func (e *Engine) generateRunID() string {
 	b := make([]byte, 4)
 	_, _ = rand.Read(b)
-	return fmt.Sprintf("run-%d-%s", time.Now().UnixNano(), hex.EncodeToString(b))
+	return fmt.Sprintf("run-%d-%s", e.clock.Now().UnixNano(), hex.EncodeToString(b))
 }
 
 // buildToolDefs converts allowed tool names into ToolDef structs for the planner.

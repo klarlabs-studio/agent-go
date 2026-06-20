@@ -2,6 +2,7 @@ package application
 
 import (
 	"go.klarlabs.de/agent/domain/artifact"
+	"go.klarlabs.de/agent/domain/clock"
 	"go.klarlabs.de/agent/domain/event"
 	"go.klarlabs.de/agent/domain/middleware"
 	"go.klarlabs.de/agent/domain/policy"
@@ -142,6 +143,15 @@ func WithTaskContext(tc *task.Context) Option {
 func WithLogger(l *logging.Logger) Option {
 	return func(c *EngineConfig) {
 		c.Logger = l
+	}
+}
+
+// WithClock sets the clock used for run IDs, run start timestamps, and event
+// timestamps. When unset, the system clock is used. Inject a fixed or
+// statekit FakeClock for deterministic replay and tests.
+func WithClock(c clock.Clock) Option {
+	return func(cfg *EngineConfig) {
+		cfg.Clock = c
 	}
 }
 

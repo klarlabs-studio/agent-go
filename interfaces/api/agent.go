@@ -95,6 +95,7 @@ import (
 	"go.klarlabs.de/agent/application"
 	"go.klarlabs.de/agent/domain/agent"
 	"go.klarlabs.de/agent/domain/artifact"
+	"go.klarlabs.de/agent/domain/clock"
 	"go.klarlabs.de/agent/domain/event"
 	"go.klarlabs.de/agent/domain/knowledge"
 	"go.klarlabs.de/agent/domain/middleware"
@@ -282,6 +283,7 @@ func New(opts ...Option) (*Engine, error) {
 		TaskContext:  config.taskCtx,
 		Governance:   config.governance,
 		Logger:       config.logger,
+		Clock:        config.clock,
 	}
 
 	engine, err := application.NewEngine(appConfig)
@@ -380,6 +382,7 @@ type engineConfig struct {
 	taskCtx     *task.Context
 	governance  governance.Factory
 	logger      *logging.Logger
+	clock       clock.Clock
 }
 
 // Option configures the Engine.
@@ -639,5 +642,28 @@ type LoggerConfig = logging.Config
 func WithLogger(l *logging.Logger) Option {
 	return func(c *engineConfig) {
 		c.logger = l
+	}
+}
+
+// Clock abstracts the source of wall-clock time for the runtime.
+type Clock = clock.Clock
+
+// SystemClock returns the default time.Now-backed clock.
+var SystemClock = clock.System
+
+// NewFixedClock returns a deterministic clock that always reports t.
+var NewFixedClock = clock.Fixed
+
+// WithClock injects the clock used for run IDs, run start timestamps, and
+// event timestamps. When unset, the system clock is used. Inject a fixed clock
+// or a statekit FakeClock for deterministic replay, fork, and tests.
+//
+// Example (deterministic events):
+//
+//	clk := api.NewFixedClock(time.Unix(0, 0).UTC())
+//	engine, _ := api.New(api.WithPlanner(p), api.WithEventStore(store), api.WithClock(clk))
+func WithClock(c clock.Clock) Option {
+	return func(cfg *engineConfig) {
+		cfg.clock = c
 	}
 }

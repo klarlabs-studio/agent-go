@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"go.klarlabs.de/agent/domain/agent"
+	"go.klarlabs.de/agent/domain/clock"
 	"go.klarlabs.de/agent/domain/policy"
 	"go.klarlabs.de/agent/domain/tool"
 	"go.klarlabs.de/agent/infrastructure/planner"
@@ -1141,12 +1144,37 @@ func TestRun_WildcardEligibility_DestructiveToolApproved(t *testing.T) {
 // Run ID Generation Tests
 
 func TestGenerateRunID_Format(t *testing.T) {
-	id := generateRunID()
+	engine, err := NewEngine(EngineConfig{
+		Registry: newTestRegistry(),
+		Planner:  planner.NewMockPlanner(),
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+	id := engine.generateRunID()
 	if id == "" {
 		t.Error("expected non-empty run ID")
 	}
 	if len(id) < 10 {
 		t.Error("expected run ID to have reasonable length")
+	}
+}
+
+func TestGenerateRunID_UsesInjectedClock(t *testing.T) {
+	fixed := clock.Fixed(time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC))
+	engine, err := NewEngine(EngineConfig{
+		Registry: newTestRegistry(),
+		Planner:  planner.NewMockPlanner(),
+		Clock:    fixed,
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+	// The timestamp portion of the run ID must reflect the injected clock.
+	want := fmt.Sprintf("run-%d-", fixed.Now().UnixNano())
+	id := engine.generateRunID()
+	if !strings.HasPrefix(id, want) {
+		t.Errorf("expected run ID to start with %q (from injected clock), got %q", want, id)
 	}
 }
 
