@@ -2522,6 +2522,89 @@ func TestEngine_Fork_RoundTrip(t *testing.T) {
 	}
 }
 
+// TestEngine_FixedClock_DeterministicToolDurationAndStart proves the P3b
+// determinism fix: under a fixed clock the tool.succeeded duration payload is
+// zero (the clock does not advance) and the run start time is the fixed anchor
+// — no wall-clock value leaks into either the payload or run.StartTime.
+func TestEngine_FixedClock_DeterministicToolDurationAndStart(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+	anchor := time.Date(2024, 7, 7, 12, 0, 0, 0, time.UTC)
+
+	run := func() (*agent.Run, []event.Event) {
+		store := memory.NewEventStore()
+		sp := planner.NewScriptedPlanner(
+			planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+			planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "gather")},
+			planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+			planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{}`))},
+		)
+		engine, err := NewEngine(EngineConfig{
+			Registry:    newTestRegistry(readTool),
+			Planner:     sp,
+			Eligibility: eligibility,
+			EventStore:  store,
+			Clock:       clock.Fixed(anchor),
+		})
+		if err != nil {
+			t.Fatalf("new engine: %v", err)
+		}
+		r, err := engine.Run(context.Background(), "determinism")
+		if err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		events, err := store.LoadEvents(context.Background(), r.ID)
+		if err != nil {
+			t.Fatalf("load events: %v", err)
+		}
+		return r, events
+	}
+
+	r1, ev1 := run()
+
+	// Run start time is the fixed anchor, not wall-clock.
+	if !r1.StartTime.Equal(anchor) {
+		t.Errorf("run start time = %v, want fixed anchor %v", r1.StartTime, anchor)
+	}
+
+	// The tool.succeeded duration payload must be zero under the fixed clock.
+	foundSucceeded := false
+	for _, e := range ev1 {
+		if e.Type == event.TypeToolSucceeded {
+			foundSucceeded = true
+			var p event.ToolSucceededPayload
+			if err := e.UnmarshalPayload(&p); err != nil {
+				t.Fatalf("unmarshal tool.succeeded: %v", err)
+			}
+			if p.Duration != 0 {
+				t.Errorf("tool.succeeded duration = %v, want 0 under fixed clock", p.Duration)
+			}
+		}
+	}
+	if !foundSucceeded {
+		t.Fatal("expected a tool.succeeded event")
+	}
+
+	// A second identical run reproduces the same start time and event payloads.
+	r2, ev2 := run()
+	if !r1.StartTime.Equal(r2.StartTime) {
+		t.Errorf("start times diverge: %v vs %v", r1.StartTime, r2.StartTime)
+	}
+	if len(ev1) != len(ev2) {
+		t.Fatalf("event counts diverge: %d vs %d", len(ev1), len(ev2))
+	}
+	for i := range ev1 {
+		if !ev1[i].Timestamp.Equal(ev2[i].Timestamp) {
+			t.Errorf("event[%d] timestamps diverge: %v vs %v", i, ev1[i].Timestamp, ev2[i].Timestamp)
+		}
+		if string(ev1[i].Payload) != string(ev2[i].Payload) {
+			t.Errorf("event[%d] payloads diverge:\n%s\n%s", i, ev1[i].Payload, ev2[i].Payload)
+		}
+	}
+}
+
 // TestEngine_ContinueRun_DrivesForkToCompletion proves a forked run can be
 // driven further: ContinueRun resumes the step loop from the fork's current
 // state and runs it to completion.

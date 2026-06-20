@@ -60,10 +60,21 @@ func NewRun(id string, goal string) *Run {
 	}
 }
 
-// Start marks the run as running.
+// Start marks the run as running, stamping the start time from the wall clock.
+// The engine drives runs via StartAt with an injected clock so replayed and
+// forked runs reproduce identical timestamps; Start remains for standalone
+// domain use.
 func (r *Run) Start() {
+	r.StartAt(time.Now())
+}
+
+// StartAt marks the run as running, stamping the start time from the supplied
+// instant. The engine passes its injected clock's time so the run start
+// timestamp is deterministic under a fixed clock — no transient wall-clock
+// value is ever stamped before the engine overrides it.
+func (r *Run) StartAt(t time.Time) {
 	r.Status = RunStatusRunning
-	r.StartTime = time.Now()
+	r.StartTime = t
 }
 
 // TransitionTo changes the current state.
@@ -87,11 +98,20 @@ func (r *Run) Complete(result json.RawMessage) {
 	r.Result = result
 }
 
-// Fail marks the run as failed with an error.
+// Fail marks the run as failed with an error, stamping the end time from the
+// wall clock. The engine uses FailAt with its injected clock so failure-path
+// timestamps are deterministic; Fail remains for standalone domain use.
 func (r *Run) Fail(err string) {
+	r.FailAt(err, time.Now())
+}
+
+// FailAt marks the run as failed with an error, stamping the end time from the
+// supplied instant. The engine passes its injected clock's time so the
+// run.failed duration payload is deterministic under a fixed clock.
+func (r *Run) FailAt(err string, t time.Time) {
 	r.Status = RunStatusFailed
 	r.CurrentState = StateFailed
-	r.EndTime = time.Now()
+	r.EndTime = t
 	r.Error = err
 }
 

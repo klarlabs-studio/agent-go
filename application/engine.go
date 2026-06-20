@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.klarlabs.de/agent/domain/agent"
 	"go.klarlabs.de/agent/domain/artifact"
@@ -127,7 +128,10 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 		e.clock = clock.System()
 	}
 	if e.executor == nil {
-		e.executor = resilience.NewDefaultExecutor()
+		// Thread the engine clock into the executor so tool-duration accounting
+		// (which lands in tool.succeeded/tool.failed payloads) is deterministic
+		// under an injected fixed clock, matching event-timestamp determinism.
+		e.executor = resilience.NewExecutorWithOptions(resilience.WithClock(e.clock))
 	}
 	if e.eligibility == nil {
 		e.eligibility = policy.NewToolEligibility()
@@ -256,6 +260,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	machineCtx := statemachine.NewContext(r, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
+	machineCtx.Clock = e.clock
 	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
 	// Some Governors (full axi delegation) hold a per-run axi session that
 	// must be released when the run ends. Close it on every exit path.
@@ -276,12 +281,10 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 		Add(logging.Goal(goal)).
 		Msg("run started")
 
-	// Start state machine
+	// Start state machine. interp.Start stamps the run start time from the
+	// context clock (e.clock), so the start timestamp is deterministic under a
+	// fixed clock with no transient wall-clock value.
 	interp.Start()
-	// Stamp the run start time from the injected clock for determinism
-	// (interp.Start sets it from wall-clock; override with the clock so
-	// replayed/forked runs reproduce identical timestamps).
-	r.StartTime = e.clock.Now()
 	runLedger.RecordRunStarted(goal)
 
 	// Publish run.started event
@@ -295,7 +298,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	for !interp.IsTerminal() && steps < e.maxSteps {
 		select {
 		case <-ctx.Done():
-			r.Fail("context cancelled")
+			r.FailAt("context cancelled", e.endTime(machineCtx))
 			runLedger.RecordRunFailed(r.CurrentState, "context cancelled")
 			e.publishEvent(ctx, runID, event.TypeRunFailed, event.RunFailedPayload{
 				Error: "context cancelled", State: r.CurrentState, Duration: r.Duration(),
@@ -321,7 +324,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 				return r, err
 			}
 
-			r.Fail(err.Error())
+			r.FailAt(err.Error(), e.endTime(machineCtx))
 			runLedger.RecordRunFailed(r.CurrentState, err.Error())
 
 			e.logger.Error().
@@ -352,7 +355,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	}
 
 	if steps >= e.maxSteps && !interp.IsTerminal() {
-		r.Fail("max steps exceeded")
+		r.FailAt("max steps exceeded", e.endTime(machineCtx))
 		runLedger.RecordRunFailed(r.CurrentState, "max steps exceeded")
 		e.publishEvent(ctx, runID, event.TypeRunFailed, event.RunFailedPayload{
 			Error: "max steps exceeded", State: r.CurrentState, Duration: r.Duration(),
@@ -367,7 +370,7 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 	// a run failure, not a silent success.
 	if r.Status == agent.RunStatusCompleted {
 		if err := verifyRunEvidence(machineCtx.Governor); err != nil {
-			r.Fail(err.Error())
+			r.FailAt(err.Error(), e.endTime(machineCtx))
 			runLedger.RecordRunFailed(r.CurrentState, err.Error())
 			e.publishEvent(ctx, runID, event.TypeRunFailed, event.RunFailedPayload{
 				Error: err.Error(), State: r.CurrentState, Duration: r.Duration(),
@@ -555,6 +558,7 @@ func (e *Engine) ContinueRun(ctx context.Context, run *agent.Run) (*agent.Run, e
 	machineCtx := statemachine.NewContext(run, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
+	machineCtx.Clock = e.clock
 	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
 	defer e.closeGovernor(machineCtx.Governor)
 
@@ -577,7 +581,7 @@ func (e *Engine) ContinueRun(ctx context.Context, run *agent.Run) (*agent.Run, e
 	for !interp.IsTerminal() && steps < e.maxSteps {
 		select {
 		case <-ctx.Done():
-			run.Fail("context cancelled")
+			run.FailAt("context cancelled", e.endTime(machineCtx))
 			runLedger.RecordRunFailed(run.CurrentState, "context cancelled")
 			e.publishEvent(ctx, run.ID, event.TypeRunFailed, event.RunFailedPayload{
 				Error: "context cancelled", State: run.CurrentState, Duration: run.Duration(),
@@ -599,7 +603,7 @@ func (e *Engine) ContinueRun(ctx context.Context, run *agent.Run) (*agent.Run, e
 				return run, err
 			}
 
-			run.Fail(err.Error())
+			run.FailAt(err.Error(), e.endTime(machineCtx))
 			runLedger.RecordRunFailed(run.CurrentState, err.Error())
 			e.logger.Error().
 				Add(logging.RunID(run.ID)).
@@ -617,7 +621,7 @@ func (e *Engine) ContinueRun(ctx context.Context, run *agent.Run) (*agent.Run, e
 	}
 
 	if steps >= e.maxSteps && !interp.IsTerminal() {
-		run.Fail("max steps exceeded")
+		run.FailAt("max steps exceeded", e.endTime(machineCtx))
 		runLedger.RecordRunFailed(run.CurrentState, "max steps exceeded")
 		e.publishEvent(ctx, run.ID, event.TypeRunFailed, event.RunFailedPayload{
 			Error: "max steps exceeded", State: run.CurrentState, Duration: run.Duration(),
@@ -628,7 +632,7 @@ func (e *Engine) ContinueRun(ctx context.Context, run *agent.Run) (*agent.Run, e
 
 	if run.Status == agent.RunStatusCompleted {
 		if err := verifyRunEvidence(machineCtx.Governor); err != nil {
-			run.Fail(err.Error())
+			run.FailAt(err.Error(), e.endTime(machineCtx))
 			runLedger.RecordRunFailed(run.CurrentState, err.Error())
 			e.publishEvent(ctx, run.ID, event.TypeRunFailed, event.RunFailedPayload{
 				Error: err.Error(), State: run.CurrentState, Duration: run.Duration(),
@@ -709,6 +713,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	machineCtx := statemachine.NewContext(run, budget, runLedger)
 	machineCtx.Eligibility = e.eligibility
 	machineCtx.Transitions = e.transitions
+	machineCtx.Clock = e.clock
 	machineCtx.Governor = e.govFactory.Governor(ctx, budget)
 	defer e.closeGovernor(machineCtx.Governor)
 
@@ -744,7 +749,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	for !interp.IsTerminal() && steps < e.maxSteps {
 		select {
 		case <-ctx.Done():
-			run.Fail("context cancelled")
+			run.FailAt("context cancelled", e.endTime(machineCtx))
 			runLedger.RecordRunFailed(run.CurrentState, "context cancelled")
 			return run, ctx.Err()
 		default:
@@ -764,7 +769,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 				return run, err
 			}
 
-			run.Fail(err.Error())
+			run.FailAt(err.Error(), e.endTime(machineCtx))
 			runLedger.RecordRunFailed(run.CurrentState, err.Error())
 
 			e.logger.Error().
@@ -779,7 +784,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	}
 
 	if steps >= e.maxSteps && !interp.IsTerminal() {
-		run.Fail("max steps exceeded")
+		run.FailAt("max steps exceeded", e.endTime(machineCtx))
 		runLedger.RecordRunFailed(run.CurrentState, "max steps exceeded")
 		return run, errors.New("max steps exceeded")
 	}
@@ -789,7 +794,7 @@ func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input stri
 	// a run failure, exactly as on the initial path (parity with executeRun).
 	if run.Status == agent.RunStatusCompleted {
 		if err := verifyRunEvidence(machineCtx.Governor); err != nil {
-			run.Fail(err.Error())
+			run.FailAt(err.Error(), e.endTime(machineCtx))
 			runLedger.RecordRunFailed(run.CurrentState, err.Error())
 			return run, err
 		}
@@ -1113,6 +1118,9 @@ func (e *Engine) executeFinish(_ context.Context, interp *statemachine.Interpret
 	}
 	run.Result = decision.Result
 	run.Status = agent.RunStatusCompleted
+	// Stamp the end time from the injected clock so run.Duration() (which lands
+	// in the run.completed payload) is deterministic under a fixed clock.
+	run.EndTime = e.endTime(machineCtx)
 	return nil
 }
 
@@ -1125,7 +1133,20 @@ func (e *Engine) executeFail(_ context.Context, interp *statemachine.Interpreter
 	}
 	run.Error = decision.Reason
 	run.Status = agent.RunStatusFailed
+	// Stamp the end time from the injected clock so run.Duration() (which lands
+	// in the run.failed payload) is deterministic under a fixed clock.
+	run.EndTime = e.endTime(machineCtx)
 	return nil
+}
+
+// endTime returns the terminal timestamp from the context clock, falling back
+// to the engine clock. Stamping EndTime makes run.Duration() deterministic
+// under a fixed clock instead of computing time.Since(StartTime) at read time.
+func (e *Engine) endTime(machineCtx *statemachine.Context) time.Time {
+	if machineCtx != nil && machineCtx.Clock != nil {
+		return machineCtx.Clock.Now()
+	}
+	return e.clock.Now()
 }
 
 // saveRun persists a new run. Best-effort — logs errors but doesn't fail the run.
