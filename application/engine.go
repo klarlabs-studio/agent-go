@@ -425,6 +425,68 @@ func (e *Engine) runWithID(ctx context.Context, runID, goal string, vars map[str
 	return e.executeRun(ctx, runID, goal, vars)
 }
 
+// Fork creates a new run branched from an existing run's event history at a
+// given step. The source run is reconstructed up to and including its first
+// stepN executed steps (decision.made boundaries), and the resulting state —
+// goal, variables, evidence, and current state — is materialized into a fresh
+// run with a new ID. The fork is persisted (when a run store is configured)
+// and a lineage event linking parent and child is recorded in the new run's
+// event stream.
+//
+// Fork enables "what-if" branching and deterministic re-exploration from any
+// point in a run's history (pair with WithClock for fully reproducible forks).
+// The returned run is in its reconstructed state and not yet re-executed;
+// callers may inspect it or drive it further.
+//
+// Requires an event store (use WithEventStore). stepN must be >= 1.
+func (e *Engine) Fork(ctx context.Context, runID string, stepN int) (*agent.Run, error) {
+	if e.eventStore == nil {
+		return nil, errors.New("fork requires an event store (use WithEventStore)")
+	}
+
+	replay := NewReplay(e.eventStore)
+	source, err := replay.ReconstructRunAtStep(ctx, runID, stepN)
+	if err != nil {
+		return nil, fmt.Errorf("reconstruct source run at step %d: %w", stepN, err)
+	}
+
+	// Materialize a fresh run carrying the reconstructed state. A new ID keeps
+	// the fork's event stream and persistence independent from its parent.
+	forkID := e.generateRunID()
+	forked := agent.NewRun(forkID, source.Goal)
+	forked.StartTime = e.clock.Now()
+	forked.ParentRunID = runID
+	forked.TaskID = source.TaskID
+	forked.CurrentState = source.CurrentState
+	forked.Status = source.Status
+	for k, v := range source.Vars {
+		forked.SetVar(k, v)
+	}
+	for _, ev := range source.Evidence {
+		forked.AddEvidence(ev)
+	}
+
+	// Persist the fork and record lineage in its stream.
+	e.saveRun(ctx, forked)
+	e.publishEvent(ctx, forkID, event.TypeRunStarted, event.RunStartedPayload{
+		Goal: forked.Goal,
+		Vars: forked.Vars,
+	})
+	e.publishEvent(ctx, forkID, event.TypeAgentDelegated, event.AgentDelegatedPayload{
+		ParentRunID: runID,
+		ChildRunID:  forkID,
+		AgentName:   "fork",
+		Goal:        forked.Goal,
+	})
+
+	e.logger.Info().
+		Add(logging.RunID(forkID)).
+		Add(logging.State(forked.CurrentState)).
+		Msg("run forked")
+
+	return forked, nil
+}
+
 // ResumeWithInput continues a paused run with human-provided input.
 func (e *Engine) ResumeWithInput(ctx context.Context, run *agent.Run, input string) (*agent.Run, error) {
 	// Validate run exists

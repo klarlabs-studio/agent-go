@@ -3,12 +3,17 @@ package application
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"go.klarlabs.de/agent/domain/agent"
 	"go.klarlabs.de/agent/domain/event"
 )
+
+// ErrInvalidStep indicates a fork/reconstruct was requested at a step index
+// below 1 (steps are 1-based).
+var ErrInvalidStep = errors.New("invalid step index")
 
 // Replay provides event replay capabilities.
 type Replay struct {
@@ -48,6 +53,48 @@ func (r *Replay) ReconstructRunFrom(ctx context.Context, runID string, fromSeq u
 	}
 
 	return r.applyEvents(events)
+}
+
+// ReconstructRunAtStep rebuilds a run's state from its event history up to and
+// including the first n executed steps. A step boundary is a decision.made
+// event, so the reconstructed run reflects the effects of the first n planner
+// decisions (transitions, tool results, variables, evidence) and stops before
+// the (n+1)th decision.
+//
+// n must be >= 1. If the run has fewer than n steps, the full history is
+// applied. This is the truncation primitive used by Engine.Fork.
+func (r *Replay) ReconstructRunAtStep(ctx context.Context, runID string, n int) (*agent.Run, error) {
+	if n < 1 {
+		return nil, fmt.Errorf("%w: step must be >= 1, got %d", ErrInvalidStep, n)
+	}
+
+	events, err := r.eventStore.LoadEvents(ctx, runID)
+	if err != nil {
+		return nil, fmt.Errorf("load events: %w", err)
+	}
+	if len(events) == 0 {
+		return nil, event.ErrRunNotFound
+	}
+
+	truncated := truncateAtStep(events, n)
+	return r.applyEvents(truncated)
+}
+
+// truncateAtStep returns the prefix of events covering the first n steps,
+// where each decision.made event opens a new step. The returned slice includes
+// every event up to (but not including) the (n+1)th decision.made — i.e. the n
+// decisions and all of their downstream effects.
+func truncateAtStep(events []event.Event, n int) []event.Event {
+	decisions := 0
+	for i, e := range events {
+		if e.Type == event.TypeDecisionMade {
+			decisions++
+			if decisions > n {
+				return events[:i]
+			}
+		}
+	}
+	return events
 }
 
 // applyEvents applies a sequence of events to build run state.

@@ -333,6 +333,24 @@ func (e *Engine) Stream(ctx context.Context, goal string) (string, <-chan event.
 	return e.engine.Stream(ctx, goal)
 }
 
+// Fork branches a new run from an existing run's event history at the given
+// step. The source run is reconstructed up to and including its first stepN
+// executed steps (decision boundaries), and that state — goal, variables,
+// evidence, current state — is materialized into a fresh run with a new ID and
+// a lineage link back to the parent. The fork is persisted (when a run store
+// is configured) and a lineage event is written to its event stream.
+//
+// Requires an event store (WithEventStore). Pair with WithClock for fully
+// deterministic forks. stepN must be >= 1. The returned run is in its
+// reconstructed state and not yet re-executed.
+//
+// Example:
+//
+//	forked, _ := engine.Fork(ctx, "run-123", 3) // branch after 3 steps
+func (e *Engine) Fork(ctx context.Context, runID string, stepN int) (*Run, error) {
+	return e.engine.Fork(ctx, runID, stepN)
+}
+
 // NewReplay creates a replay engine for reconstructing historical runs.
 // Requires an EventStore for loading events.
 //
@@ -349,12 +367,18 @@ func NewReplay(eventStore event.Store) *application.Replay {
 // Re-export replay types for convenience.
 type (
 	// Replay provides run reconstruction and timeline analysis from events.
+	// It also supports step-bounded reconstruction via ReconstructRunAtStep,
+	// the primitive behind Engine.Fork.
 	Replay = application.Replay
 	// Timeline provides temporal analysis of a run's event history.
 	Timeline = application.Timeline
 	// EventIterator steps through events sequentially.
 	EventIterator = application.EventIterator
 )
+
+// ErrInvalidStep indicates a fork/reconstruct was requested at a step index
+// below 1 (steps are 1-based).
+var ErrInvalidStep = application.ErrInvalidStep
 
 // Knowledge returns the knowledge store, if configured.
 // Returns nil if no knowledge store was provided via WithKnowledgeStore.

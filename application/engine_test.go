@@ -11,6 +11,7 @@ import (
 
 	"go.klarlabs.de/agent/domain/agent"
 	"go.klarlabs.de/agent/domain/clock"
+	"go.klarlabs.de/agent/domain/event"
 	"go.klarlabs.de/agent/domain/policy"
 	"go.klarlabs.de/agent/domain/tool"
 	"go.klarlabs.de/agent/infrastructure/planner"
@@ -2374,5 +2375,116 @@ func TestRun_StructuralGate_AllowsDestructiveToolInAct(t *testing.T) {
 	}
 	if run.Status != agent.RunStatusCompleted {
 		t.Errorf("expected completed run, got %s", run.Status)
+	}
+}
+
+// Fork Tests
+
+func TestEngine_Fork_BranchesFromEventHistory(t *testing.T) {
+	readTool := newTestTool("read_file", true)
+	registry := newTestRegistry(readTool)
+	eligibility := newTestEligibility(map[agent.State][]string{
+		agent.StateExplore: {"read_file"},
+	})
+	store := memory.NewEventStore()
+
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewCallToolDecision("read_file", json.RawMessage(`{}`), "gather")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{"r":1}`))},
+	)
+
+	engine, err := NewEngine(EngineConfig{
+		Registry:    registry,
+		Planner:     scriptedPlanner,
+		Eligibility: eligibility,
+		EventStore:  store,
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+
+	source, err := engine.Run(context.Background(), "source run for fork")
+	if err != nil {
+		t.Fatalf("source run: %v", err)
+	}
+
+	// Fork at step 1 (the first decision: intake -> explore).
+	forked, err := engine.Fork(context.Background(), source.ID, 1)
+	if err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+
+	if forked.ID == source.ID {
+		t.Error("forked run must have a new ID")
+	}
+	if forked.ParentRunID != source.ID {
+		t.Errorf("forked ParentRunID = %q, want %q", forked.ParentRunID, source.ID)
+	}
+	if forked.Goal != source.Goal {
+		t.Errorf("forked goal = %q, want %q", forked.Goal, source.Goal)
+	}
+	if forked.CurrentState != agent.StateExplore {
+		t.Errorf("forked state at step 1 = %s, want explore", forked.CurrentState)
+	}
+
+	// A lineage event must exist in the fork's stream.
+	events, err := store.LoadEvents(context.Background(), forked.ID)
+	if err != nil {
+		t.Fatalf("load fork events: %v", err)
+	}
+	foundLineage := false
+	for _, e := range events {
+		if e.Type == event.TypeAgentDelegated {
+			foundLineage = true
+		}
+	}
+	if !foundLineage {
+		t.Error("expected agent.delegated lineage event in forked stream")
+	}
+}
+
+func TestEngine_Fork_RequiresEventStore(t *testing.T) {
+	engine, err := NewEngine(EngineConfig{
+		Registry: newTestRegistry(),
+		Planner:  planner.NewMockPlanner(),
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+	_, err = engine.Fork(context.Background(), "run-x", 1)
+	if err == nil {
+		t.Error("expected error when forking without an event store")
+	}
+}
+
+func TestEngine_Fork_DeterministicWithFixedClock(t *testing.T) {
+	store := memory.NewEventStore()
+	scriptedPlanner := planner.NewScriptedPlanner(
+		planner.ScriptStep{ExpectState: agent.StateIntake, Decision: agent.NewTransitionDecision(agent.StateExplore, "begin")},
+		planner.ScriptStep{ExpectState: agent.StateExplore, Decision: agent.NewTransitionDecision(agent.StateDecide, "decide")},
+		planner.ScriptStep{ExpectState: agent.StateDecide, Decision: agent.NewFinishDecision("done", json.RawMessage(`{}`))},
+	)
+	anchor := time.Date(2024, 5, 5, 0, 0, 0, 0, time.UTC)
+	engine, err := NewEngine(EngineConfig{
+		Registry:   newTestRegistry(),
+		Planner:    scriptedPlanner,
+		EventStore: store,
+		Clock:      clock.Fixed(anchor),
+	})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+	source, err := engine.Run(context.Background(), "deterministic fork")
+	if err != nil {
+		t.Fatalf("source run: %v", err)
+	}
+	forked, err := engine.Fork(context.Background(), source.ID, 1)
+	if err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+	if !forked.StartTime.Equal(anchor) {
+		t.Errorf("forked start time = %v, want fixed anchor %v", forked.StartTime, anchor)
 	}
 }

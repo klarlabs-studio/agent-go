@@ -55,3 +55,34 @@ func TestWithClock_DeterministicEventTimestamps(t *testing.T) {
 		t.Errorf("run start time = %v, want fixed anchor %v", run.StartTime, anchor)
 	}
 }
+
+func TestEngine_Fork_ViaAPI(t *testing.T) {
+	store := memory.NewEventStore()
+	p := api.NewScriptedPlanner(
+		api.ScriptStep{ExpectState: api.StateIntake, Decision: api.NewTransitionDecision(api.StateExplore, "begin")},
+		api.ScriptStep{ExpectState: api.StateExplore, Decision: api.NewTransitionDecision(api.StateDecide, "decide")},
+		api.ScriptStep{ExpectState: api.StateDecide, Decision: api.NewFinishDecision("done", json.RawMessage(`{}`))},
+	)
+	engine, err := api.New(
+		api.WithPlanner(p),
+		api.WithEventStore(store),
+		api.WithClock(api.NewFixedClock(time.Unix(0, 0).UTC())),
+	)
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+	source, err := engine.Run(context.Background(), "api fork source")
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	forked, err := engine.Fork(context.Background(), source.ID, 1)
+	if err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+	if forked.ParentRunID != source.ID {
+		t.Errorf("fork parent = %q, want %q", forked.ParentRunID, source.ID)
+	}
+	if forked.CurrentState != api.StateExplore {
+		t.Errorf("fork state = %s, want explore", forked.CurrentState)
+	}
+}
