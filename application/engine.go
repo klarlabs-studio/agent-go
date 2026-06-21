@@ -863,15 +863,18 @@ func (e *Engine) step(ctx context.Context, interp *statemachine.Interpreter, mac
 
 	// Request decision from planner
 	req := planner.PlanRequest{
-		RunID:        run.ID,
-		Goal:         run.Goal,
-		CurrentState: run.CurrentState,
-		Evidence:     run.Evidence,
-		AllowedTools: allowedTools,
-		ToolDefs:     e.buildToolDefs(allowedTools),
-		Budgets:      machineCtx.Budget.Snapshot(),
-		Vars:         run.Vars,
+		RunID:              run.ID,
+		Goal:               run.Goal,
+		CurrentState:       run.CurrentState,
+		Evidence:           run.Evidence,
+		AllowedTools:       allowedTools,
+		AllowedTransitions: e.transitions.AllowedTransitions(run.CurrentState),
+		ToolDefs:           e.buildToolDefs(allowedTools),
+		Budgets:            machineCtx.Budget.Snapshot(),
+		Vars:               run.Vars,
+		Feedback:           machineCtx.Feedback,
 	}
+	machineCtx.Feedback = "" // one-shot: consumed by this request
 
 	// Trace planner decision
 	var planSpan telemetry.Span
@@ -1119,6 +1122,20 @@ func (e *Engine) stateAllowsSideEffects(machineCtx *statemachine.Context, state 
 func (e *Engine) executeTransition(ctx context.Context, interp *statemachine.Interpreter, machineCtx *statemachine.Context, decision *agent.TransitionDecision) error {
 	fromState := machineCtx.Run.CurrentState
 	if err := interp.Transition(decision.ToState, decision.Reason); err != nil {
+		// A rejected transition is not a hard failure: feed it back so the
+		// planner self-corrects on the next step (and loop detection bounds
+		// repeated rejections). Other errors fail the run.
+		if errors.Is(err, agent.ErrTransitionRejected) {
+			allowed := e.transitions.AllowedTransitions(machineCtx.Run.CurrentState)
+			machineCtx.Feedback = fmt.Sprintf(
+				"Your transition to %q was rejected. You are still in state %q. Valid transitions from here are: %v. Choose one of those, or call an allowed tool.",
+				decision.ToState, machineCtx.Run.CurrentState, allowed)
+			e.logger.Info().
+				Add(logging.RunID(machineCtx.Run.ID)).
+				Add(logging.State(machineCtx.Run.CurrentState)).
+				Msg("transition rejected; feeding back to planner")
+			return nil
+		}
 		return err
 	}
 	e.publishEvent(ctx, machineCtx.Run.ID, event.TypeStateTransitioned, event.StateTransitionedPayload{
