@@ -42,6 +42,18 @@ func buildUserMessage(req planner.PlanRequest) string {
 	b.WriteString(string(req.CurrentState))
 	b.WriteString("\n\n")
 
+	// Allowed transitions: the only valid next states. The model must transition
+	// to one of these (never to another state, and never to the current one), so
+	// it does not propose a transition the state machine cannot perform.
+	if len(req.AllowedTransitions) > 0 {
+		b.WriteString("## Allowed Transitions\n")
+		b.WriteString("If you choose to transition, the `to_state` MUST be one of:\n")
+		for _, s := range req.AllowedTransitions {
+			fmt.Fprintf(&b, "- %s\n", s)
+		}
+		b.WriteString("Do not transition to any other state, and do not transition to the current state.\n\n")
+	}
+
 	// Available tools
 	if len(req.ToolDefs) > 0 {
 		b.WriteString("## Available Tools\n")
@@ -67,6 +79,14 @@ func buildUserMessage(req planner.PlanRequest) string {
 		b.WriteString("## Budget Remaining\n")
 		b.WriteString(formatBudgets(req.Budgets))
 		b.WriteString("\n")
+	}
+
+	// One-shot feedback from the engine about the previous step (e.g. a rejected
+	// transition). Placed last so it is the most recent context the model reads.
+	if req.Feedback != "" {
+		b.WriteString("## Important Feedback\n")
+		b.WriteString(req.Feedback)
+		b.WriteString("\n\n")
 	}
 
 	b.WriteString("What is your next decision? Respond with a JSON object.")

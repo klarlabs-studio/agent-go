@@ -1,2 +1,4 @@
 go.klarlabs.de/agent v0.10.0 h1:eCWFU38N6Cyji8GXmA32+llx3QZ40GGKd9rdrXezf6k=
 go.klarlabs.de/agent v0.10.0/go.mod h1:3b4RsqGRjJXhuMh74k0Y8sNUtgC1vaZFf0q0MT2bp0Q=
+go.klarlabs.de/agent v0.15.0 h1:2g7AwPkQuUoLmli/0JlmDGR/mhtPGCsqt8bSpxFp98A=
+go.klarlabs.de/agent v0.15.0/go.mod h1:bv1jLH8B+vHpGLq0HH66L1evUGHpvWMy2wYgmBJn0Lk=
