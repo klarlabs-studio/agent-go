@@ -32,25 +32,26 @@ import (
 
 // Engine is the main orchestration service for agent execution.
 type Engine struct {
-	registry     tool.Registry
-	planner      planner.Planner
-	executor     *resilience.Executor
-	artifacts    artifact.Store
-	knowledge    knowledge.Store
-	eligibility  *policy.ToolEligibility
-	transitions  *policy.StateTransitions
-	approver     policy.Approver
-	budgetLimits map[string]int
-	maxSteps     int
-	middleware   *middleware.Registry
-	tracer       telemetry.Tracer
-	meter        telemetry.Meter
-	runStore     run.Store
-	eventStore   event.Store
-	taskCtx      *task.Context
-	govFactory   governance.Factory
-	logger       *logging.Logger
-	clock        clock.Clock
+	registry      tool.Registry
+	planner       planner.Planner
+	executor      *resilience.Executor
+	artifacts     artifact.Store
+	knowledge     knowledge.Store
+	eligibility   *policy.ToolEligibility
+	transitions   *policy.StateTransitions
+	approver      policy.Approver
+	budgetLimits  map[string]int
+	maxSteps      int
+	maxNoProgress int
+	middleware    *middleware.Registry
+	tracer        telemetry.Tracer
+	meter         telemetry.Meter
+	runStore      run.Store
+	eventStore    event.Store
+	taskCtx       *task.Context
+	govFactory    governance.Factory
+	logger        *logging.Logger
+	clock         clock.Clock
 }
 
 // EngineConfig contains configuration for the engine.
@@ -65,12 +66,17 @@ type EngineConfig struct {
 	Approver     policy.Approver
 	BudgetLimits map[string]int
 	MaxSteps     int
-	Middleware   *middleware.Registry
-	Tracer       telemetry.Tracer
-	Meter        telemetry.Meter
-	RunStore     run.Store
-	EventStore   event.Store
-	TaskContext  *task.Context
+	// MaxNoProgress aborts a run after this many consecutive steps that make no
+	// progress — no state change AND no new evidence (e.g. the planner keeps
+	// emitting self-transitions or repeats). This is loop detection: it catches a
+	// stuck agent cheaply, long before MaxSteps. Zero uses the default (6).
+	MaxNoProgress int
+	Middleware    *middleware.Registry
+	Tracer        telemetry.Tracer
+	Meter         telemetry.Meter
+	RunStore      run.Store
+	EventStore    event.Store
+	TaskContext   *task.Context
 	// Governance selects the governance backend (budget + approval +
 	// evidence). When nil, the full-delegation KernelFactory is used: each run
 	// is ONE axi session, so budget, the destructive-tool approval gate, and
@@ -96,25 +102,26 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 	}
 
 	e := &Engine{
-		registry:     config.Registry,
-		planner:      config.Planner,
-		executor:     config.Executor,
-		artifacts:    config.Artifacts,
-		knowledge:    config.Knowledge,
-		eligibility:  config.Eligibility,
-		transitions:  config.Transitions,
-		approver:     config.Approver,
-		budgetLimits: config.BudgetLimits,
-		maxSteps:     config.MaxSteps,
-		middleware:   config.Middleware,
-		tracer:       config.Tracer,
-		meter:        config.Meter,
-		runStore:     config.RunStore,
-		eventStore:   config.EventStore,
-		taskCtx:      config.TaskContext,
-		govFactory:   config.Governance,
-		logger:       config.Logger,
-		clock:        config.Clock,
+		registry:      config.Registry,
+		planner:       config.Planner,
+		executor:      config.Executor,
+		artifacts:     config.Artifacts,
+		knowledge:     config.Knowledge,
+		eligibility:   config.Eligibility,
+		transitions:   config.Transitions,
+		approver:      config.Approver,
+		budgetLimits:  config.BudgetLimits,
+		maxSteps:      config.MaxSteps,
+		maxNoProgress: config.MaxNoProgress,
+		middleware:    config.Middleware,
+		tracer:        config.Tracer,
+		meter:         config.Meter,
+		runStore:      config.RunStore,
+		eventStore:    config.EventStore,
+		taskCtx:       config.TaskContext,
+		govFactory:    config.Governance,
+		logger:        config.Logger,
+		clock:         config.Clock,
 	}
 
 	// Set defaults
@@ -141,6 +148,9 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 	}
 	if e.maxSteps == 0 {
 		e.maxSteps = 100
+	}
+	if e.maxNoProgress == 0 {
+		e.maxNoProgress = 6
 	}
 	if e.govFactory == nil {
 		// Default governance: FULL axi delegation (spec § Changes Required #1,
@@ -293,8 +303,13 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 		Vars: vars,
 	})
 
-	// Execute until terminal state or max steps
+	// Execute until terminal state or max steps. Loop detection: a step is
+	// "productive" if it changes state or adds evidence; consecutive
+	// non-productive steps (self-transitions, repeats) trip maxNoProgress.
 	steps := 0
+	noProgress := 0
+	prevState := r.CurrentState
+	prevEvidence := len(r.Evidence)
 	for !interp.IsTerminal() && steps < e.maxSteps {
 		select {
 		case <-ctx.Done():
@@ -352,6 +367,30 @@ func (e *Engine) executeRun(ctx context.Context, runID, goal string, vars map[st
 
 		// Persist run state after each step
 		e.updateRun(ctx, r)
+
+		// Loop detection: abort when the run makes no progress (no state change
+		// and no new evidence) for maxNoProgress consecutive steps.
+		if r.CurrentState == prevState && len(r.Evidence) == prevEvidence {
+			noProgress++
+			if noProgress >= e.maxNoProgress {
+				msg := fmt.Sprintf("no progress: %d consecutive steps without a state change or new evidence (possible loop)", noProgress)
+				r.FailAt(msg, e.endTime(machineCtx))
+				runLedger.RecordRunFailed(r.CurrentState, msg)
+				e.logger.Error().
+					Add(logging.RunID(runID)).
+					Add(logging.State(r.CurrentState)).
+					Msg("run aborted: no progress (possible loop)")
+				e.publishEvent(ctx, runID, event.TypeRunFailed, event.RunFailedPayload{
+					Error: msg, State: r.CurrentState, Duration: r.Duration(),
+				})
+				e.updateRun(ctx, r)
+				return r, agent.ErrNoProgress
+			}
+		} else {
+			noProgress = 0
+		}
+		prevState = r.CurrentState
+		prevEvidence = len(r.Evidence)
 	}
 
 	if steps >= e.maxSteps && !interp.IsTerminal() {

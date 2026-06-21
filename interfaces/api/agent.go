@@ -181,6 +181,11 @@ var (
 	// ErrInvalidHumanInput is returned when the provided input doesn't
 	// match the allowed options for the pending question.
 	ErrInvalidHumanInput = agent.ErrInvalidHumanInput
+
+	// ErrNoProgress is returned when loop detection aborts a run: too many
+	// consecutive steps made no progress (no state change and no new evidence).
+	// Tune the threshold with WithMaxNoProgress.
+	ErrNoProgress = agent.ErrNoProgress
 )
 
 // Re-export knowledge types for RAG capabilities.
@@ -265,25 +270,26 @@ func New(opts ...Option) (*Engine, error) {
 	}
 
 	appConfig := application.EngineConfig{
-		Registry:     config.registry,
-		Planner:      config.planner,
-		Executor:     config.executor,
-		Artifacts:    config.artifacts,
-		Knowledge:    config.knowledge,
-		Eligibility:  config.eligibility,
-		Transitions:  config.transitions,
-		Approver:     config.approver,
-		BudgetLimits: config.budgets,
-		MaxSteps:     config.maxSteps,
-		Middleware:   config.middleware,
-		Tracer:       config.tracer,
-		Meter:        config.meter,
-		RunStore:     config.runStore,
-		EventStore:   config.eventStore,
-		TaskContext:  config.taskCtx,
-		Governance:   config.governance,
-		Logger:       config.logger,
-		Clock:        config.clock,
+		Registry:      config.registry,
+		Planner:       config.planner,
+		Executor:      config.executor,
+		Artifacts:     config.artifacts,
+		Knowledge:     config.knowledge,
+		Eligibility:   config.eligibility,
+		Transitions:   config.transitions,
+		Approver:      config.approver,
+		BudgetLimits:  config.budgets,
+		MaxSteps:      config.maxSteps,
+		MaxNoProgress: config.maxNoProgress,
+		Middleware:    config.middleware,
+		Tracer:        config.tracer,
+		Meter:         config.meter,
+		RunStore:      config.runStore,
+		EventStore:    config.eventStore,
+		TaskContext:   config.taskCtx,
+		Governance:    config.governance,
+		Logger:        config.logger,
+		Clock:         config.clock,
 	}
 
 	engine, err := application.NewEngine(appConfig)
@@ -406,25 +412,26 @@ func (e *Engine) Knowledge() knowledge.Store {
 
 // engineConfig holds configuration for engine creation.
 type engineConfig struct {
-	registry    tool.Registry
-	planner     planner.Planner
-	executor    *resilience.Executor
-	artifacts   artifact.Store
-	knowledge   knowledge.Store
-	eligibility *policy.ToolEligibility
-	transitions *policy.StateTransitions
-	approver    policy.Approver
-	budgets     map[string]int
-	maxSteps    int
-	middleware  *middleware.Registry
-	tracer      telemetry.Tracer
-	meter       telemetry.Meter
-	runStore    run.Store
-	eventStore  event.Store
-	taskCtx     *task.Context
-	governance  governance.Factory
-	logger      *logging.Logger
-	clock       clock.Clock
+	registry      tool.Registry
+	planner       planner.Planner
+	executor      *resilience.Executor
+	artifacts     artifact.Store
+	knowledge     knowledge.Store
+	eligibility   *policy.ToolEligibility
+	transitions   *policy.StateTransitions
+	approver      policy.Approver
+	budgets       map[string]int
+	maxSteps      int
+	maxNoProgress int
+	middleware    *middleware.Registry
+	tracer        telemetry.Tracer
+	meter         telemetry.Meter
+	runStore      run.Store
+	eventStore    event.Store
+	taskCtx       *task.Context
+	governance    governance.Factory
+	logger        *logging.Logger
+	clock         clock.Clock
 }
 
 // Option configures the Engine.
@@ -535,6 +542,15 @@ func WithBudget(name string, limit int) Option {
 func WithMaxSteps(n int) Option {
 	return func(c *engineConfig) {
 		c.maxSteps = n
+	}
+}
+
+// WithMaxNoProgress sets loop detection: a run is aborted after this many
+// consecutive steps that make no progress (no state change and no new
+// evidence). Zero uses the default (6).
+func WithMaxNoProgress(n int) Option {
+	return func(c *engineConfig) {
+		c.maxNoProgress = n
 	}
 }
 
