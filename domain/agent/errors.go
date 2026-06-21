@@ -22,6 +22,11 @@ var (
 	// ErrAwaitingHumanInput indicates the run is paused awaiting human input.
 	ErrAwaitingHumanInput = errors.New("run is awaiting human input")
 
+	// ErrNoProgress indicates the run was aborted by loop detection: too many
+	// consecutive steps made no progress (no state change and no new evidence),
+	// e.g. the planner kept emitting self-transitions or repeats.
+	ErrNoProgress = errors.New("run aborted: no progress (possible loop)")
+
 	// ErrNoPendingQuestion indicates no pending question exists for human input.
 	ErrNoPendingQuestion = errors.New("run does not have a pending question")
 
