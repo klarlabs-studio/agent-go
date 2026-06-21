@@ -27,6 +27,12 @@ var (
 	// e.g. the planner kept emitting self-transitions or repeats.
 	ErrNoProgress = errors.New("run aborted: no progress (possible loop)")
 
+	// ErrTransitionRejected indicates a requested transition did not fire: the
+	// policy disallows it, or the state machine has no matching edge from the
+	// current state. The engine surfaces this to the planner as feedback rather
+	// than letting it become a silent no-op.
+	ErrTransitionRejected = errors.New("transition rejected")
+
 	// ErrNoPendingQuestion indicates no pending question exists for human input.
 	ErrNoPendingQuestion = errors.New("run does not have a pending question")
 

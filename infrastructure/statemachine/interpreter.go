@@ -80,26 +80,28 @@ func (i *Interpreter) State() agent.State {
 
 // Transition attempts to transition to the target state.
 func (i *Interpreter) Transition(to agent.State, reason string) error {
-	// Check if transition is allowed
+	from := i.ctx.Run.CurrentState
+
+	// Policy check.
 	if !i.CanTransition(to) {
-		return fmt.Errorf("transition from %s to %s not allowed", i.ctx.Run.CurrentState, to)
+		return fmt.Errorf("%w: %s to %s not permitted by policy", agent.ErrTransitionRejected, from, to)
 	}
 
 	eventType := EventForTransition(to)
-	payload := TransitionPayload{
-		ToState: to,
-		Reason:  reason,
-	}
-
 	event := statekit.Event{
 		Type:    eventType,
-		Payload: payload,
+		Payload: TransitionPayload{ToState: to, Reason: reason},
 	}
 
-	// Send the event (doesn't return error, uses panic for invalid events)
-	i.interp.Send(event)
+	// SendResult reports whether the machine actually fired a transition. A false
+	// return means the machine has no matching edge from the current state (the
+	// policy and the machine disagree) — surface it as a rejection instead of
+	// silently staying put, which would otherwise spin the run.
+	if !i.interp.SendResult(event) {
+		return fmt.Errorf("%w: %s to %s has no matching state-machine edge", agent.ErrTransitionRejected, from, to)
+	}
 
-	// Update the run's current state
+	// Update the run's current state.
 	newState := i.interp.State()
 	i.ctx.Run.CurrentState = agent.State(newState.Value)
 

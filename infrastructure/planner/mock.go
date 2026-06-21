@@ -24,9 +24,17 @@ type PlanRequest struct {
 	CurrentState agent.State
 	Evidence     []agent.Evidence
 	AllowedTools []string
-	ToolDefs     []ToolDef
-	Budgets      policy.BudgetSnapshot
-	Vars         map[string]any
+	// AllowedTransitions lists the states reachable from CurrentState under the
+	// transition policy. Planners should only emit a transition to one of these
+	// (analogous to AllowedTools), so the LLM picks a valid next state instead
+	// of guessing one the machine cannot perform.
+	AllowedTransitions []agent.State
+	ToolDefs           []ToolDef
+	Budgets            policy.BudgetSnapshot
+	Vars               map[string]any
+	// Feedback is a one-shot note from the engine about the previous step —
+	// e.g. that a transition was rejected — so the planner can self-correct.
+	Feedback string
 }
 
 // Planner is the interface for decision engines.

@@ -518,33 +518,96 @@ func TestRun_ToolNotFound(t *testing.T) {
 
 // State Transition Tests
 
+// alwaysTransitionPlanner always proposes a transition to a fixed state. Used to
+// test that a persistently-invalid transition is rejected (never applied) and
+// bounded by loop detection rather than silently spinning.
+type alwaysTransitionPlanner struct{ to agent.State }
+
+func (p alwaysTransitionPlanner) Plan(_ context.Context, _ planner.PlanRequest) (agent.Decision, error) {
+	return agent.NewTransitionDecision(p.to, "fixed"), nil
+}
+
+// exploreThenInvalidPlanner advances intake->explore once, then repeatedly
+// proposes the invalid explore->act jump.
+type exploreThenInvalidPlanner struct{}
+
+func (exploreThenInvalidPlanner) Plan(_ context.Context, req planner.PlanRequest) (agent.Decision, error) {
+	if req.CurrentState == agent.StateIntake {
+		return agent.NewTransitionDecision(agent.StateExplore, "explore"), nil
+	}
+	return agent.NewTransitionDecision(agent.StateAct, "invalid skip"), nil
+}
+
+// selfCorrectPlanner emits one invalid transition, then (after feedback) takes
+// the valid path to completion.
+type selfCorrectPlanner struct {
+	intakeTries int
+	sawFeedback bool
+}
+
+func (p *selfCorrectPlanner) Plan(_ context.Context, req planner.PlanRequest) (agent.Decision, error) {
+	switch req.CurrentState {
+	case agent.StateIntake:
+		p.intakeTries++
+		if p.intakeTries == 1 {
+			return agent.NewTransitionDecision(agent.StateAct, "invalid jump"), nil
+		}
+		if req.Feedback != "" {
+			p.sawFeedback = true
+		}
+		return agent.NewTransitionDecision(agent.StateExplore, "recovered"), nil
+	case agent.StateExplore:
+		return agent.NewTransitionDecision(agent.StateDecide, "to decide"), nil
+	case agent.StateDecide:
+		return agent.NewFinishDecision("done", json.RawMessage(`{"ok":true}`)), nil
+	default:
+		return agent.NewFailDecision("unexpected state", nil), nil
+	}
+}
+
+func TestRun_TransitionRejection_FeedbackAndSelfCorrect(t *testing.T) {
+	// A rejected transition is recoverable: the engine feeds it back, the planner
+	// sees it and chooses a valid transition, and the run completes.
+	p := &selfCorrectPlanner{}
+	engine, err := NewEngine(EngineConfig{Registry: newTestRegistry(), Planner: p})
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+
+	run, runErr := engine.Run(context.Background(), "self-correct")
+	if runErr != nil {
+		t.Fatalf("expected recovery, got error: %v", runErr)
+	}
+	if run.Status != agent.RunStatusCompleted {
+		t.Errorf("expected completed, got %s", run.Status)
+	}
+	if !p.sawFeedback {
+		t.Error("planner did not receive feedback after the rejected transition")
+	}
+}
+
 func TestRun_InvalidTransition_Rejected(t *testing.T) {
-	registry := newTestRegistry()
-
-	// Try invalid transition: intake -> act (not allowed)
-	scriptedPlanner := planner.NewScriptedPlanner(
-		planner.ScriptStep{
-			ExpectState: agent.StateIntake,
-			Decision:    agent.NewTransitionDecision(agent.StateAct, "invalid jump to act"),
-		},
-	)
-
+	// A persistently-invalid transition (intake->act has no machine edge) is
+	// rejected — never applied — and the run is bounded by loop detection,
+	// not silently spun.
 	engine, err := NewEngine(EngineConfig{
-		Registry: registry,
-		Planner:  scriptedPlanner,
+		Registry:      newTestRegistry(),
+		Planner:       alwaysTransitionPlanner{to: agent.StateAct},
+		MaxNoProgress: 3,
 	})
 	if err != nil {
 		t.Fatalf("failed to create engine: %v", err)
 	}
 
-	ctx := context.Background()
-	run, runErr := engine.Run(ctx, "test invalid transition")
-
-	if runErr == nil {
-		t.Error("expected error for invalid transition")
+	run, runErr := engine.Run(context.Background(), "test invalid transition")
+	if !errors.Is(runErr, agent.ErrNoProgress) {
+		t.Errorf("expected ErrNoProgress, got %v", runErr)
 	}
 	if run.Status != agent.RunStatusFailed {
 		t.Errorf("expected run to fail, got status %s", run.Status)
+	}
+	if run.CurrentState == agent.StateAct {
+		t.Error("invalid transition to act should not have been applied")
 	}
 }
 
@@ -1663,55 +1726,45 @@ func TestRun_ToolExecutionError_PreservesEvidence(t *testing.T) {
 func TestRun_InvalidTransition_IntakeToValidate(t *testing.T) {
 	registry := newTestRegistry()
 
-	scriptedPlanner := planner.NewScriptedPlanner(
-		planner.ScriptStep{
-			ExpectState: agent.StateIntake,
-			Decision:    agent.NewTransitionDecision(agent.StateValidate, "jump to validate"),
-		},
-	)
-
 	engine, err := NewEngine(EngineConfig{
-		Registry: registry,
-		Planner:  scriptedPlanner,
+		Registry:      registry,
+		Planner:       alwaysTransitionPlanner{to: agent.StateValidate},
+		MaxNoProgress: 3,
 	})
 	if err != nil {
 		t.Fatalf("failed to create engine: %v", err)
 	}
 
 	run, runErr := engine.Run(context.Background(), "test invalid intake->validate")
-	if runErr == nil {
-		t.Error("expected error for invalid transition")
+	if !errors.Is(runErr, agent.ErrNoProgress) {
+		t.Errorf("expected ErrNoProgress, got %v", runErr)
 	}
 	if run.Status != agent.RunStatusFailed {
 		t.Errorf("expected failed, got %s", run.Status)
+	}
+	if run.CurrentState == agent.StateValidate {
+		t.Error("invalid transition to validate should not have been applied")
 	}
 }
 
 func TestRun_InvalidTransition_ExploreToAct(t *testing.T) {
 	registry := newTestRegistry()
 
-	scriptedPlanner := planner.NewScriptedPlanner(
-		planner.ScriptStep{
-			ExpectState: agent.StateIntake,
-			Decision:    agent.NewTransitionDecision(agent.StateExplore, "explore"),
-		},
-		planner.ScriptStep{
-			ExpectState: agent.StateExplore,
-			Decision:    agent.NewTransitionDecision(agent.StateAct, "skip decide - invalid"),
-		},
-	)
-
 	engine, err := NewEngine(EngineConfig{
-		Registry: registry,
-		Planner:  scriptedPlanner,
+		Registry:      registry,
+		Planner:       exploreThenInvalidPlanner{},
+		MaxNoProgress: 3,
 	})
 	if err != nil {
 		t.Fatalf("failed to create engine: %v", err)
 	}
 
 	run, runErr := engine.Run(context.Background(), "test invalid explore->act")
-	if runErr == nil {
-		t.Error("expected error for invalid transition")
+	// intake->explore applies; the invalid explore->act is rejected and never
+	// progresses, so the run is bounded by loop detection. (If act had applied,
+	// the run would have progressed instead of aborting.)
+	if !errors.Is(runErr, agent.ErrNoProgress) {
+		t.Errorf("expected ErrNoProgress, got %v", runErr)
 	}
 	if run.Status != agent.RunStatusFailed {
 		t.Errorf("expected failed, got %s", run.Status)

@@ -29,6 +29,10 @@ type Context struct {
 	// sets it to its injected clock so the start timestamp is deterministic
 	// under a fixed clock; when nil, the system clock is used.
 	Clock clock.Clock
+	// Feedback carries a one-shot message for the planner's next decision —
+	// e.g. that the previous transition was rejected. The engine sets it and
+	// clears it after threading it into the next PlanRequest.
+	Feedback string
 }
 
 // NewContext creates a new machine context.
