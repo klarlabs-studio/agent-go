@@ -30,9 +30,9 @@ on:
   pull_request:
     branches: [main]
     paths: ["contrib/**"]
-  schedule:
-    # Weekly full matrix — Monday 04:00 UTC.
-    - cron: "0 4 * * 1"
+  # Weekly full-matrix cron removed: push-to-main already runs the full
+  # matrix on every merge (the post-merge safety net), so the cron only
+  # duplicated that spend.
   workflow_dispatch: {}
 
 concurrency:
