@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -179,6 +180,11 @@ func (m *Migrator) Pending(ctx context.Context) ([]Migration, error) {
 
 // ensureMigrationsTable creates the schema_migrations table if it does not exist.
 func (m *Migrator) ensureMigrationsTable(ctx context.Context) error {
+	// Create the target schema first so a non-public schema works without the
+	// caller pre-creating it (the tracking table + migration DDL are schema-bound).
+	if _, err := m.pool.Exec(ctx, "CREATE SCHEMA IF NOT EXISTS "+m.quotedSchema()); err != nil {
+		return fmt.Errorf("ensure schema: %w", err)
+	}
 	query := fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS %s (
 			version    INTEGER PRIMARY KEY,
@@ -190,6 +196,19 @@ func (m *Migrator) ensureMigrationsTable(ctx context.Context) error {
 	return err
 }
 
+// quotedSchema returns the schema as a sanitized SQL identifier.
+func (m *Migrator) quotedSchema() string {
+	return pgx.Identifier{m.schema}.Sanitize()
+}
+
+// setSearchPath scopes unqualified DDL in the migration to the target schema, so
+// CREATE TABLE in a migration lands in m.schema (not whatever the session default
+// search_path is — typically public).
+func (m *Migrator) setSearchPath(ctx context.Context, tx pgx.Tx) error {
+	_, err := tx.Exec(ctx, "SET LOCAL search_path TO "+m.quotedSchema())
+	return err
+}
+
 // applyUp runs a migration's Up SQL and records it in the migrations table.
 func (m *Migrator) applyUp(ctx context.Context, mig Migration) error {
 	tx, err := m.pool.Begin(ctx)
@@ -198,6 +217,9 @@ func (m *Migrator) applyUp(ctx context.Context, mig Migration) error {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	if err := m.setSearchPath(ctx, tx); err != nil {
+		return fmt.Errorf("set search_path: %w", err)
+	}
 	if _, err := tx.Exec(ctx, mig.Up); err != nil {
 		return fmt.Errorf("execute up SQL: %w", err)
 	}
@@ -221,6 +243,9 @@ func (m *Migrator) applyDown(ctx context.Context, mig Migration) error {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	if err := m.setSearchPath(ctx, tx); err != nil {
+		return fmt.Errorf("set search_path: %w", err)
+	}
 	if _, err := tx.Exec(ctx, mig.Down); err != nil {
 		return fmt.Errorf("execute down SQL: %w", err)
 	}
