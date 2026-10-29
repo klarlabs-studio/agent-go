@@ -151,7 +151,7 @@ func (p *jiraPack) createIssueTool() tool.Tool {
 
 			fields := &issue.IssueFields{
 				Summary:     in.Summary,
-				Description: in.Description,
+				Description: issue.ADFFromText(in.Description),
 				Project:     &issue.Project{Key: in.Project},
 				IssueType:   &issue.IssueType{Name: in.IssueType},
 			}
@@ -317,7 +317,7 @@ func (p *jiraPack) addCommentTool() tool.Tool {
 			}
 
 			comment, err := client.Issue.AddComment(ctx, in.Key, &issue.AddCommentInput{
-				Body: in.Body,
+				Body: issue.ADFFromText(in.Body),
 			})
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("failed to add comment: %w", err)

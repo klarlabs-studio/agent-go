@@ -1,6 +1,6 @@
-github.com/ohler55/ojg v1.25.0 h1:sDwc4u4zex65Uz5Nm7O1QwDKTT+YRcpeZQTy1pffRkw=
-github.com/ohler55/ojg v1.25.0/go.mod h1:gQhDVpQLqrmnd2eqGAvJtn+NfKoYJbe/A4Sj3/Vro4o=
+github.com/ohler55/ojg v1.28.9 h1:VL2vdN1CjniaNABNOFjorAW+/o7eBQDc4z5jO49jkHM=
+github.com/ohler55/ojg v1.28.9/go.mod h1:/Y5dGWkekv9ocnUixuETqiL58f+5pAsUfg5P8e7Pa2o=
 github.com/santhosh-tekuri/jsonschema/v5 v5.3.1 h1:lZUw3E0/J3roVtGQ+SCrUrg3ON6NgVqpn3+iol9aGu4=
 github.com/santhosh-tekuri/jsonschema/v5 v5.3.1/go.mod h1:uToXkOrWAZ6/Oc07xWQrPOhJotwFIyu2bBVN41fcDUY=
-go.klarlabs.de/agent v0.15.0 h1:2g7AwPkQuUoLmli/0JlmDGR/mhtPGCsqt8bSpxFp98A=
-go.klarlabs.de/agent v0.15.0/go.mod h1:bv1jLH8B+vHpGLq0HH66L1evUGHpvWMy2wYgmBJn0Lk=
+go.klarlabs.de/agent v0.16.2 h1:lTebdr1tYQNiTlSfr0JgWhUTxFHypQ+h/KLHrB1veVk=
+go.klarlabs.de/agent v0.16.2/go.mod h1:NVSNu6Y6Dz8+VvmS2cKRZKCNRfM4pzFOr4yaOFIWhgI=

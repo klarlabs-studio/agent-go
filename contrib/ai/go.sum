@@ -1,4 +1,4 @@
-go.klarlabs.de/statekit v1.13.2 h1:jhq2lJMMRo6CeVoryL2aEUj/DV5JldNscBOio9TEvmQ=
-go.klarlabs.de/statekit v1.13.2/go.mod h1:/0OfP+tXhnjz6t2FACqv4q5BDeNcqMytx+vMniPxxWc=
+go.klarlabs.de/statekit v1.14.0 h1:8CgkScBGzOYiHkq/pCXFb0TeclBA89IOJJLV3PsUy8o=
+go.klarlabs.de/statekit v1.14.0/go.mod h1:/0OfP+tXhnjz6t2FACqv4q5BDeNcqMytx+vMniPxxWc=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
 go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=

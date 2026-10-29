@@ -1,4 +1,4 @@
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-go.klarlabs.de/agent v0.15.0 h1:2g7AwPkQuUoLmli/0JlmDGR/mhtPGCsqt8bSpxFp98A=
-go.klarlabs.de/agent v0.15.0/go.mod h1:bv1jLH8B+vHpGLq0HH66L1evUGHpvWMy2wYgmBJn0Lk=
+go.klarlabs.de/agent v0.16.2 h1:lTebdr1tYQNiTlSfr0JgWhUTxFHypQ+h/KLHrB1veVk=
+go.klarlabs.de/agent v0.16.2/go.mod h1:NVSNu6Y6Dz8+VvmS2cKRZKCNRfM4pzFOr4yaOFIWhgI=

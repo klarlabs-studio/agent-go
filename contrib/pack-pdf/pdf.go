@@ -114,7 +114,7 @@ func pdfExtractText(baseDir string) tool.Tool {
 		WithInputSchema(tool.ObjectSchema(map[string]json.RawMessage{
 			"path": json.RawMessage(`{"type":"string","description":"Path to the PDF (relative to base directory)"}`),
 		}, []string{"path"})).
-		WithHandler(func(_ context.Context, input json.RawMessage) (tool.Result, error) {
+		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var in extractTextInput
 			if err := json.Unmarshal(input, &in); err != nil {
 				return tool.Result{}, fmt.Errorf("invalid input: %w", err)
@@ -158,7 +158,7 @@ func pdfMetadata(baseDir string) tool.Tool {
 		WithInputSchema(tool.ObjectSchema(map[string]json.RawMessage{
 			"path": json.RawMessage(`{"type":"string","description":"Path to the PDF (relative to base directory)"}`),
 		}, []string{"path"})).
-		WithHandler(func(_ context.Context, input json.RawMessage) (tool.Result, error) {
+		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var in metadataInput
 			if err := json.Unmarshal(input, &in); err != nil {
 				return tool.Result{}, fmt.Errorf("invalid input: %w", err)
@@ -182,10 +182,10 @@ func pdfMetadata(baseDir string) tool.Tool {
 			}
 			defer f.Close()
 
-			pdfInfo, err := pdfcpuapi.PDFInfo(f, fullPath, nil, false, nil)
+			pdfInfo, err := pdfcpuapi.PDFInfo(ctx, f, fullPath, nil, false, nil)
 			if err != nil {
 				// Fall back to page count only when metadata parsing fails.
-				n, pcErr := pdfcpuapi.PageCountFile(fullPath)
+				n, pcErr := pdfcpuapi.PageCountFile(ctx, fullPath)
 				if pcErr != nil {
 					return tool.Result{}, fmt.Errorf("failed to read PDF metadata: %w", err)
 				}
@@ -212,7 +212,7 @@ func pdfMerge(baseDir string) tool.Tool {
 			"paths":  json.RawMessage(`{"type":"array","items":{"type":"string"},"description":"PDF paths to merge in order (relative to base directory)"}`),
 			"output": json.RawMessage(`{"type":"string","description":"Output PDF path (relative to base directory)"}`),
 		}, []string{"paths", "output"})).
-		WithHandler(func(_ context.Context, input json.RawMessage) (tool.Result, error) {
+		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var in mergeInput
 			if err := json.Unmarshal(input, &in); err != nil {
 				return tool.Result{}, fmt.Errorf("invalid input: %w", err)
@@ -237,11 +237,11 @@ func pdfMerge(baseDir string) tool.Tool {
 				return tool.Result{}, fmt.Errorf("failed to create output directory: %w", err)
 			}
 
-			if err := pdfcpuapi.MergeCreateFile(inFiles, outPath, false, nil); err != nil {
+			if err := pdfcpuapi.MergeCreateFile(ctx, inFiles, outPath, false, nil); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to merge PDFs: %w", err)
 			}
 
-			n, err := pdfcpuapi.PageCountFile(outPath)
+			n, err := pdfcpuapi.PageCountFile(ctx, outPath)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("merged but failed to count pages: %w", err)
 			}
@@ -265,7 +265,7 @@ func pdfSplit(baseDir string) tool.Tool {
 			"start_page": json.RawMessage(`{"type":"integer","description":"1-based start page (inclusive), used when pages is empty"}`),
 			"end_page":   json.RawMessage(`{"type":"integer","description":"1-based end page (inclusive), used when pages is empty"}`),
 		}, []string{"path", "output"})).
-		WithHandler(func(_ context.Context, input json.RawMessage) (tool.Result, error) {
+		WithHandler(func(ctx context.Context, input json.RawMessage) (tool.Result, error) {
 			var in splitInput
 			if err := json.Unmarshal(input, &in); err != nil {
 				return tool.Result{}, fmt.Errorf("invalid input: %w", err)
@@ -296,11 +296,11 @@ func pdfSplit(baseDir string) tool.Tool {
 				return tool.Result{}, fmt.Errorf("failed to create output directory: %w", err)
 			}
 
-			if err := pdfcpuapi.TrimFile(srcPath, outPath, []string{pages}, nil); err != nil {
+			if err := pdfcpuapi.TrimFile(ctx, srcPath, outPath, []string{pages}, nil); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to split PDF: %w", err)
 			}
 
-			n, err := pdfcpuapi.PageCountFile(outPath)
+			n, err := pdfcpuapi.PageCountFile(ctx, outPath)
 			if err != nil {
 				return tool.Result{}, fmt.Errorf("split but failed to count pages: %w", err)
 			}

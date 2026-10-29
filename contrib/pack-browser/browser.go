@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
@@ -151,19 +150,19 @@ func (p *browserPack) navigateTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			actions = append(actions, chromedp.Navigate(params.URL))
 
 			if params.Wait == "networkIdle" {
 				actions = append(actions, chromedp.WaitReady("body"))
 			}
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("navigation failed: %w", err)
 			}
 
 			var currentURL string
-			if err := chromedp.Run(browserCtx, chromedp.Location(&currentURL)); err != nil {
+			if err := chromedp.Do(browserCtx, into(&currentURL, chromedp.Location())); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to get URL: %w", err)
 			}
 
@@ -201,7 +200,7 @@ func (p *browserPack) getHTMLTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			if params.URL != "" {
 				actions = append(actions, chromedp.Navigate(params.URL))
 				actions = append(actions, chromedp.WaitReady("body"))
@@ -214,12 +213,12 @@ func (p *browserPack) getHTMLTool() tool.Tool {
 			}
 
 			if params.Outer {
-				actions = append(actions, chromedp.OuterHTML(selector, &html))
+				actions = append(actions, into(&html, chromedp.OuterHTML(selector)))
 			} else {
-				actions = append(actions, chromedp.InnerHTML(selector, &html))
+				actions = append(actions, into(&html, chromedp.InnerHTML(selector)))
 			}
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to get HTML: %w", err)
 			}
 
@@ -260,16 +259,16 @@ func (p *browserPack) getTextTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			if params.URL != "" {
 				actions = append(actions, chromedp.Navigate(params.URL))
 				actions = append(actions, chromedp.WaitReady("body"))
 			}
 
 			var text string
-			actions = append(actions, chromedp.Text(params.Selector, &text))
+			actions = append(actions, into(&text, chromedp.Text(params.Selector)))
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("failed to get text: %w", err)
 			}
 
@@ -309,7 +308,7 @@ func (p *browserPack) screenshotTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			if params.URL != "" {
 				actions = append(actions, chromedp.Navigate(params.URL))
 				actions = append(actions, chromedp.WaitReady("body"))
@@ -318,14 +317,14 @@ func (p *browserPack) screenshotTool() tool.Tool {
 			var buf []byte
 			switch {
 			case params.Selector != "":
-				actions = append(actions, chromedp.Screenshot(params.Selector, &buf))
+				actions = append(actions, into(&buf, chromedp.Screenshot(params.Selector)))
 			case params.FullPage:
-				actions = append(actions, chromedp.FullScreenshot(&buf, 90))
+				actions = append(actions, into(&buf, chromedp.FullScreenshot(90)))
 			default:
-				actions = append(actions, chromedp.CaptureScreenshot(&buf))
+				actions = append(actions, into(&buf, chromedp.CaptureScreenshot()))
 			}
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("screenshot failed: %w", err)
 			}
 
@@ -367,7 +366,7 @@ func (p *browserPack) clickTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			if params.URL != "" {
 				actions = append(actions, chromedp.Navigate(params.URL))
 				actions = append(actions, chromedp.WaitReady("body"))
@@ -375,7 +374,7 @@ func (p *browserPack) clickTool() tool.Tool {
 
 			actions = append(actions, chromedp.Click(params.Selector))
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("click failed: %w", err)
 			}
 
@@ -417,7 +416,7 @@ func (p *browserPack) typeTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			if params.URL != "" {
 				actions = append(actions, chromedp.Navigate(params.URL))
 				actions = append(actions, chromedp.WaitReady("body"))
@@ -428,7 +427,7 @@ func (p *browserPack) typeTool() tool.Tool {
 			}
 			actions = append(actions, chromedp.SendKeys(params.Selector, params.Text))
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("type failed: %w", err)
 			}
 
@@ -469,7 +468,7 @@ func (p *browserPack) submitTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			if params.URL != "" {
 				actions = append(actions, chromedp.Navigate(params.URL))
 				actions = append(actions, chromedp.WaitReady("body"))
@@ -477,7 +476,7 @@ func (p *browserPack) submitTool() tool.Tool {
 
 			actions = append(actions, chromedp.Submit(params.Selector))
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("submit failed: %w", err)
 			}
 
@@ -525,17 +524,17 @@ func (p *browserPack) waitForTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, timeout)
 			defer cancelTimeout()
 
-			var action chromedp.Action
+			var act action
 			switch {
 			case params.Hidden:
-				action = chromedp.WaitNotPresent(params.Selector)
+				act = chromedp.WaitNotPresent(params.Selector)
 			case params.Visible:
-				action = chromedp.WaitVisible(params.Selector)
+				act = chromedp.WaitVisible(params.Selector)
 			default:
-				action = chromedp.WaitReady(params.Selector)
+				act = chromedp.WaitReady(params.Selector)
 			}
 
-			if err := chromedp.Run(browserCtx, action); err != nil {
+			if err := chromedp.Do(browserCtx, act); err != nil {
 				return tool.Result{}, fmt.Errorf("wait failed: %w", err)
 			}
 
@@ -575,16 +574,16 @@ func (p *browserPack) evaluateTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			if params.URL != "" {
 				actions = append(actions, chromedp.Navigate(params.URL))
 				actions = append(actions, chromedp.WaitReady("body"))
 			}
 
 			var result interface{}
-			actions = append(actions, chromedp.Evaluate(params.Expression, &result))
+			actions = append(actions, into(&result, chromedp.Evaluate[interface{}](params.Expression)))
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("evaluate failed: %w", err)
 			}
 
@@ -624,7 +623,7 @@ func (p *browserPack) getAttributeTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			if params.URL != "" {
 				actions = append(actions, chromedp.Navigate(params.URL))
 				actions = append(actions, chromedp.WaitReady("body"))
@@ -632,9 +631,9 @@ func (p *browserPack) getAttributeTool() tool.Tool {
 
 			var value string
 			var ok bool
-			actions = append(actions, chromedp.AttributeValue(params.Selector, params.Attribute, &value, &ok))
+			actions = append(actions, attrInto(&value, &ok, chromedp.AttributeValue(params.Selector, params.Attribute)))
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("get attribute failed: %w", err)
 			}
 
@@ -680,7 +679,7 @@ func (p *browserPack) setAttributeTool() tool.Tool {
 			script := fmt.Sprintf(`document.querySelector(%q).setAttribute(%q, %q)`,
 				params.Selector, params.Attribute, params.Value)
 
-			if err := chromedp.Run(browserCtx, chromedp.Evaluate(script, nil)); err != nil {
+			if err := chromedp.Do(browserCtx, discard(chromedp.Evaluate[interface{}](script))); err != nil {
 				return tool.Result{}, fmt.Errorf("set attribute failed: %w", err)
 			}
 
@@ -723,16 +722,16 @@ func (p *browserPack) querySelectorTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			if params.URL != "" {
 				actions = append(actions, chromedp.Navigate(params.URL))
 				actions = append(actions, chromedp.WaitReady("body"))
 			}
 
-			var nodes []*cdp.Node
-			actions = append(actions, chromedp.Nodes(params.Selector, &nodes, chromedp.ByQuery))
+			var nodes []*chromedp.Node
+			actions = append(actions, into(&nodes, chromedp.Nodes(chromedp.CSS(params.Selector))))
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("query failed: %w", err)
 			}
 
@@ -786,16 +785,16 @@ func (p *browserPack) querySelectorAllTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			if params.URL != "" {
 				actions = append(actions, chromedp.Navigate(params.URL))
 				actions = append(actions, chromedp.WaitReady("body"))
 			}
 
-			var nodes []*cdp.Node
-			actions = append(actions, chromedp.Nodes(params.Selector, &nodes, chromedp.ByQueryAll))
+			var nodes []*chromedp.Node
+			actions = append(actions, into(&nodes, chromedp.Nodes(chromedp.CSSAll(params.Selector))))
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("query failed: %w", err)
 			}
 
@@ -861,7 +860,7 @@ func (p *browserPack) scrollTool() tool.Tool {
 					params.Y, params.X, behavior)
 			}
 
-			if err := chromedp.Run(browserCtx, chromedp.Evaluate(script, nil)); err != nil {
+			if err := chromedp.Do(browserCtx, discard(chromedp.Evaluate[interface{}](script))); err != nil {
 				return tool.Result{}, fmt.Errorf("scroll failed: %w", err)
 			}
 
@@ -899,7 +898,7 @@ func (p *browserPack) hoverTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			if err := chromedp.Run(browserCtx, chromedp.MouseClickXY(0, 0)); err != nil {
+			if err := chromedp.Do(browserCtx, chromedp.MouseClickXY(0, 0)); err != nil {
 				// Ignore, just ensuring we have focus
 			}
 
@@ -915,7 +914,7 @@ func (p *browserPack) hoverTool() tool.Tool {
 				}
 			`, params.Selector)
 
-			if err := chromedp.Run(browserCtx, chromedp.Evaluate(script, nil)); err != nil {
+			if err := chromedp.Do(browserCtx, discard(chromedp.Evaluate[interface{}](script))); err != nil {
 				return tool.Result{}, fmt.Errorf("hover failed: %w", err)
 			}
 
@@ -951,19 +950,19 @@ func (p *browserPack) getCookiesTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			if params.URL != "" {
 				actions = append(actions, chromedp.Navigate(params.URL))
 			}
 
 			var cookies []*network.Cookie
-			actions = append(actions, chromedp.ActionFunc(func(ctx context.Context) error {
-				var err error
-				cookies, err = network.GetCookies().Do(ctx)
+			actions = append(actions, chromedp.Func(func(ctx context.Context, t *chromedp.Target) error {
+				res, err := cdp.Call(ctx, t, network.GetCookies, network.GetCookiesParams{})
+				cookies = res.Cookies
 				return err
 			}))
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("get cookies failed: %w", err)
 			}
 
@@ -1026,14 +1025,17 @@ func (p *browserPack) setCookieTool() tool.Tool {
 				path = "/"
 			}
 
-			err = chromedp.Run(browserCtx,
-				chromedp.ActionFunc(func(ctx context.Context) error {
-					return network.SetCookie(params.Name, params.Value).
-						WithDomain(params.Domain).
-						WithPath(path).
-						WithSecure(params.Secure).
-						WithHTTPOnly(params.HTTPOnly).
-						Do(ctx)
+			err = chromedp.Do(browserCtx,
+				chromedp.Func(func(ctx context.Context, t *chromedp.Target) error {
+					_, err := cdp.Call(ctx, t, network.SetCookie, network.SetCookieParams{
+						Name:     params.Name,
+						Value:    params.Value,
+						Domain:   params.Domain,
+						Path:     path,
+						Secure:   &params.Secure,
+						HTTPOnly: &params.HTTPOnly,
+					})
+					return err
 				}),
 			)
 			if err != nil {
@@ -1065,9 +1067,10 @@ func (p *browserPack) clearCookiesTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			err = chromedp.Run(browserCtx,
-				chromedp.ActionFunc(func(ctx context.Context) error {
-					return network.ClearBrowserCookies().Do(ctx)
+			err = chromedp.Do(browserCtx,
+				chromedp.Func(func(ctx context.Context, t *chromedp.Target) error {
+					_, err := cdp.Call(ctx, t, network.ClearBrowserCookies, cdp.Empty{})
+					return err
 				}),
 			)
 			if err != nil {
@@ -1099,7 +1102,7 @@ func (p *browserPack) getURLTool() tool.Tool {
 			defer cancelTimeout()
 
 			var url string
-			if err := chromedp.Run(browserCtx, chromedp.Location(&url)); err != nil {
+			if err := chromedp.Do(browserCtx, into(&url, chromedp.Location())); err != nil {
 				return tool.Result{}, fmt.Errorf("get URL failed: %w", err)
 			}
 
@@ -1126,12 +1129,12 @@ func (p *browserPack) goBackTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			if err := chromedp.Run(browserCtx, chromedp.NavigateBack()); err != nil {
+			if err := chromedp.Do(browserCtx, chromedp.NavigateBack()); err != nil {
 				return tool.Result{}, fmt.Errorf("go back failed: %w", err)
 			}
 
 			var url string
-			if err := chromedp.Run(browserCtx, chromedp.Location(&url)); err != nil {
+			if err := chromedp.Do(browserCtx, into(&url, chromedp.Location())); err != nil {
 				return tool.Result{}, fmt.Errorf("get URL failed: %w", err)
 			}
 
@@ -1159,12 +1162,12 @@ func (p *browserPack) goForwardTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			if err := chromedp.Run(browserCtx, chromedp.NavigateForward()); err != nil {
+			if err := chromedp.Do(browserCtx, chromedp.NavigateForward()); err != nil {
 				return tool.Result{}, fmt.Errorf("go forward failed: %w", err)
 			}
 
 			var url string
-			if err := chromedp.Run(browserCtx, chromedp.Location(&url)); err != nil {
+			if err := chromedp.Do(browserCtx, into(&url, chromedp.Location())); err != nil {
 				return tool.Result{}, fmt.Errorf("get URL failed: %w", err)
 			}
 
@@ -1199,7 +1202,7 @@ func (p *browserPack) reloadTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			if err := chromedp.Run(browserCtx, chromedp.Reload()); err != nil {
+			if err := chromedp.Do(browserCtx, chromedp.Reload()); err != nil {
 				return tool.Result{}, fmt.Errorf("reload failed: %w", err)
 			}
 
@@ -1245,14 +1248,15 @@ func (p *browserPack) setViewportTool() tool.Tool {
 				deviceScale = 1.0
 			}
 
-			err = chromedp.Run(browserCtx,
-				chromedp.ActionFunc(func(ctx context.Context) error {
-					return emulation.SetDeviceMetricsOverride(
-						int64(params.Width),
-						int64(params.Height),
-						deviceScale,
-						params.Mobile,
-					).Do(ctx)
+			err = chromedp.Do(browserCtx,
+				chromedp.Func(func(ctx context.Context, t *chromedp.Target) error {
+					_, err := cdp.Call(ctx, t, emulation.SetDeviceMetricsOverride, emulation.SetDeviceMetricsOverrideParams{
+						Width:             int64(params.Width),
+						Height:            int64(params.Height),
+						DeviceScaleFactor: deviceScale,
+						Mobile:            params.Mobile,
+					})
+					return err
 				}),
 			)
 			if err != nil {
@@ -1298,14 +1302,14 @@ func (p *browserPack) pdfTool() tool.Tool {
 			browserCtx, cancelTimeout := context.WithTimeout(browserCtx, p.cfg.Timeout)
 			defer cancelTimeout()
 
-			var actions []chromedp.Action
+			var actions []action
 			if params.URL != "" {
 				actions = append(actions, chromedp.Navigate(params.URL))
 				actions = append(actions, chromedp.WaitReady("body"))
 			}
 
 			var buf []byte
-			actions = append(actions, chromedp.ActionFunc(func(ctx context.Context) error {
+			actions = append(actions, chromedp.Func(func(ctx context.Context, t *chromedp.Target) error {
 				paperWidth := params.PaperWidth
 				if paperWidth <= 0 {
 					paperWidth = 8.5 // Letter
@@ -1319,18 +1323,18 @@ func (p *browserPack) pdfTool() tool.Tool {
 					scale = 1.0
 				}
 
-				var err error
-				buf, _, err = page.PrintToPDF().
-					WithLandscape(params.Landscape).
-					WithPrintBackground(params.PrintBackground).
-					WithScale(scale).
-					WithPaperWidth(paperWidth).
-					WithPaperHeight(paperHeight).
-					Do(ctx)
+				res, err := cdp.Call(ctx, t, page.PrintToPDF, page.PrintToPDFParams{
+					Landscape:       &params.Landscape,
+					PrintBackground: &params.PrintBackground,
+					Scale:           scale,
+					PaperWidth:      paperWidth,
+					PaperHeight:     paperHeight,
+				})
+				buf = res.Data
 				return err
 			}))
 
-			if err := chromedp.Run(browserCtx, actions...); err != nil {
+			if err := chromedp.Do(browserCtx, actions...); err != nil {
 				return tool.Result{}, fmt.Errorf("PDF generation failed: %w", err)
 			}
 
@@ -1343,8 +1347,3 @@ func (p *browserPack) pdfTool() tool.Tool {
 		}).
 		MustBuild()
 }
-
-// Ensure unused imports are valid
-var (
-	_ = dom.GetOuterHTMLReturns{}
-)
