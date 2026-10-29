@@ -6,7 +6,7 @@
 //
 // Usage:
 //
-//	q, err := rabbitmq.NewQueue(rabbitmq.Config{URL: "amqp://guest:guest@localhost:5672/"})
+//	q, err := rabbitmq.NewQueue(rabbitmq.Config{URL: "amqp://localhost:5672/"})
 //	defer q.Close()
 //	q.Enqueue(ctx, task)
 //	task, _ := q.Dequeue(ctx)
@@ -46,7 +46,8 @@ type Config struct {
 // DefaultConfig returns sensible defaults.
 func DefaultConfig() Config {
 	return Config{
-		URL:                "amqp://guest:guest@localhost:5672/",
+		// No userinfo: amqp091 falls back to the broker default credentials.
+		URL:                "amqp://localhost:5672/",
 		QueueName:          "agent-tasks",
 		DeadLetterExchange: "agent-dlx",
 		PrefetchCount:      1,
